@@ -3,230 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karakter Galerisi - Final</title>
+    <title>Karakter Galerisi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Uncial+Antiqua&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --md-sys-color-primary-rgb: 189, 179, 255;
-            --md-sys-color-primary: rgb(var(--md-sys-color-primary-rgb));
-            --md-sys-color-on-primary: #2d235c;
-            --md-sys-color-primary-container: #443a74;
-            --md-sys-color-on-primary-container: #e6deff;
-
-            --md-sys-color-fusion-rgb: 224, 179, 255;
-            --md-sys-color-fusion: rgb(var(--md-sys-color-fusion-rgb));
-            --md-sys-color-on-fusion: #490071;
-            --md-sys-color-fusion-container: #63009b;
-            --md-sys-color-on-fusion-container: #f4d9ff;
-
-            --md-sys-color-background: #131318;
-            --md-sys-color-on-background: #e5e1e6;
-            --md-sys-color-surface-container: #201f25;
-            --md-sys-color-surface-container-high: #2a2830;
-            --md-sys-color-on-surface: #e5e1e6;
-            --md-sys-color-on-surface-variant: #c8c4d0;
-            --md-sys-color-outline-variant: #48454e;
-        }
-
-        body.modal-open { overflow: hidden; }
         body {
-            font-family: 'Manrope', sans-serif;
-            background-color: var(--md-sys-color-background);
-            color: var(--md-sys-color-on-background);
-            position: relative;
-            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
         }
-        body::before {
-            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: 
-                radial-gradient(circle at 15% 25%, rgba(var(--md-sys-color-primary-rgb), 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 85% 65%, rgba(var(--md-sys-color-fusion-rgb), 0.12) 0%, transparent 45%);
-            z-index: -1;
-            animation: aurora-flow 20s infinite alternate ease-in-out;
-        }
-        @keyframes aurora-flow {
-            from { transform: translate(0, 0) rotate(0deg) scale(1.2); }
-            to { transform: translate(5vw, -5vh) rotate(10deg) scale(1.2); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #2d3748; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6a7280; cursor: pointer; }
+
+        .modal-backdrop {
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
 
-        .control-panel {
-            background-color: rgba(27, 27, 32, 0.7); 
-            backdrop-filter: blur(12px); 
-            -webkit-backdrop-filter: blur(12px); 
-            border: 1px solid rgba(146, 143, 153, 0.2);
+        .enlarged-image-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; cursor: zoom-out;
         }
-        .chip {
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 8px 16px; border-radius: 20px; font-weight: 600;
-            border: 1px solid var(--md-sys-color-outline-variant);
-            background-color: var(--md-sys-color-surface-container-high);
-            color: var(--md-sys-color-on-surface-variant);
-            transition: all 0.2s ease-in-out;
-        }
-        .chip:hover {
-            background-color: var(--md-sys-color-surface-container-highest);
-            border-color: var(--md-sys-color-on-surface-variant);
-        }
-        .chip.selected {
-            background-color: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
-            border-color: var(--md-sys-color-primary);
-            font-weight: 700;
+        .enlarged-image {
+            max-width: 90%; max-height: 90%;
+            object-fit: contain; border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
         }
 
-        #character-grid { display: grid; gap: 1.5rem; justify-content: center; }
-        .character-card {
-            background-color: var(--md-sys-color-surface-container);
-            border-radius: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-            overflow: hidden; position: relative; opacity: 0;
-            transform: translateY(30px) scale(0.98);
-            animation: card-fade-in 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
-            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease;
+        h1.main-title {
+            font-family: 'Cinzel Decorative', cursive;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
-        @keyframes card-fade-in { to { opacity: 1; transform: translateY(0) scale(1); } }
-        .character-card:hover { box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
-        .character-card-image-wrapper { aspect-ratio: 3 / 4; width: 100%; overflow: hidden; border-radius: 18px; }
-        .character-card-image { object-fit: cover; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
-        .character-card:hover .character-card-image { transform: scale(1.1); }
-        .character-name { color: var(--md-sys-color-on-surface); }
-        
-        .fusion-card .character-name { color: var(--md-sys-color-on-fusion-container); }
-        .fusion-stars .material-symbols-outlined { animation: star-glow-pulse 1.5s infinite alternate; }
-        @keyframes star-glow-pulse {
-            from { text-shadow: 0 0 4px #fff, 0 0 8px var(--md-sys-color-fusion), 0 0 12px var(--md-sys-color-fusion); transform: scale(1); }
-            to { text-shadow: 0 0 8px #fff, 0 0 16px var(--md-sys-color-fusion), 0 0 24px var(--md-sys-color-fusion); transform: scale(1.1); }
+        #modal-character-name, #modal-fusion-name {
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         }
         
-        /* DÜZELTME: Yeni fantastik font için kural eklendi */
-        .font-fantastical-fusion {
-            font-family: 'Metamorphous', serif;
+        .font-fusion {
+            font-family: 'Uncial Antiqua', cursive;
+            text-shadow: 1px 1px 3px rgba(167, 139, 250, 0.4);
+        }
+        
+        .zoom-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .zoom-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            line-height: 1;
+            width: 36px;
+            height: 36px;
         }
 
-        .m3-dialog-backdrop { z-index: 1000; }
-        .m3-dialog-container {
-            background-color: rgba(32, 31, 37, 0.85);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(146, 143, 153, 0.2);
-            border-radius: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            /* DÜZELTME: Dikey boşluk sorununu çözmek için 'height' kaldırıldı */
-            height: 100%; /* Kenar boşluğu p-2 (0.5rem*2) ile uyumlu */
-            max-width: 95vw; width: 1200px;
-            display: flex; flex-direction: column;
-            opacity: 0; transform: scale(0.95) translateY(10px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            position: relative;
+        .glow-purple {
+            box-shadow: 
+                0 0 8px rgba(167, 139, 250, 0.6),
+                0 0 20px rgba(167, 139, 250, 0.4),
+                0 0 40px rgba(167, 139, 250, 0.2);
         }
-        .m3-dialog-content { overflow-y: auto; min-height: 0; }
-        .m3-dialog-container.visible { opacity: 1; transform: scale(1) translateY(0); }
-        .m3-dialog-footer { display:flex; justify-content: space-between; align-items: center; }
-        .modal-nav-button { display: flex; align-items: center; gap: 8px; color: var(--md-sys-color-on-surface-variant); border-radius: 99px; padding: 4px; }
         
-        .fusion-modal-background { position: relative; overflow: hidden; }
-        .fusion-modal-background::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at 50% 100%, rgba(var(--md-sys-color-fusion-rgb), 0.6) 0%, transparent 70%);
-            animation: prism-pulse 5s infinite alternate ease-in-out;
-            z-index: -1;
+        @keyframes text-pulse-glow {
+            0% { filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.8)); }
+            50% { filter: drop-shadow(0 0 12px rgba(167, 139, 250, 1.0)) drop-shadow(0 0 20px rgba(167, 139, 250, 0.6)); }
+            100% { filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.8)); }
         }
-        @keyframes prism-pulse { from { transform: scale(2); opacity: 1; } to { transform: scale(1.5); opacity: 1; } }
-        .fusion-partner-card { border: 2px solid var(--md-sys-color-fusion); }
-        .enlarged-image-container { z-index: 1100; position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.85); }
-        /* DÜZELTME: Büyüyen resmin etrafındaki boşluk azaltıldı */
-        .enlarged-image { max-width: 96%; max-height: 96%; object-fit: contain; }
-        .icon-button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background-color: transparent; color: var(--md-sys-color-on-surface-variant); cursor: pointer; transition: all 0.2s; }
-        .icon-button:hover { background-color: rgba(var(--md-sys-color-primary-rgb), 0.08); }
-        .icon-button.active { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
-        .icon-button.active:hover { background-color: var(--md-sys-color-primary); }
-        .ripple-effect { position: relative; overflow: hidden; }
-        .ripple { position: absolute; border-radius: 50%; background-color: rgba(255, 255, 255, 0.3); transform: scale(0); animation: ripple-animation 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); pointer-events: none; }
-        @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
-        #character-grid.grid-fade-out { opacity: 0; transition: opacity 0.2s ease-out; }
-        .modal-transform-paused { transform: none !important; }
+
+        .glow-text-purple-animated {
+            animation: text-pulse-glow 1.5s infinite alternate;
+        }
+
+        .fusion-modal-background-glow {
+            box-shadow: 
+                inset 0 0 20px rgba(167, 139, 250, 0.3),
+                0 0 25px rgba(167, 139, 250, 0.5),
+                0 0 50px rgba(167, 139, 250, 0.2);
+            background: radial-gradient(circle at center, rgba(167, 139, 250, 0.1) 0%, rgba(94, 234, 212, 0.05) 50%, rgba(68, 76, 94, 0) 100%), 
+                        linear-gradient(135deg, #5a2a7a 0%, #3a1a4a 100%);
+        }
+
+        #character-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(var(--grid-min-card-width), var(--grid-max-card-width)));
+            justify-content: center;
+        }
+
+        .character-card-image {
+            width: 100%;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* DEĞİŞİKLİK: İsim kısaltma sorunu için max-width eklendi */
+        .character-name-ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%; /* Sığmayan isimlerin taşmasını engeller */
+        }
+        
+        .control-group-bg {
+            background-color: #3b82f6;
+        }
+        .control-group-bg.hover-effect:hover {
+            background-color: #2563eb;
+        }
+
+        #fitToScreenToggleBtn {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        #fitToScreenToggleBtn.active {
+            background-color: #10b981;
+            color: white;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+        }
+        #fitToScreenToggleBtn:not(.active) {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .modal-nav-button {
+            @apply px-4 py-2 rounded-full text-lg font-semibold transition-all duration-300 ease-in-out;
+            @apply bg-gray-600 text-gray-200 shadow-md hover:bg-gray-500;
+        }
+        .modal-nav-button:disabled {
+            @apply opacity-50 cursor-not-allowed;
+        }
+
+        .modal-nav-text {
+            @apply text-gray-300 text-sm md:text-md whitespace-nowrap overflow-hidden text-overflow-ellipsis max-w-[120px] md:max-w-[180px];
+        }
+
     </style>
 </head>
-<body class="p-4 sm:p-6 md:p-8">
-
-    <div id="app" class="max-w-screen-2xl mx-auto">
+<body class="p-4 md:p-8">
+    <div id="app" class="max-w-7xl mx-auto bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 relative">
         
-        <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi</h1>
-            <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet</p>
-        </header>
+        <div class="flex justify-between items-center mb-8 flex-wrap">
+            <h1 class="text-4xl font-extrabold text-center text-indigo-400 main-title mb-4 sm:mb-0">Karakter Galerisi</h1>
+        </div>
 
-        <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
-            <div id="filter-chips" class="flex flex-wrap justify-center gap-2">
-                <button id="show-all-btn" class="chip selected ripple-effect"><span class="material-symbols-outlined">apps</span>Tümü</button>
-                <button id="show-1-star-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-orange-400">filter_1</span>1 ★</button>
-                <button id="show-2-star-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-slate-400">filter_2</span>2 ★</button>
-                <button id="show-3-star-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-amber-400">filter_3</span>3 ★</button>
-                <button id="show-fusion-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-fuchsia-400">auto_awesome</span>Füzyon</button>
-            </div>
-            <div class="hidden sm:block w-px h-8" style="background-color: var(--md-sys-color-outline-variant);"></div>
-            <div class="flex items-center justify-center gap-2 p-1 rounded-full" style="background-color: var(--md-sys-color-surface-container-high);">
-                <button id="zoom-out-btn" class="icon-button ripple-effect" aria-label="Galeri Kartlarını Küçült"><span class="material-symbols-outlined">zoom_out</span></button>
-                <span id="current-size-label" class="text-sm font-semibold w-8 text-center" style="color: var(--md-sys-color-on-surface);">4</span>
-                <button id="zoom-in-btn" class="icon-button ripple-effect" aria-label="Galeri Kartlarını Büyüt"><span class="material-symbols-outlined">zoom_in</span></button>
-                <button id="fitToScreenToggleBtn" class="icon-button ripple-effect" aria-label="Daha Fazla Sığdır Modu">
-                    <span class="material-symbols-outlined">auto_awesome_mosaic</span>
+        <div class="flex flex-wrap justify-center space-x-2 md:space-x-4 mb-8">
+            <button id="show-1-star-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600 mb-2">
+                <span class="text-orange-400">★</span>
+            </button>
+            <button id="show-2-star-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600 mb-2">
+                <span class="text-gray-400">★★</span>
+            </button>
+            <button id="show-3-star-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600 mb-2">
+                <span class="text-yellow-400">★★★</span>
+            </button>
+            <button id="show-fusion-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600 mb-2">
+                <span class="text-purple-400">★★★★</span>
+            </button>
+            <button id="show-all-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-indigo-600 text-white shadow-md hover:bg-indigo-700 mb-2">
+                Tüm Karakterler
+            </button>
+
+            <div id="image-size-controls" class="flex items-center space-x-2 px-1 rounded-full shadow-md mb-2 control-group-bg"> 
+                <button id="zoom-out-btn" class="zoom-btn rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all" aria-label="Galeri Kartlarını Küçült">
+                    &#x2212; 
+                </button>
+                <span id="current-size-label" class="text-sm font-semibold w-8 text-center text-white">4</span> 
+                <button id="zoom-in-btn" class="zoom-btn rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all" aria-label="Galeri Kartlarını Büyüt">
+                    &#x2B; 
                 </button>
             </div>
+
+            <button id="fitToScreenToggleBtn" class="rounded-full w-10 h-10 shadow-md hover-effect transition duration-300 ease-in-out mb-2" aria-label="Daha Fazla Karakter Göster / Normal Mod">
+                &#9638; 
+            </button>
+            
+            <div id="columns-slider-container" class="mt-2 w-full hidden"> 
+                <label for="column-count-slider" class="block text-gray-200 font-medium mb-1 text-center text-sm">Yan Yana Sığacak Kart: <span id="column-count-value">4</span></label>
+                <input type="range" id="column-count-slider" min="2" max="6" value="4" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+            </div>
+            
         </div>
 
-        <main id="character-grid"></main>
-    </div>
+        <div id="character-grid">
+            </div>
 
-    <div id="character-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeCharacterModal()">
-        <div class="m3-dialog-container" id="character-modal-content" onclick="event.stopPropagation()">
-            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeCharacterModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
-            <header class="m3-dialog-header p-4 flex-shrink-0">
-                <h2 id="modal-character-name" class="m3-dialog-title text-3xl font-bold">Karakter Adı</h2>
-            </header>
-            <div class="m3-dialog-content px-4 flex-grow">
-                <p id="modal-character-description" class="text-lg mb-8" style="color: var(--md-sys-color-on-surface-variant);"></p>
-                <h3 class="text-xl font-bold mb-4" style="color: var(--md-sys-color-on-surface);">Evrimler</h3>
-                <div id="modal-evolutions" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8"></div>
-                <div id="modal-fusions" class="hidden">
-                    <h3 class="text-xl font-bold mb-4" style="color: var(--md-sys-color-fusion);">Katıldığı Füzyonlar</h3>
-                    <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+        <div id="character-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden flex items-center justify-center p-4 z-50 overflow-y-auto" onclick="closeCharacterModal()">
+           <div class="bg-gray-700 rounded-xl shadow-2xl p-6 w-full h-full transform transition-all duration-300 ease-out scale-95 opacity-0 overflow-y-auto flex flex-col" id="character-modal-content" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                    <h2 id="modal-character-name" class="text-3xl font-bold text-indigo-400 text-center flex-grow mx-2"></h2>
+                    <button class="text-gray-400 hover:text-gray-200 text-4xl font-light" onclick="closeCharacterModal()" aria-label="Karakter Detaylarını Kapat">&times;</button>
+                </div>
+                
+                <div class="flex-grow overflow-y-auto pr-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="flex flex-col col-span-full">
+                            <h3 class="text-2xl font-semibold text-indigo-400 border-b pb-2 mb-2">Açıklama:</h3>
+                            <p id="modal-character-description" class="text-gray-200 mb-4"></p>
+                        </div>
+                        <div id="modal-evolutions" class="col-span-full flex flex-wrap justify-center gap-4 mb-6"></div>
+                    </div>
+                    <div id="modal-fusions" class="mt-6">
+                        <h3 class="text-2xl font-semibold text-indigo-400 border-b pb-2 mb-4">Katıldığı Füzyonlar:</h3>
+                        <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-600 flex-shrink-0">
+                    <div class="flex items-center space-x-2">
+                        <button id="prev-char-btn" class="modal-nav-button text-xl" aria-label="Önceki Karakter">&#8592;</button>
+                        <span id="prev-char-name" class="modal-nav-text"></span>
+                    </div>
+                    <div class="flex items-center space-x-2 justify-end">
+                        <span id="next-char-name" class="modal-nav-text text-right"></span>
+                        <button id="next-char-btn" class="modal-nav-button text-xl" aria-label="Sonraki Karakter">&#8594;</button>
+                    </div>
                 </div>
             </div>
-            <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
-                <button id="prev-char-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-char-name" class="modal-nav-text font-semibold">Önceki</span></button>
-                <button id="next-char-btn" class="modal-nav-button ripple-effect"><span id="next-char-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
-            </footer>
         </div>
-    </div>
-    <div id="fusion-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeFusionModal()">
-        <div class="m3-dialog-container fusion-modal-background" id="fusion-modal-content" onclick="event.stopPropagation()">
-            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeFusionModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
-            <header class="m3-dialog-header p-4 flex-shrink-0">
-                <h2 id="modal-fusion-name" class="m3-dialog-title text-3xl font-bold" style="color: var(--md-sys-color-fusion);">Füzyon Adı</h2>
-            </header>
-            <div class="m3-dialog-content px-4 flex-grow">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-                    <div class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-left-char-image" src="" alt="Sol Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-left-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-left-char-star" class="text-lg font-medium"></p></div>
-                    <div class="flex flex-col items-center text-center lg:col-span-1"><img id="modal-fusion-image" src="" alt="Füzyon Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl"><p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p></div>
-                    <div class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-right-char-image" src="" alt="Sağ Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-right-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-right-char-star" class="text-lg font-medium"></p></div>
+
+        <div id="fusion-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden flex items-center justify-center p-4 z-50 overflow-y-auto" onclick="closeFusionModal()">
+            <div class="bg-gray-700 rounded-xl shadow-2xl p-6 w-full h-full transform transition-all duration-300 ease-out scale-95 opacity-0 overflow-y-auto flex flex-col" id="fusion-modal-content" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                    <h2 id="modal-fusion-name" class="text-3xl font-bold text-indigo-400 text-center flex-grow mx-2"></h2>
+                    <button class="text-gray-400 hover:text-gray-200 text-4xl font-light" onclick="closeFusionModal()" aria-label="Füzyon Detaylarını Kapat">&times;</button>
                 </div>
-                 <p id="modal-fusion-description" class="text-lg mt-8 text-center max-w-4xl mx-auto" style="color: var(--md-sys-color-on-surface-variant);"></p>
+                
+                <div class="flex-grow overflow-y-auto pr-2">
+                    <h3 class="text-2xl font-semibold text-indigo-400 border-b pb-2 mb-2">Açıklama:</h3>
+                    <p id="modal-fusion-description" class="text-gray-200 mb-6"></p>
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+                        <div class="flex flex-col items-center text-center cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition duration-200" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
+                            <img id="modal-fusion-left-char-image" src="" alt="Sol Karakter" class="object-contain rounded-lg border-4 border-indigo-500 shadow-md">
+                            <p id="modal-fusion-left-char-name" class="mt-2 text-lg font-semibold text-gray-200"></p>
+                            <p class="text-lg font-medium text-gray-200" id="modal-fusion-left-char-star"></p>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <img id="modal-fusion-image" src="" alt="Füzyon Resmi" class="w-full h-auto object-contain rounded-lg shadow-md cursor-zoom-in" onclick="enlargeImage(this.src)">
+                            <p id="modal-fusion-star" class="text-xl font-semibold text-gray-200 mt-2"></p>
+                        </div>
+                        <div class="flex flex-col items-center text-center cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition duration-200" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
+                            <img id="modal-fusion-right-char-image" src="" alt="Sağ Karakter" class="object-contain rounded-lg border-4 border-indigo-500 shadow-md">
+                            <p id="modal-fusion-right-char-name" class="mt-2 text-lg font-semibold text-gray-200"></p>
+                            <p class="text-lg font-medium text-gray-200" id="modal-fusion-right-char-star"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-600 flex-shrink-0">
+                    <div class="flex items-center space-x-2">
+                        <button id="prev-fusion-btn" class="modal-nav-button text-xl" aria-label="Önceki Füzyon">&#8592;</button>
+                        <span id="prev-fusion-name" class="modal-nav-text"></span>
+                    </div>
+                    <div class="flex items-center space-x-2 justify-end">
+                        <span id="next-fusion-name" class="modal-nav-text text-right"></span>
+                        <button id="next-fusion-btn" class="modal-nav-button text-xl" aria-label="Sonraki Füzyon">&#8594;</button>
+                    </div>
+                </div>
             </div>
-            <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
-                 <button id="prev-fusion-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="modal-nav-text font-semibold">Önceki</span></button>
-                <button id="next-fusion-btn" class="modal-nav-button ripple-effect"><span id="next-fusion-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
-            </footer>
         </div>
+
+        <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()">
+            <button class="absolute top-4 right-4 text-gray-200 hover:text-white text-5xl font-light z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat">&times;</button>
+            <img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image">
+        </div>
+
     </div>
-    <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()"><button class="icon-button absolute top-4 right-4 text-white text-4xl z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat"><span class="material-symbols-outlined" style="font-size: 36px;">close</span></button><img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image"></div>
 
     <script>
-        const FUSION_STAR_COLOR_CLASS = 'text-fuchsia-400';
-        const THREE_STAR_COLOR_CLASS = 'text-amber-400';
-        const TWO_STAR_COLOR_CLASS = 'text-slate-400';
-        const ONE_STAR_COLOR_CLASS = 'text-orange-400';
+        const FUSION_BACKGROUND_COLOR = '#5a2a7a'; 
+        const FUSION_STAR_COLOR_CLASS = 'text-purple-400'; 
+        const THREE_STAR_COLOR_CLASS = 'text-yellow-400'; 
+
         const characters = [
             // SADECE TEMEL KARAKTERLER (IDleri artık sayısız)
             { id: 'buyucu', name: 'Büyücü', description: 'Güçlü büyüleriyle öne çıkan bu sarışın büyücü, zarif ve cüretkar kıyafetleriyle dikkat çekerken, mistik pembe büyülerle düşmanlarına korku salar.', star: 1, imageUrl: 'https://i.ibb.co/WW3DSjgT/b-y-c-1.jpg', 
@@ -281,7 +336,7 @@
                 evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/6cw94xmS/aman2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Z6qgBHf6/aman3.jpg' }] },
             
             // FÜZYON KARAKTERLERİ
-            { id: 'cadı', name: 'Cadı', description: 'Hem karanlığın mistik bilgeliğini hem de kutsal ışığın gücünü barındıran bu melez büyü-rahibe, her adımıyla kadim bir dengeyi ve sınırsız bir potiyeli temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/HfmJN43L/kaos-cad-s.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
+            { id: 'cadı', name: 'Cadı', description: 'Hem karanlığın mistik bilgeliğini hem de kutsal ışığın gücünü barındıran bu melez büyü-rahibe, her adımıyla kadim bir dengeyi ve sınırsız bir potansiyeli temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/HfmJN43L/kaos-cad-s.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
             { id: 'kozmik-dansci', name: 'Kozmik Dansçı', description: 'Yıldızların ritmiyle evreni adımlayan bu göksel dansçı, kehanetin fısıltılarıyla dans ederken kozmik enerjiyi zarafetle şekillendirir.', star: 4, imageUrl: 'https://i.ibb.co/whpyGMMQ/kozmik-yolcu.jpg', isFusion: true, fusionPartners: ['dansoz', 'falci'] },
             { id: 'siren', name: 'Batık Hazine', description: 'Derin denizlerin baştan çıkarıcı şarkısıyla korsanların cüretkar ruhunu birleştiren bu siren, dalgalardan yükselerek hem cazibeyi hem de tehlikeyi çağırır.', star: 4, imageUrl: 'https://i.ibb.co/bg50BngT/indir-36.jpg', isFusion: true, fusionPartners: ['dansoz', 'korsan'] },
             { id: 'valkur', name: 'Valkür', description: 'Göksel bir savaş narasıyla ilahi gücü harmanlayan bu Valkür, kutsal bir gazapla savaş meydanına inen, hem koruyucu hem de yıkıcı bir melektir.', star: 4, imageUrl: 'https://i.ibb.co/cXbXcnqf/valk-r.jpg', isFusion: true, fusionPartners: ['rahibe', 'savasci'] },
@@ -314,352 +369,527 @@
             { id: 'oluler-dusesi', name: 'Oluler Dusesi', description: 'Bir vampirin olumsuz kaniyla muhurlenmis, en karanlik saman rituelerinin efendisidir. O, ruhlara sadece fisildamaz, onlara kanla hukumder ve mezarlarindan kaldirdigi sadik ordusuyla gecenin sessizligini bozar.', star: 4, imageUrl: 'https://i.ibb.co/q3sCty58/indir-30.jpg', isFusion: true, fusionPartners: ['saman', 'vampir'] },
             { id: 'meka-gladyator', name: 'Meka Gladyator', description: 'Bir parali askerin sarsilmaz iradesi, bir mekanigin dahiyane zekasiyla birleştiginde, etle makinenin kusursuz bir uyumla dans ettigi bu durdurulamaz savasci dogdu. O, hem kendi bedeninin hem de dovustugu celigin mutlak efendisidir.', star: 4, imageUrl: 'https://i.ibb.co/W4G1wrsr/indir-28.jpg', isFusion: true, fusionPartners: ['mekanik', 'paraliasker'] },
             { id: 'dovus-kesisi', name: 'Dovus Kesisi', description: 'O, ne bir dansci ne de sadece bir savasci; o, bedenini atalarinin savasci ruhlarina teslim eden, her adimi olumcul bir ritual olan bir saman. Dervisin durdurulamaz donusu, onun icin ruhlar alemine acilan bir kapidir.', star: 4, imageUrl: 'https://i.ibb.co/3yz8myZt/indir-33.jpg', isFusion: true, fusionPartners: ['dervis', 'saman'] },
-        ];
-
-        const dom = {};
-        const state = {
-            galleryMode: 'all',
-            imageSizeIndex: 3,
-            isFitToScreenMode: true,
-            currentModalCharId: null,
-            currentModalType: null, 
-            uniqueNavigableList: [],
-        };
-
-        const sizeProfiles = [
-            { name: '1', minCardWidth: '170px', modalImageSize: 'w-40' }, 
-            { name: '2', minCardWidth: '220px', modalImageSize: 'w-52' },
-            { name: '3', minCardWidth: '270px', modalImageSize: 'w-64' }, 
-            { name: '4', minCardWidth: '320px', modalImageSize: 'w-80' },
-            { name: '5', minCardWidth: '370px', modalImageSize: 'w-96' },
-            { name: '6', minCardWidth: '420px', modalImageSize: 'w-[26rem]' }
-        ];
-
-        const getStarEmojis = (isFusion, starCount) => {
-            const colors = { 1: ONE_STAR_COLOR_CLASS, 2: TWO_STAR_COLOR_CLASS, 3: THREE_STAR_COLOR_CLASS, 4: FUSION_STAR_COLOR_CLASS };
-            const starIcon = `<span class="material-symbols-outlined ${colors[starCount]}" style="font-variation-settings: 'FILL' 1;">star</span>`;
-            const starHtml = Array(starCount).fill(starIcon).join('');
-            return isFusion ? `<div class="flex fusion-stars">${starHtml}</div>` : `<div class="flex">${starHtml}</div>`;
-        };
+        ]; 
         
-        const get3StarImageUrl = (baseCharId) => {
-            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
-            const threeStarEvo = baseChar?.evolutions.find(e => e.star === 3);
-            return threeStarEvo ? threeStarEvo.imageUrl : '';
+        const characterGrid = document.getElementById('character-grid');
+        const filterButtons = {
+            oneStar: document.getElementById('show-1-star-btn'),
+            twoStar: document.getElementById('show-2-star-btn'),
+            threeStar: document.getElementById('show-3-star-btn'),
+            fusion: document.getElementById('show-fusion-btn'),
+            all: document.getElementById('show-all-btn'),
         };
+        const characterModal = {
+            element: document.getElementById('character-modal'),
+            content: document.getElementById('character-modal-content'),
+            name: document.getElementById('modal-character-name'),
+            description: document.getElementById('modal-character-description'),
+            evolutions: document.getElementById('modal-evolutions'),
+            fusionsContainer: document.getElementById('modal-fusions'),
+            fusionList: document.getElementById('fusion-list'),
+            prevBtn: document.getElementById('prev-char-btn'),
+            nextBtn: document.getElementById('next-char-btn'),
+            prevName: document.getElementById('prev-char-name'),
+            nextName: document.getElementById('next-char-name'),
+        };
+        const fusionModal = {
+            element: document.getElementById('fusion-modal'),
+            content: document.getElementById('fusion-modal-content'),
+            name: document.getElementById('modal-fusion-name'),
+            description: document.getElementById('modal-fusion-description'),
+            image: document.getElementById('modal-fusion-image'),
+            star: document.getElementById('modal-fusion-star'),
+            leftChar: {
+                image: document.getElementById('modal-fusion-left-char-image'),
+                name: document.getElementById('modal-fusion-left-char-name'),
+                starDisplay: document.getElementById('modal-fusion-left-char-star'), 
+                container: document.getElementById('modal-fusion-left-char-image').parentElement
+            },
+            rightChar: {
+                image: document.getElementById('modal-fusion-right-char-image'),
+                name: document.getElementById('modal-fusion-right-char-name'),
+                starDisplay: document.getElementById('modal-fusion-right-char-star'), 
+                container: document.getElementById('modal-fusion-right-char-image').parentElement
+            },
+            prevBtn: document.getElementById('prev-fusion-btn'),
+            nextBtn: document.getElementById('next-fusion-btn'),
+            prevName: document.getElementById('prev-fusion-name'),
+            nextName: document.getElementById('next-fusion-name'),
+        };
+        const enlargedImageOverlay = document.getElementById('enlarged-image-overlay');
+        const enlargedImage = document.getElementById('enlarged-image');
+        
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const currentSizeLabel = document.getElementById('current-size-label');
 
-        const getCharacterImageUrlByStar = (baseCharId, star) => {
+        const fitToScreenToggleBtn = document.getElementById('fitToScreenToggleBtn'); 
+        const columnsSliderContainer = document.getElementById('columns-slider-container');
+        const columnCountSlider = document.getElementById('column-count-slider');
+        const columnCountValue = document.getElementById('column-count-value');
+
+        let galleryMode = 'all';
+        let imageSizeIndex = 3; 
+        let isFitToScreenMode = true; 
+        let dynamicColumnCount = 4; 
+
+        let currentModalCharId = null;
+        let currentModalDisplayStar = null; 
+        let currentModalType = null; 
+        let uniqueNavigableList = [];
+
+        let sizeProfiles = [
+            { name: '1', minCardWidth: '160px', maxCardWidth: '180px', baseColumnCount: 2, evolutionBox: 'w-56 h-auto', fusionThumb: 'w-40 h-auto', fusionPartner: 'w-64 h-auto', fusionMainMaxH: 'max-h-96' },
+            { name: '2', minCardWidth: '200px', maxCardWidth: '220px', baseColumnCount: 2, evolutionBox: 'w-64 h-auto', fusionThumb: 'w-44 h-auto', fusionPartner: 'w-72 h-auto', fusionMainMaxH: 'max-h-[28rem]' },
+            { name: '3', minCardWidth: '240px', maxCardWidth: '260px', baseColumnCount: 3, evolutionBox: 'w-72 h-auto', fusionThumb: 'w-48 h-auto', fusionPartner: 'w-80 h-auto', fusionMainMaxH: 'max-h-[32rem]' },
+            { name: '4', minCardWidth: '280px', maxCardWidth: '300px', baseColumnCount: 4, evolutionBox: 'w-80 h-auto', fusionThumb: 'w-56 h-auto', fusionPartner: 'w-96 h-auto', fusionMainMaxH: 'max-h-[36rem]' },
+            { name: '5', minCardWidth: '320px', maxCardWidth: '340px', baseColumnCount: 5, evolutionBox: 'w-96 h-auto', fusionThumb: 'w-64 h-auto', fusionPartner: 'w-[28rem] h-auto', fusionMainMaxH: 'max-h-[40rem]' }
+        ];
+
+        function getStarEmojis(starCount, applyGlow = false) { 
+            const colors = { 
+                1: 'text-orange-400', 
+                2: 'text-gray-400', 
+                3: 'text-yellow-400', 
+                4: FUSION_STAR_COLOR_CLASS 
+            };
+            const glowClass = applyGlow ? 'glow-text-purple-animated' : ''; 
+            return Array(starCount).fill(`<span class="${colors[starCount]} text-2xl ${glowClass}">★</span>`).join('');
+        }
+
+        function getCharacterImageUrlByStar(baseCharId, star) {
             const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
             if (!baseChar) return '';
             if (star === 1) return baseChar.imageUrl;
             const evolution = baseChar.evolutions.find(e => e.star === star);
             return evolution ? evolution.imageUrl : '';
-        };
+        }
+
+        function get3StarImageUrl(baseCharId) {
+            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
+            if (!baseChar) return '';
+            const threeStarEvo = baseChar.evolutions.find(e => e.star === 3);
+            return threeStarEvo ? threeStarEvo.imageUrl : '';
+        }
 
         function renderCharacters() {
-            dom.characterGrid.classList.add('grid-fade-out');
-            setTimeout(() => {
-                dom.characterGrid.innerHTML = '';
-                dom.characterGrid.classList.remove('grid-fade-out');
+            characterGrid.innerHTML = '';
+            
+            if (isFitToScreenMode) {
+                characterGrid.style.setProperty('--grid-min-card-width', '0'); 
+                characterGrid.style.setProperty('--grid-max-card-width', '1fr'); 
+                characterGrid.style.gridTemplateColumns = `repeat(${dynamicColumnCount}, minmax(0, 1fr))`;
+            } else {
+                characterGrid.style.setProperty('--grid-min-card-width', sizeProfiles[imageSizeIndex].minCardWidth);
+                characterGrid.style.setProperty('--grid-max-card-width', sizeProfiles[imageSizeIndex].maxCardWidth);
+                characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(var(--grid-min-card-width), var(--grid-max-card-width)))`;
+            }
 
-                const gridContainerWidth = dom.characterGrid.offsetWidth;
-                const cardWidthPx = parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth, 10);
-                const gapPx = 24;
-                const baseColumnCount = Math.floor((gridContainerWidth + gapPx) / (cardWidthPx + gapPx)) || 1;
+            let allDisplayableCharacters = [];
+            let currentUniqueNavigableList = [];
 
-                if (state.isFitToScreenMode) {
-                    const moreColumnCount = Math.ceil(baseColumnCount * 1.5);
-                    dom.characterGrid.style.gridTemplateColumns = `repeat(${moreColumnCount}, minmax(0, 1fr))`;
-                } else {
-                    dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, ${sizeProfiles[state.imageSizeIndex].minCardWidth})`;
+            if (galleryMode === 'fusion') {
+                allDisplayableCharacters = characters.filter(char => char.isFusion);
+            } else if (galleryMode === 'all') {
+                characters.forEach(char => {
+                    if (!char.isFusion) { 
+                        allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl }); 
+                        if (char.evolutions) {
+                            char.evolutions.forEach(evo => {
+                                allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }); 
+                            });
+                        }
+                    } 
+                });
+                allDisplayableCharacters = allDisplayableCharacters.concat(characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})));
+
+            } else { 
+                allDisplayableCharacters = characters.filter(char => !char.isFusion && char.star === 1).flatMap(char => {
+                    if (galleryMode === '1-star') {
+                        return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
+                    } else if (galleryMode === '2-star') {
+                        const evo2 = char.evolutions.find(e => e.star === 2);
+                        return evo2 ? [{ ...char, displayStar: 2, displayImageUrl: evo2.imageUrl }] : [];
+                    } else if (galleryMode === '3-star') {
+                        const evo3 = char.evolutions.find(e => e.star === 3);
+                        return evo3 ? [{ ...char, displayStar: 3, displayImageUrl: evo3.imageUrl }] : [];
+                    }
+                    return [];
+                });
+            }
+            
+            allDisplayableCharacters.sort((a, b) => {
+                if (!a.isFusion && b.isFusion) return -1;
+                if (a.isFusion && !b.isFusion) return 1;
+                const nameCompare = a.name.localeCompare(b.name);
+                if (nameCompare !== 0) return nameCompare;
+                return a.displayStar - b.displayStar;
+            });
+
+            currentUniqueNavigableList = [];
+            const processedBaseCharIds = new Set();
+            characters.forEach(char => {
+                if (!char.isFusion && !processedBaseCharIds.has(char.id)) {
+                    currentUniqueNavigableList.push({ ...char, displayStar: 1 });
+                    processedBaseCharIds.add(char.id);
+                } else if (char.isFusion) {
+                    currentUniqueNavigableList.push(char);
                 }
+            });
 
-                let allDisplayableCharacters = [];
-                if (state.galleryMode === 'fusion') {
-                    allDisplayableCharacters = characters.filter(char => char.isFusion);
-                } else if (state.galleryMode === 'all') {
-                    characters.forEach(char => {
-                        if (!char.isFusion) { 
-                            allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl }); 
-                            char.evolutions?.forEach(evo => allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
-                        } 
-                    });
-                    allDisplayableCharacters.push(...characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})));
-                } else { 
-                    const starFilter = parseInt(state.galleryMode.split('-')[0]);
-                    allDisplayableCharacters = characters.filter(char => !char.isFusion).flatMap(char => {
-                        if (starFilter === 1) return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
-                        const evo = char.evolutions?.find(e => e.star === starFilter);
-                        return evo ? [{ ...char, displayStar: starFilter, displayImageUrl: evo.imageUrl }] : [];
-                    });
-                }
+            currentUniqueNavigableList.sort((a, b) => {
+                if (!a.isFusion && b.isFusion) return -1;
+                if (a.isFusion && !b.isFusion) return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            uniqueNavigableList = currentUniqueNavigableList;
+
+            if (allDisplayableCharacters.length === 0) {
+                characterGrid.innerHTML = '<p class="col-span-full text-center text-gray-400 text-lg">Gösterilecek karakter bulunamadı.</p>';
+                return;
+            }
+
+            allDisplayableCharacters.forEach(char => {
+                const card = document.createElement('div');
+                let borderColor = 'border-indigo-500'; 
+                let starCountToDisplay = char.displayStar || char.star; 
+                let glowClassForCard = ''; 
                 
-                allDisplayableCharacters.sort((a, b) => {
-                    if (a.isFusion !== b.isFusion) return a.isFusion ? 1 : -1;
-                    const nameCompare = a.name.localeCompare(b.name, 'tr');
-                    return nameCompare !== 0 ? nameCompare : (a.displayStar || a.star) - (b.displayStar || b.star);
-                });
-
-                state.uniqueNavigableList = characters
-                    .filter(c => c.star === 1 || c.isFusion)
-                    .sort((a, b) => (a.isFusion !== b.isFusion) ? (a.isFusion ? 1 : -1) : a.name.localeCompare(b.name, 'tr'));
-
-                if (allDisplayableCharacters.length === 0) {
-                    dom.characterGrid.innerHTML = `<p class="col-span-full text-center text-lg" style="color: var(--md-sys-color-on-surface-variant);">Bu filtrede gösterilecek karakter bulunamadı.</p>`;
-                    return;
+                if (char.isFusion) {
+                    borderColor = 'border-purple-500'; 
+                    glowClassForCard = 'glow-purple'; 
+                } else if (starCountToDisplay === 2) {
+                    borderColor = 'border-gray-500';
+                } else if (starCountToDisplay === 3) {
+                    borderColor = 'border-yellow-500';
+                } else if (starCountToDisplay === 1) { 
+                     borderColor = 'border-orange-400';
                 }
 
-                allDisplayableCharacters.forEach((char, index) => {
-                    const card = document.createElement('div');
-                    const isFusion = char.isFusion;
-                    card.className = `character-card ripple-effect flex flex-col cursor-pointer ${isFusion ? 'fusion-card' : ''}`;
-                    card.dataset.id = char.id;
-                    card.style.animationDelay = `${index * 40}ms`;
-                    card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id);
-                    
-                    const nameClass = isFusion ? 'font-fantastical-fusion' : '';
+                const nameClass = char.isFusion ? 'font-fusion' : '';
+                let imageUrlToDisplay = char.displayImageUrl || char.imageUrl; 
 
-                    card.innerHTML = `
-                        <div class="character-card-image-wrapper">
-                           <img src="${char.displayImageUrl || char.imageUrl}" alt="${char.name}" class="character-card-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x400/1B1B1F/E3E2E6?text=Resim+Yok';">
-                        </div>
-                        <div class="p-4 flex-grow flex flex-col justify-end">
-                            <h3 class="character-name text-lg font-bold truncate ${nameClass}">${char.name}</h3>
-                            <div class="flex mt-1">${getStarEmojis(isFusion, char.displayStar || char.star)}</div>
-                        </div>
-                    `;
-                    dom.characterGrid.appendChild(card);
-                });
-                addInteractiveEffects();
-            }, 200);
+                card.className = `relative rounded-xl shadow-lg p-4 flex flex-col items-center justify-between cursor-pointer transform hover:scale-105 transition duration-300 ease-in-out border-b-4 ${borderColor} ${glowClassForCard}`;
+                card.style.backgroundColor = char.isFusion ? FUSION_BACKGROUND_COLOR : '#4a5568';
+                card.dataset.id = char.id;
+                
+                card.onclick = () => {
+                    if (char.isFusion) {
+                        openFusionModal(char.id, 4);
+                    } else {
+                        openCharacterModal(char.id, 1);
+                    }
+                };
+
+                const starsHtml = getStarEmojis(starCountToDisplay, char.isFusion); 
+
+                card.innerHTML = `
+                    <img src="${imageUrlToDisplay}" alt="${char.name}" class="character-card-image rounded-lg mb-3 shadow-sm" loading="lazy" onerror="this.onerror=null;this.src=https://placehold.co/300x400/CCCCCC/000000?text=Resim+Yok;">
+                    <h3 class="text-xl font-semibold text-gray-100 mb-1 text-center character-name-ellipsis ${nameClass}">${char.name}</h3>
+                    <div class="flex">${starsHtml}</div>
+                `;
+                characterGrid.appendChild(card);
+            });
+            updateFilterButtons();
         }
 
-        function updateUI() {
-            Object.values(dom.filterChips).forEach(chip => chip.classList.remove('selected'));
-            const modeMap = { '1-star': 'oneStar', '2-star': 'twoStar', '3-star': 'threeStar', 'fusion': 'fusion', 'all': 'all' };
-            const activeChipKey = modeMap[state.galleryMode];
-            if (activeChipKey) dom.filterChips[activeChipKey].classList.add('selected');
-            dom.zoom.label.textContent = sizeProfiles[state.imageSizeIndex].name;
-            dom.zoom.outBtn.disabled = state.imageSizeIndex === 0;
-            dom.zoom.inBtn.disabled = state.imageSizeIndex === sizeProfiles.length - 1;
-            dom.layout.toggleBtn.classList.toggle('active', state.isFitToScreenMode);
+        function updateFilterButtons() {
+            Object.entries(filterButtons).forEach(([key, button]) => {
+                const modeMap = { oneStar: '1-star', twoStar: '2-star', threeStar: '3-star', fusion: 'fusion', all: 'all' };
+                if (galleryMode === modeMap[key]) {
+                    button.classList.add('bg-indigo-600', 'text-white');
+                    button.classList.remove('bg-gray-700', 'text-gray-200');
+                } else {
+                    button.classList.remove('bg-indigo-600', 'text-white');
+                    button.classList.add('bg-gray-700', 'text-gray-200');
+                }
+            });
         }
+        
+        function updateZoomControls() {
+            currentSizeLabel.textContent = sizeProfiles[imageSizeIndex].name;
+            zoomOutBtn.disabled = imageSizeIndex === 0;
+            zoomInBtn.disabled = imageSizeIndex === sizeProfiles.length - 1;
+        }
+
+        Object.entries(filterButtons).forEach(([key, button]) => {
+            const modeMap = { oneStar: '1-star', twoStar: '2-star', threeStar: '3-star', fusion: 'fusion', all: 'all' };
+            button.addEventListener('click', () => {
+                galleryMode = modeMap[key];
+                renderCharacters();
+            });
+        });
+        
+        zoomInBtn.addEventListener('click', () => {
+            if (imageSizeIndex < sizeProfiles.length - 1) {
+                imageSizeIndex++;
+                updateZoomControls();
+                renderCharacters();
+            }
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            if (imageSizeIndex > 0) {
+                imageSizeIndex--;
+                updateZoomControls();
+                renderCharacters();
+            }
+        });
 
         function openModal(modalElement, contentElement) {
-            document.body.classList.add('modal-open');
             modalElement.classList.remove('hidden');
-            modalElement.classList.add('flex');
-            setTimeout(() => contentElement.classList.add('visible'), 20);
+            setTimeout(() => contentElement.classList.remove('scale-95', 'opacity-0'), 50);
         }
 
         function closeModal(modalElement, contentElement) {
-            document.body.classList.remove('modal-open');
-            contentElement.classList.remove('visible');
-            setTimeout(() => {
-                modalElement.classList.add('hidden');
-                modalElement.classList.remove('flex');
-            }, 300);
-            state.currentModalCharId = null; 
-            state.currentModalType = null;
+            contentElement.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => modalElement.classList.add('hidden'), 300);
+            currentModalCharId = null; 
+            currentModalDisplayStar = null; 
+            currentModalType = null;
         }
 
-        function updateModalNavigation(id, type) {
-            state.currentModalCharId = id;
-            state.currentModalType = type;
-            const currentIndex = state.uniqueNavigableList.findIndex(item => item.id === id); 
-            const prevItem = currentIndex > 0 ? state.uniqueNavigableList[currentIndex - 1] : null;
-            const nextItem = currentIndex < state.uniqueNavigableList.length - 1 ? state.uniqueNavigableList[currentIndex + 1] : null;
-            const modal = type === 'character' ? dom.characterModal : dom.fusionModal;
+        function updateModalNavigation(id, type, displayStarAtClick) {
+            currentModalCharId = id;
+            currentModalType = type;
+            currentModalDisplayStar = displayStarAtClick; 
+
+            const listToNavigate = uniqueNavigableList;
+            const currentIndex = listToNavigate.findIndex(item => item.id === id); 
+
+            const prevItem = currentIndex > 0 ? listToNavigate[currentIndex - 1] : null;
+            const nextItem = currentIndex < listToNavigate.length - 1 ? listToNavigate[currentIndex + 1] : null;
+
+            const modalInfo = type === 'character' ? characterModal : fusionModal;
             
             const openNextOrPrev = (item) => {
-                const closeFunc = type === 'character' ? closeCharacterModal : closeFusionModal;
-                closeFunc();
-                setTimeout(() => item.isFusion ? openFusionModal(item.id) : openCharacterModal(item.id), 310);
+                if (item.isFusion) { openFusionModal(item.id, 4); } 
+                else { openCharacterModal(item.id, 1); }
             };
 
-            const setupNavControl = (control, nameSpan, item) => {
-                const action = item ? (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
-                control.disabled = !item;
-                control.onclick = action;
-                if (nameSpan) {
-                    nameSpan.textContent = item ? item.name : (control.id.startsWith('prev') ? 'Başlangıç' : 'Son');
-                    nameSpan.onclick = action;
-                    nameSpan.style.cursor = item ? 'pointer' : 'default';
-                }
-            };
+            const closeFunc = type === 'character' ? closeCharacterModal : closeFusionModal;
             
-            setupNavControl(modal.prevBtn, modal.prevName, prevItem);
-            setupNavControl(modal.nextBtn, modal.nextName, nextItem);
+            // Önceki Buton ve İsim
+            if (prevItem) {
+                const prevAction = (e) => {
+                    e.stopPropagation();
+                    closeFunc();
+                    setTimeout(() => openNextOrPrev(prevItem), 300); 
+                };
+                modalInfo.prevBtn.disabled = false;
+                modalInfo.prevName.textContent = prevItem.name;
+                modalInfo.prevBtn.onclick = prevAction;
+                // DEĞİŞİKLİK: Önceki ismini tıklanabilir yap
+                modalInfo.prevName.onclick = prevAction;
+                modalInfo.prevName.style.cursor = 'pointer';
+            } else {
+                modalInfo.prevBtn.disabled = true;
+                modalInfo.prevName.textContent = 'Yok';
+                modalInfo.prevBtn.onclick = null;
+                 // DEĞİŞİKLİK: Tıklama özelliğini kaldır
+                modalInfo.prevName.onclick = null;
+                modalInfo.prevName.style.cursor = 'default';
+            }
+
+            // Sonraki Buton ve İsim
+            if (nextItem) {
+                const nextAction = (e) => {
+                    e.stopPropagation();
+                    closeFunc();
+                    setTimeout(() => openNextOrPrev(nextItem), 300);
+                };
+                modalInfo.nextBtn.disabled = false;
+                modalInfo.nextName.textContent = nextItem.name;
+                modalInfo.nextBtn.onclick = nextAction;
+                // DEĞİŞİKLİK: Sonraki ismini tıklanabilir yap
+                modalInfo.nextName.onclick = nextAction;
+                modalInfo.nextName.style.cursor = 'pointer';
+            } else {
+                modalInfo.nextBtn.disabled = true;
+                modalInfo.nextName.textContent = 'Yok';
+                modalInfo.nextBtn.onclick = null;
+                // DEĞİŞİKLİK: Tıklama özelliğini kaldır
+                modalInfo.nextName.onclick = null;
+                modalInfo.nextName.style.cursor = 'default';
+            }
         }
 
-        function openCharacterModal(characterId) {
-            const char = characters.find(c => c.id === characterId && !c.isFusion);
-            if (!char) return; 
-            const modal = dom.characterModal;
-            const modalImageSizeClass = sizeProfiles[state.imageSizeIndex].modalImageSize;
-            modal.name.textContent = char.name;
-            modal.description.textContent = char.description;
-            modal.evolutions.innerHTML = '';
-            const allEvolutions = [{ star: 1, imageUrl: char.imageUrl }, ...(char.evolutions || [])];
+        function openCharacterModal(characterId, displayStarAtClick) {
+            const clickedChar = characters.find(c => c.id === characterId && !c.isFusion);
+            if (!clickedChar) return; 
+
+            characterModal.name.textContent = clickedChar.name;
+            characterModal.description.textContent = clickedChar.description;
+            characterModal.evolutions.innerHTML = '';
+            
+            const currentSize = sizeProfiles[imageSizeIndex];
+            const evolutionImageBaseClass = `w-full h-auto object-contain rounded-lg mb-2 cursor-zoom-in`;
+            const evolutionBoxClass = currentSize.evolutionBox;
+            const allEvolutions = [{ star: 1, imageUrl: clickedChar.imageUrl, id: clickedChar.id }, ...(clickedChar.evolutions || [])];
+
             allEvolutions.forEach(evo => {
                 const evoDiv = document.createElement('div');
-                evoDiv.className = `flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--md-sys-color-surface-container-highest)]`;
-                evoDiv.style.backgroundColor = 'var(--md-sys-color-surface-container)';
-                evoDiv.innerHTML = `<div class="${modalImageSizeClass} mx-auto"><img src="${getCharacterImageUrlByStar(char.id, evo.star)}" alt="${char.name} ${evo.star} Yıldız" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div><p class="text-lg font-medium flex">${getStarEmojis(false, evo.star)}</p>`;
-                modal.evolutions.appendChild(evoDiv);
+                evoDiv.className = `flex flex-col items-center p-3 bg-gray-600 rounded-lg shadow-sm ${evolutionBoxClass}`;
+                const imageUrl = getCharacterImageUrlByStar(clickedChar.id, evo.star);
+                evoDiv.innerHTML = `
+                    <img src="${imageUrl}" alt="${clickedChar.name} ${evo.star} Yıldız" class="${evolutionImageBaseClass}" onclick="enlargeImage(this.src)" onerror="this.onerror=null;this.src=https://placehold.co/300x400/CCCCCC/000000?text=Resim+Yok;">
+                    <p class="text-lg font-medium text-gray-200">${getStarEmojis(evo.star)}</p>
+                `;
+                characterModal.evolutions.appendChild(evoDiv);
             });
-            const fusions = characters.filter(f => f.isFusion && f.fusionPartners.includes(char.id));
-            modal.fusionsContainer.classList.toggle('hidden', fusions.length === 0);
-            if (fusions.length > 0) {
-                modal.fusionList.innerHTML = '';
-                fusions.forEach(fusion => {
+
+            characterModal.fusionList.innerHTML = '';
+            const fusionsOfThisCharacter = characters.filter(fusion => 
+                fusion.isFusion && fusion.fusionPartners && fusion.fusionPartners.includes(clickedChar.id)
+            );
+
+            if (fusionsOfThisCharacter.length > 0) {
+                characterModal.fusionsContainer.classList.remove('hidden');
+                fusionsOfThisCharacter.forEach(fusionChar => {
                     const fusionCard = document.createElement('div');
-                    fusionCard.className = `rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105`;
-                    fusionCard.style.backgroundColor = 'var(--md-sys-color-fusion-container)';
-                    fusionCard.onclick = (e) => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
-                    const nameClass = 'font-fantastical-fusion';
-                    fusionCard.innerHTML = `<img src="${fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center ${nameClass}" style="color: var(--md-sys-color-on-fusion-container);">${fusion.name}</p>`;
-                    modal.fusionList.appendChild(fusionCard);
+                    fusionCard.className = `rounded-lg shadow-md p-3 flex flex-col items-center cursor-pointer hover:opacity-80 transition duration-200 ${'glow-purple'}`; 
+                    fusionCard.style.backgroundColor = FUSION_BACKGROUND_COLOR; 
+                    fusionCard.onclick = (e) => { e.stopPropagation(); closeCharacterModal(); openFusionModal(fusionChar.id, 4); };
+                    const fusionThumbImageClass = `${currentSize.fusionThumb} object-cover rounded-lg mb-2 border-2 border-purple-400`;
+                    fusionCard.innerHTML = `
+                        <img src="${fusionChar.imageUrl}" alt="${fusionChar.name}" class="${fusionThumbImageClass} ${'glow-purple'}" onerror="this.onerror=null;this.src=https://placehold.co/150x150/CCCCCC/000000?text=Resim+Yok;">
+                        <p class="text-md font-semibold text-gray-200 text-center font-fusion">${fusionChar.name}</p>
+                    `;
+                    characterModal.fusionList.appendChild(fusionCard);
                 });
+            } else {
+                characterModal.fusionsContainer.classList.add('hidden');
             }
-            openModal(modal.element, modal.content);
-            updateModalNavigation(characterId, 'character'); 
+
+            openModal(characterModal.element, characterModal.content);
+            updateModalNavigation(characterId, 'character', displayStarAtClick); 
         }
 
-        function closeCharacterModal() { closeModal(dom.characterModal.element, dom.characterModal.content); }
+        function closeCharacterModal() { closeModal(characterModal.element, characterModal.content); }
 
-        function openFusionModal(fusionId) {
-            const fusion = characters.find(c => c.id === fusionId && c.isFusion);
-            if (!fusion) return;
-            const modal = dom.fusionModal;
-            const modalImageSizeClass = sizeProfiles[state.imageSizeIndex].modalImageSize;
-            modal.name.textContent = fusion.name;
-            modal.name.classList.add('font-fantastical-fusion');
-            modal.description.textContent = fusion.description;
-            modal.image.src = fusion.imageUrl;
-            modal.image.setAttribute('onclick', `enlargeImage('${fusion.imageUrl}')`);
-            const [p1, p2] = fusion.fusionPartners.map(id => characters.find(c => c.id === id));
-            if (p1) {
-                modal.leftChar.image.src = get3StarImageUrl(p1.id);
-                modal.leftChar.container.className = `flex flex-col items-center text-center cursor-pointer group max-w-xs lg:max-w-sm xl:max-w-md mx-auto`;
-                modal.leftChar.name.textContent = p1.name;
-                modal.leftChar.container.dataset.characterId = p1.id;
-                modal.leftChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`; 
+        function openFusionModal(fusionId, displayStarAtClick) {
+            const fusionChar = characters.find(c => c.id === fusionId && c.isFusion);
+            if (!fusionChar) return;
+            
+            const currentSize = sizeProfiles[imageSizeIndex];
+            fusionModal.name.textContent = fusionChar.name;
+            fusionModal.name.classList.add('font-fusion');
+            fusionModal.description.textContent = fusionChar.description;
+            fusionModal.image.src = fusionChar.imageUrl;
+            fusionModal.image.alt = fusionChar.name;
+            const fusionMainImageClass = `w-full h-auto object-contain rounded-lg shadow-md cursor-zoom-in ${currentSize.fusionMainMaxH}`;
+            const fusionPartnerImageClass = `${currentSize.fusionPartner} object-contain rounded-lg border-4 border-indigo-500 shadow-md`;
+            fusionModal.image.className = `${fusionMainImageClass} ${'glow-purple'}`;
+            fusionModal.content.style.backgroundColor = FUSION_BACKGROUND_COLOR; 
+            fusionModal.content.classList.add('fusion-modal-background-glow');
+            const [partner1BaseId, partner2BaseId] = fusionChar.fusionPartners;
+            const partner1BaseChar = characters.find(c => c.id === partner1BaseId && !c.isFusion);
+            const partner2BaseChar = characters.find(c => c.id === partner2BaseId && !c.isFusion);
+
+            if (partner1BaseChar) {
+                const partner1ThreeStarImage = get3StarImageUrl(partner1BaseChar.id); 
+                fusionModal.leftChar.image.src = partner1ThreeStarImage;
+                fusionModal.leftChar.image.className = `${fusionPartnerImageClass} ${'glow-purple'}`; 
+                fusionModal.leftChar.name.textContent = partner1BaseChar.name;
+                fusionModal.leftChar.container.dataset.characterId = partner1BaseChar.id;
+                fusionModal.leftChar.starDisplay.innerHTML = `<span class="text-lg font-medium ${THREE_STAR_COLOR_CLASS}">★★★</span>`; 
             }
-            if (p2) {
-                modal.rightChar.image.src = get3StarImageUrl(p2.id);
-                modal.rightChar.container.className = `flex flex-col items-center text-center cursor-pointer group max-w-xs lg:max-w-sm xl:max-w-md mx-auto`;
-                modal.rightChar.name.textContent = p2.name;
-                modal.rightChar.container.dataset.characterId = p2.id;
-                modal.rightChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`; 
+             if (partner2BaseChar) {
+                const partner2ThreeStarImage = get3StarImageUrl(partner2BaseChar.id); 
+                fusionModal.rightChar.image.src = partner2ThreeStarImage;
+                fusionModal.rightChar.image.className = `${fusionPartnerImageClass} ${'glow-purple'}`; 
+                fusionModal.rightChar.name.textContent = partner2BaseChar.name;
+                fusionModal.rightChar.container.dataset.characterId = partner2BaseChar.id;
+                fusionModal.rightChar.starDisplay.innerHTML = `<span class="text-lg font-medium ${THREE_STAR_COLOR_CLASS}">★★★</span>`; 
             }
-            modal.image.parentElement.className = `flex flex-col items-center text-center lg:col-span-1 max-w-md lg:max-w-lg xl:max-w-xl mx-auto`;
-            modal.star.innerHTML = `${getStarEmojis(true, 4)}`; 
-            openModal(modal.element, modal.content);
-            updateModalNavigation(fusionId, 'fusion'); 
+
+            fusionModal.star.innerHTML = `<span class="text-3xl ${FUSION_STAR_COLOR_CLASS} ${'glow-text-purple-animated'}">★★★★</span>`; 
+            openModal(fusionModal.element, fusionModal.content);
+            updateModalNavigation(fusionId, 'fusion', displayStarAtClick); 
         }
 
-        function closeFusionModal() { 
-            dom.fusionModal.name.classList.remove('font-fantastical-fusion');
-            closeModal(dom.fusionModal.element, dom.fusionModal.content); 
+        function closeFusionModal() {
+            fusionModal.name.classList.remove('font-fusion');
+            fusionModal.content.classList.remove('fusion-modal-background-glow');
+            closeModal(fusionModal.element, fusionModal.content);
         }
 
         function enlargeImage(src) {
-            const openModal = document.querySelector('.m3-dialog-container.visible');
-            if (openModal) {
-                openModal.classList.add('modal-transform-paused');
-            }
-            dom.enlargedImage.image.src = src;
-            dom.enlargedImage.overlay.classList.remove('hidden');
+            enlargedImage.src = src;
+            enlargedImageOverlay.classList.remove('hidden');
         }
 
         function closeEnlargedImage(event) {
             if (event) event.stopPropagation();
-            const pausedModal = document.querySelector('.modal-transform-paused');
-            if (pausedModal) {
-                pausedModal.classList.remove('modal-transform-paused');
+            enlargedImageOverlay.classList.add('hidden');
+        }
+
+        fitToScreenToggleBtn.addEventListener('click', () => {
+            isFitToScreenMode = !isFitToScreenMode; 
+            if (isFitToScreenMode) {
+                fitToScreenToggleBtn.classList.add('active'); 
+                const tempCard = document.createElement('div');
+                tempCard.style.width = sizeProfiles[imageSizeIndex].maxCardWidth; 
+                tempCard.style.visibility = 'hidden';
+                tempCard.style.position = 'absolute';
+                characterGrid.appendChild(tempCard);
+                const cardWidthPx = tempCard.offsetWidth;
+                characterGrid.removeChild(tempCard); 
+                const gridContainerWidth = characterGrid.offsetWidth;
+                const gapWidth = 24;
+                let estimatedBaseCols = Math.floor((gridContainerWidth + gapWidth) / (cardWidthPx + gapWidth));
+                estimatedBaseCols = Math.max(1, estimatedBaseCols);
+                const minSliderValue = Math.max(2, Math.ceil(estimatedBaseCols * 1.5));
+                const maxSliderValue = Math.max(minSliderValue, estimatedBaseCols * 2);
+                columnCountSlider.min = Math.max(2, minSliderValue);
+                columnCountSlider.max = Math.max(3, maxSliderValue);
+                columnCountSlider.value = columnCountSlider.min;
+                dynamicColumnCount = parseInt(columnCountSlider.value);
+                columnCountValue.textContent = dynamicColumnCount;
+            } else {
+                fitToScreenToggleBtn.classList.remove('active'); 
             }
-            dom.enlargedImage.overlay.classList.add('hidden');
-        }
-
-        function addInteractiveEffects() {
-            document.querySelectorAll('.ripple-effect').forEach(el => {
-                if (el.dataset.rippleAttached) return;
-                el.dataset.rippleAttached = 'true';
-                el.addEventListener('click', function (e) {
-                    const rect = this.getBoundingClientRect();
-                    const ripple = document.createElement('span');
-                    const size = Math.max(rect.width, rect.height);
-                    ripple.style.width = ripple.style.height = `${size}px`;
-                    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
-                    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
-                    ripple.classList.add('ripple');
-                    const existingRipple = this.querySelector('.ripple');
-                    if (existingRipple) existingRipple.remove();
-                    this.appendChild(ripple);
-                });
-            });
-
-            document.querySelectorAll('.character-card').forEach(card => {
-                card.addEventListener('mousemove', (e) => {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    const { width, height } = rect;
-                    const rotateX = (y / height - 0.5) * -15;
-                    const rotateY = (x / width - 0.5) * 15;
-                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
-                });
-            });
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            Object.assign(dom, {
-                characterGrid: document.getElementById('character-grid'),
-                filterChips: { oneStar: document.getElementById('show-1-star-btn'), twoStar: document.getElementById('show-2-star-btn'), threeStar: document.getElementById('show-3-star-btn'), fusion: document.getElementById('show-fusion-btn'), all: document.getElementById('show-all-btn'), },
-                characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), description: document.getElementById('modal-character-description'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
-                fusionModal: { element: document.getElementById('fusion-modal'), content: document.getElementById('fusion-modal-content'), name: document.getElementById('modal-fusion-name'), description: document.getElementById('modal-fusion-description'), image: document.getElementById('modal-fusion-image'), star: document.getElementById('modal-fusion-star'), leftChar: { image: document.getElementById('modal-fusion-left-char-image'), name: document.getElementById('modal-fusion-left-char-name'), starDisplay: document.getElementById('modal-fusion-left-char-star'), container: document.getElementById('modal-fusion-left-char-image').parentElement }, rightChar: { image: document.getElementById('modal-fusion-right-char-image'), name: document.getElementById('modal-fusion-right-char-name'), starDisplay: document.getElementById('modal-fusion-right-char-star'), container: document.getElementById('modal-fusion-right-char-image').parentElement }, prevBtn: document.getElementById('prev-fusion-btn'), nextBtn: document.getElementById('next-fusion-btn'), prevName: document.getElementById('prev-fusion-name'), nextName: document.getElementById('next-fusion-name') },
-                enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
-                zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
-                layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') }
-            });
-
-            Object.entries(dom.filterChips).forEach(([key, chip]) => {
-                const modeMap = { oneStar: '1-star', twoStar: '2-star', threeStar: '3-star', fusion: 'fusion', all: 'all' };
-                chip.addEventListener('click', () => {
-                    state.galleryMode = modeMap[key];
-                    updateUI();
-                    renderCharacters();
-                });
-            });
-            
-            dom.zoom.inBtn.addEventListener('click', () => {
-                if (state.imageSizeIndex < sizeProfiles.length - 1) {
-                    state.imageSizeIndex++;
-                    updateUI();
-                    renderCharacters();
-                }
-            });
-            dom.zoom.outBtn.addEventListener('click', () => {
-                if (state.imageSizeIndex > 0) {
-                    state.imageSizeIndex--;
-                    updateUI();
-                    renderCharacters();
-                }
-            });
-
-            dom.layout.toggleBtn.addEventListener('click', () => {
-                state.isFitToScreenMode = !state.isFitToScreenMode;
-                updateUI();
-                renderCharacters();
-            });
-
-            updateUI(); 
             renderCharacters(); 
         });
+
+        columnCountSlider.addEventListener('input', () => {
+            dynamicColumnCount = columnCountSlider.value;
+            columnCountValue.textContent = dynamicColumnCount;
+            renderCharacters(); 
+        });
+
+
+        window.onload = () => {
+            if (isFitToScreenMode) {
+                fitToScreenToggleBtn.classList.add('active');
+            } else {
+                fitToScreenToggleBtn.classList.remove('active');
+            }
+
+            const tempCard = document.createElement('div');
+            tempCard.style.width = sizeProfiles[imageSizeIndex].maxCardWidth; 
+            tempCard.style.visibility = 'hidden';
+            tempCard.style.position = 'absolute';
+            characterGrid.appendChild(tempCard);
+            const cardWidthPx = tempCard.offsetWidth;
+            characterGrid.removeChild(tempCard);
+            const gridContainerWidth = characterGrid.offsetWidth;
+            const gapWidth = 24;
+            let estimatedBaseCols = Math.floor((gridContainerWidth + gapWidth) / (cardWidthPx + gapWidth));
+            estimatedBaseCols = Math.max(1, estimatedBaseCols);
+            const minSliderValue = Math.max(2, Math.ceil(estimatedBaseCols * 1.5));
+            const maxSliderValue = Math.max(minSliderValue, estimatedBaseCols * 2);
+            columnCountSlider.min = Math.max(2, minSliderValue);
+            columnCountSlider.max = Math.max(3, maxSliderValue);
+            columnCountSlider.value = columnCountSlider.min;
+            dynamicColumnCount = parseInt(columnCountSlider.value);
+            columnCountValue.textContent = dynamicColumnCount;
+            
+            updateZoomControls(); 
+            renderCharacters(); 
+        };
+
     </script>
 </body>
 </html>
