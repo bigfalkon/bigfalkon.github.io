@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karakter Galerisi - Final</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --md-sys-color-primary-rgb: 189, 179, 255;
+            --md-sys-color-primary: rgb(var(--md-sys-color-primary-rgb));
+            --md-sys-color-on-primary: #2d235c;
+            --md-sys-color-primary-container: #443a74;
+            --md-sys-color-on-primary-container: #e6deff;
+
+            --md-sys-color-fusion-rgb: 224, 179, 255;
+            --md-sys-color-fusion: rgb(var(--md-sys-color-fusion-rgb));
+            --md-sys-color-on-fusion: #490071;
+            --md-sys-color-fusion-container: #63009b;
+            --md-sys-color-on-fusion-container: #f4d9ff;
+
+            --md-sys-color-background: #131318;
+            --md-sys-color-on-background: #e5e1e6;
+            --md-sys-color-surface-container: #201f25;
+            --md-sys-color-surface-container-high: #2a2830;
+            --md-sys-color-on-surface: #e5e1e6;
+            --md-sys-color-on-surface-variant: #c8c4d0;
+            --md-sys-color-outline-variant: #48454e;
+        }
+
+        body.modal-open { overflow: hidden; }
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 15% 25%, rgba(var(--md-sys-color-primary-rgb), 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 65%, rgba(var(--md-sys-color-fusion-rgb), 0.12) 0%, transparent 45%);
+            z-index: -1;
+            animation: aurora-flow 20s infinite alternate ease-in-out;
+        }
+        @keyframes aurora-flow {
+            from { transform: translate(0, 0) rotate(0deg) scale(1.2); }
+            to { transform: translate(5vw, -5vh) rotate(10deg) scale(1.2); }
+        }
+
+        .control-panel {
+            background-color: rgba(27, 27, 32, 0.7); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            border: 1px solid rgba(146, 143, 153, 0.2);
+        }
+        .chip {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 8px 16px; border-radius: 20px; font-weight: 600;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background-color: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface-variant);
+            transition: all 0.2s ease-in-out;
+        }
+        .chip:hover {
+            background-color: var(--md-sys-color-surface-container-highest);
+            border-color: var(--md-sys-color-on-surface-variant);
+        }
+        .chip.selected {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-color: var(--md-sys-color-primary);
+            font-weight: 700;
+        }
+
+        #character-grid { display: grid; gap: 1.5rem; justify-content: center; }
+        .character-card {
+            background-color: var(--md-sys-color-surface-container);
+            border-radius: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+            overflow: hidden; position: relative; opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            animation: card-fade-in 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease;
+        }
+        @keyframes card-fade-in { to { opacity: 1; transform: translateY(0) scale(1); } }
+        .character-card:hover { box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
+        .character-card-image-wrapper { aspect-ratio: 3 / 4; width: 100%; overflow: hidden; border-radius: 18px; }
+        .character-card-image { object-fit: cover; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
+        .character-card:hover .character-card-image { transform: scale(1.1); }
+        .character-name { color: var(--md-sys-color-on-surface); }
+        
+        .fusion-card .character-name { color: var(--md-sys-color-on-fusion-container); }
+        .fusion-stars .material-symbols-outlined { animation: star-glow-pulse 1.5s infinite alternate; }
+        @keyframes star-glow-pulse {
+            from { text-shadow: 0 0 4px #fff, 0 0 8px var(--md-sys-color-fusion), 0 0 12px var(--md-sys-color-fusion); transform: scale(1); }
+            to { text-shadow: 0 0 8px #fff, 0 0 16px var(--md-sys-color-fusion), 0 0 24px var(--md-sys-color-fusion); transform: scale(1.1); }
+        }
+        
+        /* DÜZELTME: Yeni fantastik font için kural eklendi */
+        .font-fantastical-fusion {
+            font-family: 'Metamorphous', serif;
+        }
+
+        .m3-dialog-backdrop { z-index: 1000; }
+        .m3-dialog-container {
+            background-color: rgba(32, 31, 37, 0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(146, 143, 153, 0.2);
+            border-radius: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            /* DÜZELTME: Dikey boşluk sorununu çözmek için 'height' kaldırıldı */
+            height: 100%; /* Kenar boşluğu p-2 (0.5rem*2) ile uyumlu */
+            max-width: 95vw; width: 1200px;
+            display: flex; flex-direction: column;
+            opacity: 0; transform: scale(0.95) translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            position: relative;
+        }
+        .m3-dialog-content { overflow-y: auto; min-height: 0; }
+        .m3-dialog-container.visible { opacity: 1; transform: scale(1) translateY(0); }
+        .m3-dialog-footer { display:flex; justify-content: space-between; align-items: center; }
+        .modal-nav-button { display: flex; align-items: center; gap: 8px; color: var(--md-sys-color-on-surface-variant); border-radius: 99px; padding: 4px; }
+        
+        .fusion-modal-background { position: relative; overflow: hidden; }
+        .fusion-modal-background::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 100%, rgba(var(--md-sys-color-fusion-rgb), 0.6) 0%, transparent 70%);
+            animation: prism-pulse 5s infinite alternate ease-in-out;
+            z-index: -1;
+        }
+        @keyframes prism-pulse { from { transform: scale(2); opacity: 1; } to { transform: scale(1.5); opacity: 1; } }
+        .fusion-partner-card { border: 2px solid var(--md-sys-color-fusion); }
+        .enlarged-image-container { z-index: 1100; position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.85); }
+        /* DÜZELTME: Büyüyen resmin etrafındaki boşluk azaltıldı */
+        .enlarged-image { max-width: 96%; max-height: 96%; object-fit: contain; }
+        .icon-button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background-color: transparent; color: var(--md-sys-color-on-surface-variant); cursor: pointer; transition: all 0.2s; }
+        .icon-button:hover { background-color: rgba(var(--md-sys-color-primary-rgb), 0.08); }
+        .icon-button.active { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+        .icon-button.active:hover { background-color: var(--md-sys-color-primary); }
+        .ripple-effect { position: relative; overflow: hidden; }
+        .ripple { position: absolute; border-radius: 50%; background-color: rgba(255, 255, 255, 0.3); transform: scale(0); animation: ripple-animation 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); pointer-events: none; }
+        @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
+        #character-grid.grid-fade-out { opacity: 0; transition: opacity 0.2s ease-out; }
+        .modal-transform-paused { transform: none !important; }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div id="app" class="max-w-screen-2xl mx-auto">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi</h1>
+            <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet</p>
+        </header>
+
+        <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
+            <div id="filter-chips" class="flex flex-wrap justify-center gap-2">
+                <button id="show-all-btn" class="chip selected ripple-effect"><span class="material-symbols-outlined">apps</span>Tümü</button>
+                <button id="show-1-star-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-orange-400">filter_1</span>1 ★</button>
+                <button id="show-2-star-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-slate-400">filter_2</span>2 ★</button>
+                <button id="show-3-star-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-amber-400">filter_3</span>3 ★</button>
+                <button id="show-fusion-btn" class="chip ripple-effect"><span class="material-symbols-outlined text-fuchsia-400">auto_awesome</span>Füzyon</button>
+            </div>
+            <div class="hidden sm:block w-px h-8" style="background-color: var(--md-sys-color-outline-variant);"></div>
+            <div class="flex items-center justify-center gap-2 p-1 rounded-full" style="background-color: var(--md-sys-color-surface-container-high);">
+                <button id="zoom-out-btn" class="icon-button ripple-effect" aria-label="Galeri Kartlarını Küçült"><span class="material-symbols-outlined">zoom_out</span></button>
+                <span id="current-size-label" class="text-sm font-semibold w-8 text-center" style="color: var(--md-sys-color-on-surface);">4</span>
+                <button id="zoom-in-btn" class="icon-button ripple-effect" aria-label="Galeri Kartlarını Büyüt"><span class="material-symbols-outlined">zoom_in</span></button>
+                <button id="fitToScreenToggleBtn" class="icon-button ripple-effect" aria-label="Daha Fazla Sığdır Modu">
+                    <span class="material-symbols-outlined">auto_awesome_mosaic</span>
+                </button>
+            </div>
+        </div>
+
+        <main id="character-grid"></main>
+    </div>
+
+    <div id="character-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeCharacterModal()">
+        <div class="m3-dialog-container" id="character-modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeCharacterModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <header class="m3-dialog-header p-4 flex-shrink-0">
+                <h2 id="modal-character-name" class="m3-dialog-title text-3xl font-bold">Karakter Adı</h2>
+            </header>
+            <div class="m3-dialog-content px-4 flex-grow">
+                <p id="modal-character-description" class="text-lg mb-8" style="color: var(--md-sys-color-on-surface-variant);"></p>
+                <h3 class="text-xl font-bold mb-4" style="color: var(--md-sys-color-on-surface);">Evrimler</h3>
+                <div id="modal-evolutions" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8"></div>
+                <div id="modal-fusions" class="hidden">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--md-sys-color-fusion);">Katıldığı Füzyonlar</h3>
+                    <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+                </div>
+            </div>
+            <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
+                <button id="prev-char-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-char-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                <button id="next-char-btn" class="modal-nav-button ripple-effect"><span id="next-char-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
+            </footer>
+        </div>
+    </div>
+    <div id="fusion-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeFusionModal()">
+        <div class="m3-dialog-container fusion-modal-background" id="fusion-modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeFusionModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <header class="m3-dialog-header p-4 flex-shrink-0">
+                <h2 id="modal-fusion-name" class="m3-dialog-title text-3xl font-bold" style="color: var(--md-sys-color-fusion);">Füzyon Adı</h2>
+            </header>
+            <div class="m3-dialog-content px-4 flex-grow">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                    <div class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-left-char-image" src="" alt="Sol Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-left-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-left-char-star" class="text-lg font-medium"></p></div>
+                    <div class="flex flex-col items-center text-center lg:col-span-1"><img id="modal-fusion-image" src="" alt="Füzyon Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl"><p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p></div>
+                    <div class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-right-char-image" src="" alt="Sağ Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-right-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-right-char-star" class="text-lg font-medium"></p></div>
+                </div>
+                 <p id="modal-fusion-description" class="text-lg mt-8 text-center max-w-4xl mx-auto" style="color: var(--md-sys-color-on-surface-variant);"></p>
+            </div>
+            <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
+                 <button id="prev-fusion-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                <button id="next-fusion-btn" class="modal-nav-button ripple-effect"><span id="next-fusion-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
+            </footer>
+        </div>
+    </div>
+    <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()"><button class="icon-button absolute top-4 right-4 text-white text-4xl z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat"><span class="material-symbols-outlined" style="font-size: 36px;">close</span></button><img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image"></div>
+
+    <script>
+        const FUSION_STAR_COLOR_CLASS = 'text-fuchsia-400';
+        const THREE_STAR_COLOR_CLASS = 'text-amber-400';
+        const TWO_STAR_COLOR_CLASS = 'text-slate-400';
+        const ONE_STAR_COLOR_CLASS = 'text-orange-400';
+        const characters = [
+            // SADECE TEMEL KARAKTERLER (IDleri artık sayısız)
+            { id: 'buyucu', name: 'Büyücü', description: 'Güçlü büyüleriyle öne çıkan bu sarışın büyücü, zarif ve cüretkar kıyafetleriyle dikkat çekerken, mistik pembe büyülerle düşmanlarına korku salar.', star: 1, imageUrl: 'https://i.ibb.co/WW3DSjgT/b-y-c-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/xK0j21XT/b-y-c-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/rKjQfVWR/b-y-c-3.jpg' }] },
+            { id: 'rahibe', name: 'Rahibe', description: 'Kutsal iyileştirme güçlerine sahip bu kahverengi saçlı rahibe, hem nezaketi hem de güçlü duruşuyla ibadet ettiği mabetlerde ilahi ışık saçar.', star: 1, imageUrl: 'https://i.ibb.co/PZg5t9VL/rahibe1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/FLxK9MVn/rahibe2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/FLtj64kw/rahibe3.jpg' }] },
+            { id: 'dansoz', name: 'Dansöz', description: 'Esnekliği ve cazibesiyle büyüleyen bu siyahi dansçı, altın aksesuarlarla süslü şeffaf kıyafetleriyle sahneyi aydınlatırken izleyicileri kendine hayran bırakır.', star: 1, imageUrl: 'https://i.ibb.co/vxC47N0c/dans-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/qMKfjQ6H/dans-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8gwWTnW1/dans-3.jpg' }] },
+            { id: 'falci', name: 'Falcı', description: 'Gizemli güçlere sahip bu koyu tenli falcı, mor saçları ve parlayan kristal topuyla geleceğe dair sırlar fısıldar.', star: 1, imageUrl: 'https://i.ibb.co/ynpvZp1L/falc-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZRCkv6Sw/falc-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/1YSLR43x/falc-3.jpg' }] },
+            { id: 'korsan', name: 'Korsan', description: 'Denizlerin vahşi ruhunu taşıyan bu kızıl saçlı kadın korsan, tehlikeli maceralara atılırken gözü kara ve baştan çıkarıcı bir tavır sergiler.', star: 1, imageUrl: 'https://i.ibb.co/CpVChGPv/korsan1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/SwLyG1tQ/korsan2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Q3QCJ7fP/korsan3.jpg' }] },
+            { id: 'savasci', name: 'Savaşçı', description: 'Sıcak ten rengine sahip bu kahverengi saçlı savaşçı, atletik ve gösterişli vücudunu vurgulayan zırhıyla meydan okurcasına durur.', star: 1, imageUrl: 'https://i.ibb.co/GQ58h73N/sava-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/tP3dHwqh/sava-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/YF2mpmks/sava-3.jpg' }] },
+            { id: 'okcu', name: 'Okçu', description: 'Hafif zeytin tenli ve kestane rengi saçlı bu genç okçu, keskin nişancılığı ve çekici duruşuyla hedeflerini gözüne kestirir.', star: 1, imageUrl: 'https://i.ibb.co/7t5Pgxr0/ok-u1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Kcx424sg/ok-u2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/tTvN7j1H/ok-u3.jpg' }] },
+            { id: 'ninja', name: 'Ninja', description: 'Gizemli ve ölümcül Japon ninjası, zarif hareketleri ve baştan çıkarıcı duruşuyla gölgelerin arasından süzülür.', star: 1, imageUrl: 'https://i.ibb.co/TJ4z4RP/ninja1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/SDrwNJrh/ninja2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/YBDCkTL9/ninja3.jpg' }] },
+            { id: 'izci', name: 'İzci', description: 'Gözlükleriyle bilinen, zeki ve maceraperest bu kızıl saçlı izci, hem pratik bilgisi hem de çekici duruşuyla keşiflere liderlik eder.', star: 1, imageUrl: 'https://i.ibb.co/4wvy0p7H/izci1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/B57pqBm4/izci2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Xr6wnQjC/izci3.jpg' }] },
+            { id: 'hayalet', name: 'Hayalet', description: 'Esrarengiz ve yarı saydam bu kadın hayalet, melankolik duruşu ve etrafındaki sisli aura ile huzursuz bir güzellik taşır.', star: 1, imageUrl: 'https://i.ibb.co/rfKR25Vm/hayalet1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/21VC2dPt/hayalet2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/YFR2Rw0K/hayalet3.jpg' }] },
+            { id: 'atesbuyucusu', name: 'Ateş Büyücüsü', description: 'Ateşten saçlara ve parlayan kızıl gözlere sahip bu büyücü, alevleri ustaca kontrol ederken özgüvenli ve buyurgan bir tavır sergiler.', star: 1, imageUrl: 'https://i.ibb.co/1GBHw5gc/ate-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/xtVWHqq4/ate-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8gV8fSrh/ate-3.jpg' }] },
+            { id: 'buzbuyucusu', name: 'Buz Büyücüsü', description: 'Platin beyazı saçlı bu utangaç buz büyücüsü, nazik ve mesafeli tavrıyla büyüleyici aurora renkleriyle dolu buz büyüleri yapar.', star: 1, imageUrl: 'https://i.ibb.co/M4WT53b/buz1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/yzqR3jM/buz2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/zW97htBN/buz3.jpg' }] },
+            { id: 'silahsor', name: 'Silahşör', description: 'Cesur ve zeki bu silahşör, şık üniforması ve keskin bakışlarıyla her daim maceraya hazır, zarif kılıcı ve tabancasıyla adaletin peşinde.', star: 1, imageUrl: 'https://i.ibb.co/ZpDDqkPP/indir-2.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/5WcQs9Nq/indir-3.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/SXFr056v/indir-4.jpg' }] },
+            { id: 'cazibe', name: 'Cazibe', description: 'Ölümlülerin arzularından doğan Cazibe, fısıltıyla aklını çeler ve seni kendi tatlı günahlarının esiri yapar.', star: 1, imageUrl: 'https://i.ibb.co/yBQBGL5Y/cazibe1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/k2hXkSKV/cazibe2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/xSxMwnz5/cazibe3.jpg' }] },
+            { id: 'ormanruhu', name: 'Orman Ruhu', description: 'Masum bir orman fidanı olarak doğdu, zamanla hem hayat veren hem de can alan, doğanın vahşi kraliçesine dönüştü.', star: 1, imageUrl: 'https://i.ibb.co/RkZfXFWX/do-a.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/XZxytsM4/do-a2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8DSbGRzR/do-a3.jpg' }] },
+            { id: 'sahinci', name: 'Şahinci', description: 'Gökyüzünün yalnız avcısı, doğayla bütünleşmiş, keskin gözleri ve sadık şahiniyle özgürlüğün sembolü.', star: 1, imageUrl: 'https://i.ibb.co/pBSb9vVZ/ahin1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/JjmhzkBM/ahin2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Vptx2S9p/ahin3.jpg' }] },
+            { id: 'illuzyonist', name: 'İllüzyonist', description: 'Gölgelerin sırlarını bilen, illüzyonlarla gerçeği büken, gizemli ve güçlü bir gölge rahibesi.', star: 1, imageUrl: 'https://i.ibb.co/C5Lr8DDV/ill-zyon1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/fVtZpN8s/ill-zyon2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/VYSz0PYK/ill-zyon3.jpg' }] },
+            { id: 'dervis', name: 'Derviş', description: 'Çölün sessiz fırtınası, kadim kumların ve rüzgarların dansını ölümcül bir sanata dönüştüren, melankolik ve kararlı bir savaşçı.', star: 1, imageUrl: 'https://i.ibb.co/dsZRZzpt/dervi-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/zT3tm8sz/dervi-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/qMv1jB15/dervi-3.jpg' }] },
+            { id: 'prenses', name: 'Prenses', description: 'Sarayının altın kafesine hapsolmuş, kibirli bir Fae prensesi, sıkıcı soyluluk kurallarından daha fazlasını arzular. İsyanı, ipek elbisesini parçalamasıyla başlar ve onu, kendi kurallarını kendi koyduğu kaotik kutlamaların ve vahşi özgürlüğün kraliçesi yapar.', star: 1, imageUrl: 'https://i.ibb.co/cK8m4bMJ/peri1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZpgB5cjG/peri2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/jZbTFb9v/peri3.jpg' }] },
+            { id: 'simyaci', name: 'Simyacı', description: 'Kimyasal sırların ve elementlerin bilgini, iksirler ve dönüşümlerle hem şifa hem de yıkım yaratabilen, zeki ve deneysel bir bilim insanı.', star: 1, imageUrl: 'https://i.ibb.co/0pg4Vrh0/simyac-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/N65VzdkH/simyac-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/9387YgZf/simyac-3.jpg' }] },{ id: 'kedikadin', name: 'Kedi Kadın', description: 'Ormanların en derinlerinde gizlenen, hem av hem de avcı olan bu figür, kedi çevikliği ve yırtıcı içgüdüleriyle doğanın dengesini korur.', star: 1, imageUrl: 'https://i.ibb.co/zWTLhSR7/kedi1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/qYxVScfn/kedi2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/LdYJX6Hd/kedi3.jpg' }] },
+                { id: 'kuskadin', name: 'Kuş Kadın', description: 'Gökyüzünün engin maviliklerinde özgürlüğünü bulan, rüzgarlarla sohbet eden bu hava varlığı, kanatlarını sadece uçmak için değil, aynı zamanda insan ruhuna ilham vermek için kullanır. Her süzülüşünde, özgürlüğün ve hafifliğin bir fısıltısını taşır.', star: 1, imageUrl: 'https://i.ibb.co/RGWyqqQr/ku-1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/jkhsNMbx/ku-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/0j0d4xNb/ku-3.jpg' }] },
+                { id: 'vampir', name: 'Vampir', description: 'Sıcak ten rengine sahip bu kahverengi saçlı savaşçı, atletik ve gösterişli vücudunu vurgulayan zırhıyla meydan okurcasına durur.', star: 1, imageUrl: 'https://i.ibb.co/6JHHhJw6/vampir1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/tP8fxr6C/vampir2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/RMh7SNB/vampir3.jpg' }] },{ id: 'paraliasker', name: 'Paralı Asker', description: 'Savaşa korkak bir acemi olarak başladı, döktüğü kan ve kazandığı yaralarla çelikleşerek korkusuz bir paralı asker liderine dönüştü. Onun gücü büyüde değil, sarsılmaz iradesinde ve bükülmez kılıcındadır.', star: 1, imageUrl: 'https://i.ibb.co/0g5P99T/asker1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/23RBCVzG/asker2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8QkMRtg/asker3.jpg' }] },
+            { id: 'mekanik', name: 'Mekanik', description: 'Dişlilerin ve buharın arasında büyümüş, dehası parmaklarının ucundaki yağ lekelerinde gizli olan bir teknisyendir. Her yeni icadıyla, makineye olan tutkusu onu biraz daha metal, biraz daha az insan yapar.', star: 1, imageUrl: 'https://i.ibb.co/d0wmWp3M/mekanik1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/nsM8qXrZ/mekanik2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/jkCct99V/mekanik3.jpg' }] },
+            { id: 'saman', name: 'Şaman', description: 'Ruhlar aleminin fısıltılarını dinleyen ve doğanın kadim gücüne hükmeden bir arabulucudur. Yolculuğu onu sakin bir bilgelikten, sayısız ruhu yöneten huşu uyandıran bir güce taşır.', star: 1, imageUrl: 'https://i.ibb.co/jZQjdxGr/aman1.jpg', 
+                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/6cw94xmS/aman2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Z6qgBHf6/aman3.jpg' }] },
+            
+            // FÜZYON KARAKTERLERİ
+            { id: 'cadı', name: 'Cadı', description: 'Hem karanlığın mistik bilgeliğini hem de kutsal ışığın gücünü barındıran bu melez büyü-rahibe, her adımıyla kadim bir dengeyi ve sınırsız bir potiyeli temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/HfmJN43L/kaos-cad-s.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
+            { id: 'kozmik-dansci', name: 'Kozmik Dansçı', description: 'Yıldızların ritmiyle evreni adımlayan bu göksel dansçı, kehanetin fısıltılarıyla dans ederken kozmik enerjiyi zarafetle şekillendirir.', star: 4, imageUrl: 'https://i.ibb.co/whpyGMMQ/kozmik-yolcu.jpg', isFusion: true, fusionPartners: ['dansoz', 'falci'] },
+            { id: 'siren', name: 'Batık Hazine', description: 'Derin denizlerin baştan çıkarıcı şarkısıyla korsanların cüretkar ruhunu birleştiren bu siren, dalgalardan yükselerek hem cazibeyi hem de tehlikeyi çağırır.', star: 4, imageUrl: 'https://i.ibb.co/bg50BngT/indir-36.jpg', isFusion: true, fusionPartners: ['dansoz', 'korsan'] },
+            { id: 'valkur', name: 'Valkür', description: 'Göksel bir savaş narasıyla ilahi gücü harmanlayan bu Valkür, kutsal bir gazapla savaş meydanına inen, hem koruyucu hem de yıkıcı bir melektir.', star: 4, imageUrl: 'https://i.ibb.co/cXbXcnqf/valk-r.jpg', isFusion: true, fusionPartners: ['rahibe', 'savasci'] },
+            { id: 'kahin', name: 'Kader Örücü', description: 'Gölgelerin bilgeliğiyle geleceğin sırlarını çözene bu ninja-falcı, kadim kehanetleri ölümcül bir zarafetle birleştirerek kaderin iplerini elinde tutar.', star: 4, imageUrl: 'https://i.ibb.co/WNh5bwGd/indir-32.jpg', isFusion: true, fusionPartners: ['falci', 'ninja'] },
+            { id: 'avci', name: 'Avcı', description: 'Büyülü oklarla hedefini avlayan bu karanlık ormanların kızı, hem avcının keskin içgüdüsüne hem de büyücünün kadim kudretine sahiptir.', star: 4, imageUrl: 'https://i.ibb.co/YTT1Y36M/mistik-avc.jpg', isFusion: true, fusionPartners: ['buyucu', 'okcu'] },
+            { id: 'nisanci', name: 'Filo Avcısı', description: 'Fırtınalı denizlerin ve isabetli okların ustası olan bu deniz gezgini, azgın dalgaların üzerinde ölümcül bir hassasiyetle hedeflerini bulur.', star: 4, imageUrl: 'https://i.ibb.co/MDMFcCQq/indir-46.jpg', isFusion: true, fusionPartners: ['korsan', 'okcu'] },
+            { id: 'suvari', name: 'Süvari', description: 'Savaşı ve keşfi tek bir ruhta birleştiren bu süvari, kudretli bineğiyle efsaneler yazarken, bilgi ve gücün çarpıcı bir sembolüdür.', star: 4, imageUrl: 'https://i.ibb.co/fY8N7sqL/s-vari.jpg', isFusion: true, fusionPartners: ['izci', 'savasci'] },
+            { id: 'kadim-buyucu', name: 'Kadim Büyücü', description: 'Elemental güçlerin tanrıçası olan bu kadim varlık, hem yakan ateşi hem de dondurucu buzu bedeninde barındırarak evrenin kendisiyle yankılanır.', star: 4, imageUrl: 'https://i.ibb.co/vgNxdtD/kadim.jpg', isFusion: true, fusionPartners: ['atesbuyucusu', 'buzbuyucusu'] },
+            { id: 'cehennem-dalgasi', name: 'Cehennem Dalgası', 'description': 'Alevlerin ve okyanusların hükümdarı olan bu korsan büyücü, lav denizlerinde yelken açarken cehennemi gücü ve dizginlenemez özgürlüğü temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/r2F8Wcw6/Ate-Efektli-Karakter-Videosu.gif', isFusion: true, fusionPartners: ['atesbuyucusu', 'korsan'] },
+            { id: 'ruh-cagiran', name: 'Ruh Çağıran', description: 'Perde aralığını aşarak ruhlarla konuşan bu psişik varlık, öteki dünyanın fısıltılarını taşıyan ve fısıltılarla dünyalar arasında köprü kuran kadim bir medyumdur.', star: 4, imageUrl: 'https://i.ibb.co/hxHC8XBm/ruh.jpg', isFusion: true, fusionPartners: ['hayalet', 'falci'] },
+            { id: 'ruh-avcisi', name: 'Ruh Avcısı', description: 'Savaşın kaosunda ruhları avlayan bu melez, yıkımın ortasında hem ilahi bir güzellik hem de doyumsuz bir kudret sergiler.', star: 4, imageUrl: 'https://i.ibb.co/MDbNYwmV/indir-6.jpg', isFusion: true, fusionPartners: ['silahsor', 'hayalet'] },
+            { id: 'keskin-nisanci', name: 'Keskin Nişancı', description: 'Hedefini kusursuz bir hassasiyetle vuran bu keskin nişancı, savaşçının gücünü ve nişancının zarafetini birleştirerek her atışında ölümcül bir cazibe saçar.', star: 4, imageUrl: 'https://i.ibb.co/fzGxn263/indir-9.jpg', isFusion: true, fusionPartners: ['silahsor', 'okcu'] },
+            { id: 'olumsuz-muhafiz', name: 'Ölümsüz Muhafız', description: 'Bir savaşçının ölmeyi reddeden ruhu, unuttuğu bir yemine sadakatle bağlı kalarak ebedi bir mezarın başında nöbet tutar. O, ne yaşayanların ne de ölülerin dünyasına aittir.', star: 4, imageUrl: 'https://i.ibb.co/F4Z1pMBv/l-ms-z.jpg', isFusion: true, fusionPartners: ['savasci', 'hayalet'] },
+            { id: 'donmus-kalp', name: 'Donmuş Kalp', description: 'Bir zamanlar en sıcak tutkuyla yanan kalbi, şimdi dokunuşuyla her şeyi donduran bir buz kütlesidir. Sana unuttuğu sıcaklığı vaat eder, ancak öpücüğü ruhunu ebedi bir kışa hapseder.', star: 4, imageUrl: 'https://i.ibb.co/p6x1XVF6/donuk-kalp.jpg', isFusion: true, fusionPartners: ['cazibe', 'buzbuyucusu'] },
+            { id: 'yasak-meyve', name: 'Yasak Meyve', description: 'Seni kendi cennet bahçesine davet eder, ancak o bahçedeki en güzel çiçekler en zehirli olanlardır. Onun sunduğu yasak meyveyi tadan, ruhunu sonsuza dek kaybeder.', star: 4, imageUrl: 'https://i.ibb.co/C5YtZyzm/yasak-elma.jpg', isFusion: true, fusionPartners: ['cazibe', 'ormanruhu'] },
+            { id: 'serap-kilici', name: 'Serap Kılıcı', description: 'Çölün ortasında parlayan bir serap gibi, o hem bir yanılsama hem de ölümcül bir gerçektir. Rakiplerini zihinlerini bulandıran gölge oyunlarıyla tuzağa düşürür ve tam nerede olduğunu anladıklarında, dervişin pala dansı çoktan başlamıştır.', star: 4, imageUrl: 'https://i.ibb.co/BK3rG036/serap.jpg', isFusion: true, fusionPartners: ['illuzyonist', 'dervis'] },
+            { id: 'hayalet-kanat', name: 'Hayalet Kanat', description: 'Gökyüzünde süzülen bir gölgeden farksız olan Hayalet Kanat, hem avının adımlarını hem de ruhunun fısıltılarını duyar. O, ne zaman gerçek bir şahin ne zaman ölümcül bir ilüzyon olduğu asla bilinmeyen, gökyüzünün en tehlikeli sırrıdır.', star: 4, imageUrl: 'https://i.ibb.co/fdnf9Hg9/g-lge.jpg', isFusion: true, fusionPartners: ['illuzyonist', 'sahinci'] },
+            { id: 'asi-kralice', name: 'Asi Kraliçe', description: 'Altın kafesini parçalayan bir prensesin isyanı ile bir savaşçının sarsılmaz gücü onda birleşti.', star: 4, imageUrl: 'https://i.ibb.co/NgWyfWv2/krali-e.jpg', isFusion: true, fusionPartners: ['savasci', 'prenses'] },
+            { id: 'sehvet-perisi', name: 'Şehvet Perisi', description: 'Bir Fae prensesinin masumiyetini bir Succubusun günahkar vaatleriyle birleştiren Şehvet Perisi, dokunuşuyla en saf kalpleri bile yoldan çıkarır.', star: 4, imageUrl: 'https://i.ibb.co/yB005D9y/sehvet.jpg', isFusion: true, fusionPartners: ['cazibe', 'prenses'] },
+            { id: 'ask-iksiri', name: 'Aşk İksiri', description: 'Kimyasal bilgiyle baştan çıkarıcılığı birleştiren, arzu ve tehlikenin vücut bulmuş hali, yasak zevklerin kraliçesi.', star: 4, imageUrl: 'https://i.ibb.co/5hFJqdHR/indir-1-8.jpg', isFusion: true, fusionPartners: ['simyaci', 'cazibe'] },
+            { id: 'zehir-tuccari', name: 'Zehir Tüccarı', description: 'Gölgelerde gizlenen, hem zehirlerini hem de ölümcül cazibesini ustaca kullanan, karanlık pazarın sessiz ve tehlikeli kraliçesi.', star: 4, imageUrl: 'https://i.ibb.co/ZRSbLd0r/zehir.jpg', isFusion: true, fusionPartners: ['ninja', 'simyaci'] },
+            { id: 'golge-buyucu', name: 'Gölge Büyücü', description: 'Kadim büyüleri gölgelerle harmanlayan, illüzyonlar ve sessiz suikast yetenekleriyle düşmanlarını avlayan, gizemli ve ölümcül bir büyü ustası.', star: 4, imageUrl: 'https://i.ibb.co/vCF3QhhG/kara.jpg', isFusion: true, fusionPartners: ['buyucu', 'ninja'] },
+            { id: 'golge-panteri', name: 'Gölge Panteri', description: 'İlkel içgüdüleriyle gölgelerin sanatını birleştiren bu nihai avcı, ormanların derinliklerinden yükselir. Her pusuya yatışında hem yırtıcı bir Panterin vahşiliğini hem de bir Ninjanın sessiz ölümcüllüğünü yansıtır.', star: 4, imageUrl: 'https://i.ibb.co/nq7PjzvP/golgepanteri.jpg', isFusion: true, fusionPartners: ['kedikadin', 'ninja'] },
+            { id: 'olum-valsi', name: 'Ölüm Valsi', description: 'Çölün ruhuyla ritmin gücünü birleştiren, her adımıyla hem kumları hem de ruhları dans ettiren ölümcül bir sanatçı. O sadece bir dansçı değil, aynı zamanda hareketleriyle yaşam ve ölümü dengeleyen, ebedi bir valstir.', star: 4, imageUrl: 'https://i.ibb.co/W4rh6MnB/l-mvalsi.jpg', isFusion: true, fusionPartners: ['dansoz', 'dervis'] },
+            { id: 'anka-kusu', name: 'Anka Kusu', description: 'Küllerinden yeniden doğuşun ve dizginlenemez ateşli gücün kutsal simgesi. O, gökyüzünde alevden kanatlarıyla süzülen, her bir tüyünden yaşam ve yıkım saçan, ilahi bir varlıktır.', star: 4, imageUrl: 'https://i.ibb.co/ch7vsRSp/anka.jpg', isFusion: true, fusionPartners: ['atesbuyucusu', 'kuskadin'] },
+            { id: 'yuce-melek', name: 'Yüce Melek', description: 'İlahi yargının ve korkutucu huzurun tecessümü. Göksel kanatlarıyla adaleti yeryüzüne indiren, hem şefkatli bir koruyucu hem de amansız bir cezalandırıcı olan, göklerin kutsal habercisidir.', star: 4, imageUrl: 'https://i.ibb.co/LdSWmrXF/melek.jpg', isFusion: true, fusionPartners: ['kuskadin', 'rahibe'] },
+            { id: 'kan-cicegi', name: 'Kan Çiçeği', description: 'Vampirin ölümsüz kanıyla sulanmış, Orman Ruhunun en nadide tohumundan filizlenmiş, hem cennet kadar güzel hem de cehennem kadar tehlikeli bir çiçektir. Kurbanlarını baştan çıkarıcı kokusuyla kendine çeker ve onları, köklerinin sonsuza dek besleneceği tatlı bir anıya dönüştürür.', star: 4, imageUrl: 'https://i.ibb.co/1f4kd5L1/kan.jpg', isFusion: true, fusionPartners: ['ormanruhu', 'vampir'] },
+            { id: 'golem-efendisi', name: 'Golem Efendisi', description: 'Bir mekanigin yaratici dehasi ile bir illuzyonistin zihin kontrol gucu, bu komutanda birleşti. O, savas alanina kendi adim atmaz; onun yerine, ruhunu ve iradesini bahsettigi devasa golemi, bir kukla ustasinin zarafetiyle yonetir.', star: 4, imageUrl: 'https://i.ibb.co/v4M854QC/indir-19.jpg', isFusion: true, fusionPartners: ['illuzyonist', 'mekanik'] },
+            { id: 'yildirim-elcisi', name: 'Yildirim Elcisi', description: 'İzcinin topragin sirlarini bilen ayaklari ile Samanin gokyuzunun ofkesini cagiran sesi onda birleşti. O, firtinanin gelisini haber degil, firtinanin ta kendisi olan, doganin ilkel gucunun elcisidir.', star: 4, imageUrl: 'https://i.ibb.co/jkVbq1Gj/indir-29.jpg', isFusion: true, fusionPartners: ['izci', 'saman'] },
+            { id: 'oluler-dusesi', name: 'Oluler Dusesi', description: 'Bir vampirin olumsuz kaniyla muhurlenmis, en karanlik saman rituelerinin efendisidir. O, ruhlara sadece fisildamaz, onlara kanla hukumder ve mezarlarindan kaldirdigi sadik ordusuyla gecenin sessizligini bozar.', star: 4, imageUrl: 'https://i.ibb.co/q3sCty58/indir-30.jpg', isFusion: true, fusionPartners: ['saman', 'vampir'] },
+            { id: 'meka-gladyator', name: 'Meka Gladyator', description: 'Bir parali askerin sarsilmaz iradesi, bir mekanigin dahiyane zekasiyla birleştiginde, etle makinenin kusursuz bir uyumla dans ettigi bu durdurulamaz savasci dogdu. O, hem kendi bedeninin hem de dovustugu celigin mutlak efendisidir.', star: 4, imageUrl: 'https://i.ibb.co/W4G1wrsr/indir-28.jpg', isFusion: true, fusionPartners: ['mekanik', 'paraliasker'] },
+            { id: 'dovus-kesisi', name: 'Dovus Kesisi', description: 'O, ne bir dansci ne de sadece bir savasci; o, bedenini atalarinin savasci ruhlarina teslim eden, her adimi olumcul bir ritual olan bir saman. Dervisin durdurulamaz donusu, onun icin ruhlar alemine acilan bir kapidir.', star: 4, imageUrl: 'https://i.ibb.co/3yz8myZt/indir-33.jpg', isFusion: true, fusionPartners: ['dervis', 'saman'] },
+        ];
+
+        const dom = {};
+        const state = {
+            galleryMode: 'all',
+            imageSizeIndex: 3,
+            isFitToScreenMode: true,
+            currentModalCharId: null,
+            currentModalType: null, 
+            uniqueNavigableList: [],
+        };
+
+        const sizeProfiles = [
+            { name: '1', minCardWidth: '170px', modalImageSize: 'w-40' }, 
+            { name: '2', minCardWidth: '220px', modalImageSize: 'w-52' },
+            { name: '3', minCardWidth: '270px', modalImageSize: 'w-64' }, 
+            { name: '4', minCardWidth: '320px', modalImageSize: 'w-80' },
+            { name: '5', minCardWidth: '370px', modalImageSize: 'w-96' },
+            { name: '6', minCardWidth: '420px', modalImageSize: 'w-[26rem]' }
+        ];
+
+        const getStarEmojis = (isFusion, starCount) => {
+            const colors = { 1: ONE_STAR_COLOR_CLASS, 2: TWO_STAR_COLOR_CLASS, 3: THREE_STAR_COLOR_CLASS, 4: FUSION_STAR_COLOR_CLASS };
+            const starIcon = `<span class="material-symbols-outlined ${colors[starCount]}" style="font-variation-settings: 'FILL' 1;">star</span>`;
+            const starHtml = Array(starCount).fill(starIcon).join('');
+            return isFusion ? `<div class="flex fusion-stars">${starHtml}</div>` : `<div class="flex">${starHtml}</div>`;
+        };
+        
+        const get3StarImageUrl = (baseCharId) => {
+            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
+            const threeStarEvo = baseChar?.evolutions.find(e => e.star === 3);
+            return threeStarEvo ? threeStarEvo.imageUrl : '';
+        };
+
+        const getCharacterImageUrlByStar = (baseCharId, star) => {
+            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
+            if (!baseChar) return '';
+            if (star === 1) return baseChar.imageUrl;
+            const evolution = baseChar.evolutions.find(e => e.star === star);
+            return evolution ? evolution.imageUrl : '';
+        };
+
+        function renderCharacters() {
+            dom.characterGrid.classList.add('grid-fade-out');
+            setTimeout(() => {
+                dom.characterGrid.innerHTML = '';
+                dom.characterGrid.classList.remove('grid-fade-out');
+
+                const gridContainerWidth = dom.characterGrid.offsetWidth;
+                const cardWidthPx = parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth, 10);
+                const gapPx = 24;
+                const baseColumnCount = Math.floor((gridContainerWidth + gapPx) / (cardWidthPx + gapPx)) || 1;
+
+                if (state.isFitToScreenMode) {
+                    const moreColumnCount = Math.ceil(baseColumnCount * 1.5);
+                    dom.characterGrid.style.gridTemplateColumns = `repeat(${moreColumnCount}, minmax(0, 1fr))`;
+                } else {
+                    dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, ${sizeProfiles[state.imageSizeIndex].minCardWidth})`;
+                }
+
+                let allDisplayableCharacters = [];
+                if (state.galleryMode === 'fusion') {
+                    allDisplayableCharacters = characters.filter(char => char.isFusion);
+                } else if (state.galleryMode === 'all') {
+                    characters.forEach(char => {
+                        if (!char.isFusion) { 
+                            allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl }); 
+                            char.evolutions?.forEach(evo => allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
+                        } 
+                    });
+                    allDisplayableCharacters.push(...characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})));
+                } else { 
+                    const starFilter = parseInt(state.galleryMode.split('-')[0]);
+                    allDisplayableCharacters = characters.filter(char => !char.isFusion).flatMap(char => {
+                        if (starFilter === 1) return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
+                        const evo = char.evolutions?.find(e => e.star === starFilter);
+                        return evo ? [{ ...char, displayStar: starFilter, displayImageUrl: evo.imageUrl }] : [];
+                    });
+                }
+                
+                allDisplayableCharacters.sort((a, b) => {
+                    if (a.isFusion !== b.isFusion) return a.isFusion ? 1 : -1;
+                    const nameCompare = a.name.localeCompare(b.name, 'tr');
+                    return nameCompare !== 0 ? nameCompare : (a.displayStar || a.star) - (b.displayStar || b.star);
+                });
+
+                state.uniqueNavigableList = characters
+                    .filter(c => c.star === 1 || c.isFusion)
+                    .sort((a, b) => (a.isFusion !== b.isFusion) ? (a.isFusion ? 1 : -1) : a.name.localeCompare(b.name, 'tr'));
+
+                if (allDisplayableCharacters.length === 0) {
+                    dom.characterGrid.innerHTML = `<p class="col-span-full text-center text-lg" style="color: var(--md-sys-color-on-surface-variant);">Bu filtrede gösterilecek karakter bulunamadı.</p>`;
+                    return;
+                }
+
+                allDisplayableCharacters.forEach((char, index) => {
+                    const card = document.createElement('div');
+                    const isFusion = char.isFusion;
+                    card.className = `character-card ripple-effect flex flex-col cursor-pointer ${isFusion ? 'fusion-card' : ''}`;
+                    card.dataset.id = char.id;
+                    card.style.animationDelay = `${index * 40}ms`;
+                    card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id);
+                    
+                    const nameClass = isFusion ? 'font-fantastical-fusion' : '';
+
+                    card.innerHTML = `
+                        <div class="character-card-image-wrapper">
+                           <img src="${char.displayImageUrl || char.imageUrl}" alt="${char.name}" class="character-card-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x400/1B1B1F/E3E2E6?text=Resim+Yok';">
+                        </div>
+                        <div class="p-4 flex-grow flex flex-col justify-end">
+                            <h3 class="character-name text-lg font-bold truncate ${nameClass}">${char.name}</h3>
+                            <div class="flex mt-1">${getStarEmojis(isFusion, char.displayStar || char.star)}</div>
+                        </div>
+                    `;
+                    dom.characterGrid.appendChild(card);
+                });
+                addInteractiveEffects();
+            }, 200);
+        }
+
+        function updateUI() {
+            Object.values(dom.filterChips).forEach(chip => chip.classList.remove('selected'));
+            const modeMap = { '1-star': 'oneStar', '2-star': 'twoStar', '3-star': 'threeStar', 'fusion': 'fusion', 'all': 'all' };
+            const activeChipKey = modeMap[state.galleryMode];
+            if (activeChipKey) dom.filterChips[activeChipKey].classList.add('selected');
+            dom.zoom.label.textContent = sizeProfiles[state.imageSizeIndex].name;
+            dom.zoom.outBtn.disabled = state.imageSizeIndex === 0;
+            dom.zoom.inBtn.disabled = state.imageSizeIndex === sizeProfiles.length - 1;
+            dom.layout.toggleBtn.classList.toggle('active', state.isFitToScreenMode);
+        }
+
+        function openModal(modalElement, contentElement) {
+            document.body.classList.add('modal-open');
+            modalElement.classList.remove('hidden');
+            modalElement.classList.add('flex');
+            setTimeout(() => contentElement.classList.add('visible'), 20);
+        }
+
+        function closeModal(modalElement, contentElement) {
+            document.body.classList.remove('modal-open');
+            contentElement.classList.remove('visible');
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+                modalElement.classList.remove('flex');
+            }, 300);
+            state.currentModalCharId = null; 
+            state.currentModalType = null;
+        }
+
+        function updateModalNavigation(id, type) {
+            state.currentModalCharId = id;
+            state.currentModalType = type;
+            const currentIndex = state.uniqueNavigableList.findIndex(item => item.id === id); 
+            const prevItem = currentIndex > 0 ? state.uniqueNavigableList[currentIndex - 1] : null;
+            const nextItem = currentIndex < state.uniqueNavigableList.length - 1 ? state.uniqueNavigableList[currentIndex + 1] : null;
+            const modal = type === 'character' ? dom.characterModal : dom.fusionModal;
+            
+            const openNextOrPrev = (item) => {
+                const closeFunc = type === 'character' ? closeCharacterModal : closeFusionModal;
+                closeFunc();
+                setTimeout(() => item.isFusion ? openFusionModal(item.id) : openCharacterModal(item.id), 310);
+            };
+
+            const setupNavControl = (control, nameSpan, item) => {
+                const action = item ? (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
+                control.disabled = !item;
+                control.onclick = action;
+                if (nameSpan) {
+                    nameSpan.textContent = item ? item.name : (control.id.startsWith('prev') ? 'Başlangıç' : 'Son');
+                    nameSpan.onclick = action;
+                    nameSpan.style.cursor = item ? 'pointer' : 'default';
+                }
+            };
+            
+            setupNavControl(modal.prevBtn, modal.prevName, prevItem);
+            setupNavControl(modal.nextBtn, modal.nextName, nextItem);
+        }
+
+        function openCharacterModal(characterId) {
+            const char = characters.find(c => c.id === characterId && !c.isFusion);
+            if (!char) return; 
+            const modal = dom.characterModal;
+            const modalImageSizeClass = sizeProfiles[state.imageSizeIndex].modalImageSize;
+            modal.name.textContent = char.name;
+            modal.description.textContent = char.description;
+            modal.evolutions.innerHTML = '';
+            const allEvolutions = [{ star: 1, imageUrl: char.imageUrl }, ...(char.evolutions || [])];
+            allEvolutions.forEach(evo => {
+                const evoDiv = document.createElement('div');
+                evoDiv.className = `flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--md-sys-color-surface-container-highest)]`;
+                evoDiv.style.backgroundColor = 'var(--md-sys-color-surface-container)';
+                evoDiv.innerHTML = `<div class="${modalImageSizeClass} mx-auto"><img src="${getCharacterImageUrlByStar(char.id, evo.star)}" alt="${char.name} ${evo.star} Yıldız" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div><p class="text-lg font-medium flex">${getStarEmojis(false, evo.star)}</p>`;
+                modal.evolutions.appendChild(evoDiv);
+            });
+            const fusions = characters.filter(f => f.isFusion && f.fusionPartners.includes(char.id));
+            modal.fusionsContainer.classList.toggle('hidden', fusions.length === 0);
+            if (fusions.length > 0) {
+                modal.fusionList.innerHTML = '';
+                fusions.forEach(fusion => {
+                    const fusionCard = document.createElement('div');
+                    fusionCard.className = `rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105`;
+                    fusionCard.style.backgroundColor = 'var(--md-sys-color-fusion-container)';
+                    fusionCard.onclick = (e) => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
+                    const nameClass = 'font-fantastical-fusion';
+                    fusionCard.innerHTML = `<img src="${fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center ${nameClass}" style="color: var(--md-sys-color-on-fusion-container);">${fusion.name}</p>`;
+                    modal.fusionList.appendChild(fusionCard);
+                });
+            }
+            openModal(modal.element, modal.content);
+            updateModalNavigation(characterId, 'character'); 
+        }
+
+        function closeCharacterModal() { closeModal(dom.characterModal.element, dom.characterModal.content); }
+
+        function openFusionModal(fusionId) {
+            const fusion = characters.find(c => c.id === fusionId && c.isFusion);
+            if (!fusion) return;
+            const modal = dom.fusionModal;
+            const modalImageSizeClass = sizeProfiles[state.imageSizeIndex].modalImageSize;
+            modal.name.textContent = fusion.name;
+            modal.name.classList.add('font-fantastical-fusion');
+            modal.description.textContent = fusion.description;
+            modal.image.src = fusion.imageUrl;
+            modal.image.setAttribute('onclick', `enlargeImage('${fusion.imageUrl}')`);
+            const [p1, p2] = fusion.fusionPartners.map(id => characters.find(c => c.id === id));
+            if (p1) {
+                modal.leftChar.image.src = get3StarImageUrl(p1.id);
+                modal.leftChar.container.className = `flex flex-col items-center text-center cursor-pointer group max-w-xs lg:max-w-sm xl:max-w-md mx-auto`;
+                modal.leftChar.name.textContent = p1.name;
+                modal.leftChar.container.dataset.characterId = p1.id;
+                modal.leftChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`; 
+            }
+            if (p2) {
+                modal.rightChar.image.src = get3StarImageUrl(p2.id);
+                modal.rightChar.container.className = `flex flex-col items-center text-center cursor-pointer group max-w-xs lg:max-w-sm xl:max-w-md mx-auto`;
+                modal.rightChar.name.textContent = p2.name;
+                modal.rightChar.container.dataset.characterId = p2.id;
+                modal.rightChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`; 
+            }
+            modal.image.parentElement.className = `flex flex-col items-center text-center lg:col-span-1 max-w-md lg:max-w-lg xl:max-w-xl mx-auto`;
+            modal.star.innerHTML = `${getStarEmojis(true, 4)}`; 
+            openModal(modal.element, modal.content);
+            updateModalNavigation(fusionId, 'fusion'); 
+        }
+
+        function closeFusionModal() { 
+            dom.fusionModal.name.classList.remove('font-fantastical-fusion');
+            closeModal(dom.fusionModal.element, dom.fusionModal.content); 
+        }
+
+        function enlargeImage(src) {
+            const openModal = document.querySelector('.m3-dialog-container.visible');
+            if (openModal) {
+                openModal.classList.add('modal-transform-paused');
+            }
+            dom.enlargedImage.image.src = src;
+            dom.enlargedImage.overlay.classList.remove('hidden');
+        }
+
+        function closeEnlargedImage(event) {
+            if (event) event.stopPropagation();
+            const pausedModal = document.querySelector('.modal-transform-paused');
+            if (pausedModal) {
+                pausedModal.classList.remove('modal-transform-paused');
+            }
+            dom.enlargedImage.overlay.classList.add('hidden');
+        }
+
+        function addInteractiveEffects() {
+            document.querySelectorAll('.ripple-effect').forEach(el => {
+                if (el.dataset.rippleAttached) return;
+                el.dataset.rippleAttached = 'true';
+                el.addEventListener('click', function (e) {
+                    const rect = this.getBoundingClientRect();
+                    const ripple = document.createElement('span');
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.style.width = ripple.style.height = `${size}px`;
+                    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+                    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+                    ripple.classList.add('ripple');
+                    const existingRipple = this.querySelector('.ripple');
+                    if (existingRipple) existingRipple.remove();
+                    this.appendChild(ripple);
+                });
+            });
+
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const { width, height } = rect;
+                    const rotateX = (y / height - 0.5) * -15;
+                    const rotateY = (x / width - 0.5) * 15;
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+                });
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Object.assign(dom, {
+                characterGrid: document.getElementById('character-grid'),
+                filterChips: { oneStar: document.getElementById('show-1-star-btn'), twoStar: document.getElementById('show-2-star-btn'), threeStar: document.getElementById('show-3-star-btn'), fusion: document.getElementById('show-fusion-btn'), all: document.getElementById('show-all-btn'), },
+                characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), description: document.getElementById('modal-character-description'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
+                fusionModal: { element: document.getElementById('fusion-modal'), content: document.getElementById('fusion-modal-content'), name: document.getElementById('modal-fusion-name'), description: document.getElementById('modal-fusion-description'), image: document.getElementById('modal-fusion-image'), star: document.getElementById('modal-fusion-star'), leftChar: { image: document.getElementById('modal-fusion-left-char-image'), name: document.getElementById('modal-fusion-left-char-name'), starDisplay: document.getElementById('modal-fusion-left-char-star'), container: document.getElementById('modal-fusion-left-char-image').parentElement }, rightChar: { image: document.getElementById('modal-fusion-right-char-image'), name: document.getElementById('modal-fusion-right-char-name'), starDisplay: document.getElementById('modal-fusion-right-char-star'), container: document.getElementById('modal-fusion-right-char-image').parentElement }, prevBtn: document.getElementById('prev-fusion-btn'), nextBtn: document.getElementById('next-fusion-btn'), prevName: document.getElementById('prev-fusion-name'), nextName: document.getElementById('next-fusion-name') },
+                enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
+                zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
+                layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') }
+            });
+
+            Object.entries(dom.filterChips).forEach(([key, chip]) => {
+                const modeMap = { oneStar: '1-star', twoStar: '2-star', threeStar: '3-star', fusion: 'fusion', all: 'all' };
+                chip.addEventListener('click', () => {
+                    state.galleryMode = modeMap[key];
+                    updateUI();
+                    renderCharacters();
+                });
+            });
+            
+            dom.zoom.inBtn.addEventListener('click', () => {
+                if (state.imageSizeIndex < sizeProfiles.length - 1) {
+                    state.imageSizeIndex++;
+                    updateUI();
+                    renderCharacters();
+                }
+            });
+            dom.zoom.outBtn.addEventListener('click', () => {
+                if (state.imageSizeIndex > 0) {
+                    state.imageSizeIndex--;
+                    updateUI();
+                    renderCharacters();
+                }
+            });
+
+            dom.layout.toggleBtn.addEventListener('click', () => {
+                state.isFitToScreenMode = !state.isFitToScreenMode;
+                updateUI();
+                renderCharacters();
+            });
+
+            updateUI(); 
+            renderCharacters(); 
+        });
+    </script>
+</body>
+</html>
