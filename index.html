@@ -90,7 +90,6 @@
             justify-content: center;
         }
 
-        /* Arama sonuçları gridi artık kendi stiline sahip */
         #search-results-grid {
             display: grid;
             gap: 1rem;
@@ -113,7 +112,6 @@
         }
 
         .modal-nav-button {
-            /* DEĞİŞİKLİK: Modal Navigasyon Butonları Küçültüldü */
             @apply px-3 py-1.5 rounded-full text-base font-semibold transition-all duration-300 ease-in-out;
             @apply bg-gray-600 text-gray-200 shadow-md hover:bg-gray-500;
         }
@@ -122,7 +120,6 @@
         }
 
         .modal-nav-text {
-            /* DEĞİŞİKLİK: Modal Navigasyon Yazıları Küçültüldü */
             @apply text-gray-300 text-sm whitespace-nowrap overflow-hidden text-overflow-ellipsis max-w-[100px] md:max-w-[150px];
         }
 
@@ -136,7 +133,11 @@
             <h1 class="text-4xl font-extrabold text-center text-indigo-400 main-title mb-4 sm:mb-0">Karakter Galerisi</h1>
         </div>
 
-        <div class="flex flex-wrap justify-center items-center gap-2 md:gap-4 mb-8">
+            
+            <div class="flex flex-wrap justify-center items-center gap-2 md:gap-4 mb-8">
+            <button id="open-search-modal-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600" aria-label="Arama Yap">
+                <i class="fa fa-search" aria-hidden="true"></i>
+            </button>
             <button id="show-1-star-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600">
                 <span class="text-orange-400">★</span>
             </button>
@@ -150,21 +151,17 @@
                 <span class="text-purple-400">★★★★</span>
             </button>
             <button id="show-all-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-indigo-600 text-white shadow-md hover:bg-indigo-700">
-                <i class="fa fa-globe" aria-hidden="true"></i>
+                Tüm Karakterler
             </button>
 
-            <button id="open-search-modal-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600" aria-label="Arama Yap">
-                <i class="fa fa-search" aria-hidden="true"></i>
-            </button>
+            
             <button id="fitToScreenToggleBtn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600" aria-label="Daha Fazla Karakter Göster / Normal Mod">
                 <i class="fa fa-expand" aria-hidden="true"></i>
             </button>
             
-            <div class="flex items-center rounded-full shadow-md bg-gray-700 overflow-hidden">
-                <button id="zoom-out-btn" class="px-4 py-2 text-lg font-semibold text-white transition-colors duration-200 hover:bg-gray-600" aria-label="Galeri Kartlarını Küçült">–</button>
-                <span id="current-size-label" class="px-4 py-2 text-lg font-bold bg-gray-800 text-indigo-400" aria-live="polite">4</span>
-                <button id="zoom-in-btn" class="px-4 py-2 text-lg font-semibold text-white transition-colors duration-200 hover:bg-gray-600" aria-label="Galeri Kartlarını Büyüt">+</button>
-            </div>
+            <button id="size-cycle-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600" aria-label="Galeri Kart Boyutunu Değiştir">
+                4 <i class="fa fa-text-height" aria-hidden="true"></i>
+            </button>
             
             <div id="columns-slider-container" class="mt-2 w-full hidden"> 
                 <label for="column-count-slider" class="block text-gray-200 font-medium mb-1 text-center text-sm">Yan Yana Sığacak Kart: <span id="column-count-value">4</span></label>
@@ -346,9 +343,12 @@
                 evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Mkyk5X8r/peri2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/ksHpyWSz/peri3.jpg' }] },
             { id: 'dusmusmelek', name: 'Düşmüş Melek', description: 'Bir zamanlar cennetin en parlak yıldızıydı, şimdi ise kendi karanlık krallığını kuran sürgün bir kraliçe. Kırık kanatları, kaybettiği masumiyetin değil, kazandığı acımasız gücün simgesidir.', star: 1, imageUrl: 'https://i.ibb.co/0pWnGZY4/dusmus1.jpg', 
                 evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Jj3z5PDk/dusmus2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/TBjMxjHX/dusmus3.jpg' }] },
-                { id: 'mehtapperisi', name: 'Mehtap Perisi', description: 'Açıklama', star: 1, imageUrl: 'https://i.ibb.co/fd0WmqG1/ayperi1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/2XhXmTk/ayperi2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/27nS3Jk3/ayperi3.jpg' }] },
-                { id: 'gunessovalyesi', name: 'Güneş Şövalyesi', description: 'Açıklama', star: 1, imageUrl: 'https://i.ibb.co/nq4hbJdj/paladin1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Zpp0P1qg/paladin2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/F4w4tqP9/paladin3.jpg' }] },
-            // YENİ KARAKTERLER BURAYA ======================= 
+                { id: 'mehtapperisi', name: 'Mehtap Perisi', description: 'Gecenin gizemli ve zarif kraliçesi, ayın kendisinden doğmuş uhrevi bir varlık. Sakin gücü ve büyüsü, en karanlık geceleri bile aydınlatır.', star: 1, imageUrl: 'https://i.ibb.co/fd0WmqG1/ayperi1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/2XhXmTk/ayperi2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/rKMH34GL/ayperiyeni.jpg' }] },
+                { id: 'gunessovalyesi', name: 'Güneş Şövalyesi', description: 'İnancı çelikle birleşen, ışığın sarsılmaz iradesini temsil eden kutsal bir savaşçı. O, masumların koruyucusu ve karanlığın en büyük korkusudur.', star: 1, imageUrl: 'https://i.ibb.co/nq4hbJdj/paladin1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Zpp0P1qg/paladin2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/F4w4tqP9/paladin3.jpg' }] },
+                { id: 'demirci', name: 'Demirci', description: 'Gücü kaslarında ve çeliğe hükmeden sanatında olan efsanevi bir usta. Ocağının ateşiyle, krallara layık, kırılmaz silahlar döver.', star: 1, imageUrl: 'https://i.ibb.co/vMvSpxy/demir1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/B5xxXNBb/demir2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Vp9CGM2t/demir3.jpg' }] },
+                { id: 'mumya', name: 'Mumya', description: 'Binlerce yıllık uykusundan uyanmış, ebedi bir mezar koruyucusu. O, hem unutulmuş bir krallığın kraliçesi hem de kumların ve zamanın kendisidir.', star: 1, imageUrl: 'https://i.ibb.co/VWMhVCwH/mumya1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZRbdDvXd/mumya21.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/chGvch2Y/mumya3.jpg' }] },
+                { id: 'ejderdogan', name: 'Ejderdoğan', description: 'Damarlarında ejderha kanı dolaşan, asil ve güçlü bir savaşçı. İçindeki ilkel gücü keşfederek, ejderhaların gücünün ve asaletinin yeryüzündeki temsilcisi olur.', star: 1, imageUrl: 'https://i.ibb.co/LXn9yM5k/ejder.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/65XXz6r/ejder2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/mVsp6HJR/ejder3.jpg' }] },
+            // YENİ KARAKTERLER BURAYA ============================================================================================================================ =========================================================================================================================================================================================================================================================================================================================== 
             // YENİ KARAKTER TEMPLATESİ:   { id: 'id', name: 'İsim', description: 'Açıklama', star: 1, imageUrl: 'resim1', evolutions: [{ star: 2, imageUrl: 'resim2' }, { star: 3, imageUrl: 'resim3' }] },
             // FÜZYON KARAKTERLERİ
             { id: 'cadı', name: 'Cadı', description: 'Hem karanlığın mistik bilgeliğini hem de kutsal ışığın gücünü barındıran bu melez büyü-rahibe, her adımıyla kadim bir dengeyi ve sınırsız bir potansiyeli temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/gbJDXPX9/cadiyeni.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
@@ -392,11 +392,12 @@
             { id: 'kucuk-berserker', name: 'Küçük Berserker', description: 'Bir paralı askerin sarsılmaz cesareti, bir goblinin asla pes etmeyen, çılgın inadıyla birleşti. O, savaş alanındaki en küçük gölge olabilir, ama attığı her zafer çığlığı, en devasa orduların bile kalbine korku salmaya yeter.', star: 4, imageUrl: 'https://i.ibb.co/HTRsw2xs/indir-4.jpg', isFusion: true, fusionPartners: ['goblin', 'paraliasker'] },
             { id: 'kaos-perisi', name: 'Kaos Perisi', description: 'Bu füzyon, bir prensesin isyankar ruhu ile bir gökkuşağı perisinin saf neşesinin en kontrolsüz halidir. O, bir kraliçe değil; o, varlığıyla etrafına kontrol edilemez bir neşe, kahkaha ve rengarenk bir kaos yayan, yaşayan bir festivaldir.', star: 4, imageUrl: 'https://i.ibb.co/fGr9vW5g/1753844042911.gif', isFusion: true, fusionPartners: ['gokkusagiperisi', 'prenses'] },
             { id: 'id', name: 'Günahkar Serenad', description: 'Düşmüş bir meleğin trajik asilliği ile bir succubusun saf, karşı konulmaz şehveti birleşti. O, hem cennetin kayıp ilahisini hem de cehennemin en tatlı günahını fısıldayan, yasak bir serenattır.', star: 4, imageUrl: 'https://i.ibb.co/WWs98BS1/vals.jpg', isFusion: true, fusionPartners: ['cazibe', 'dusmusmelek'] },
-            { id: 'aurora-perisi', name: 'Aurora Perisi', description: 'açıklama', star: 4, imageUrl: 'https://i.ibb.co/gbsg0cSC/buzkusak.jpg', isFusion: true, fusionPartners: ['mehtapperisi', 'buzbuyucusu'] },
-            // YENİ FÜZYONLAR BURAYA =============================
+            { id: 'aurora-perisi', name: 'Kuzey Işığı Perisi', description: 'Ayın gümüşi zarafeti ile buzun kristal saflığı, gökyüzünün en sihirli ve en büyüleyici fenomeni olan Kuzey Işıklarında birleşti. O, kutup gecesinin dans eden ruhudur.', star: 4, imageUrl: 'https://i.ibb.co/qLd5599m/aurorayeni.jpg', isFusion: true, fusionPartners: ['buzbuyucusu', 'mehtapperisi'] },
+            { id: 'gunesin-hukmu', name: 'Güneşin Hükmü', description: 'Bir okçunun ölümcül isabeti, bir güneş şövalyesinin ilahi gücüyle birleşti. O, güneşin kendisinin, adaleti yerine getiren, asla ıskalamayan oku ve sarsılmaz iradesidir.', star: 4, imageUrl: 'https://i.ibb.co/0jFTnk4p/g-nesok.jpg', isFusion: true, fusionPartners: ['okcu', 'gunessovalyesi'] },
+            // YENİ FÜZYONLAR BURAYA =============================================================================================================================================================================================================================================================================================================================================================================
             // YENİ FÜZYON TEMPLATESİ { id: 'id', name: 'isim', description: 'açıklama', star: 4, imageUrl: 'resim', isFusion: true, fusionPartners: ['id1', 'id2'] },
             
-        ]; 
+        ];  
         
         const characterGrid = document.getElementById('character-grid');
         const filterButtons = {
@@ -457,9 +458,7 @@
         
         const backToTopBtn = document.getElementById('back-to-top-btn');
 
-        const zoomOutBtn = document.getElementById('zoom-out-btn');
-        const zoomInBtn = document.getElementById('zoom-in-btn');
-        const currentSizeLabel = document.getElementById('current-size-label');
+        const sizeCycleBtn = document.getElementById('size-cycle-btn');
 
         const fitToScreenToggleBtn = document.getElementById('fitToScreenToggleBtn'); 
         const columnsSliderContainer = document.getElementById('columns-slider-container');
@@ -476,12 +475,16 @@
         let uniqueNavigableList = [];
 
         let sizeProfiles = [
-            { name: '1', minCardWidth: '160px', maxCardWidth: '180px', evolutionBox: 'w-56 h-auto', fusionThumb: 'w-40 h-auto', fusionPartner: 'w-64 h-auto', fusionMainMaxH: 'max-h-96', fusionMainImageWidth: 'w-64' },
-            { name: '2', minCardWidth: '200px', maxCardWidth: '220px', evolutionBox: 'w-64 h-auto', fusionThumb: 'w-44 h-auto', fusionPartner: 'w-72 h-auto', fusionMainMaxH: 'max-h-[28rem]', fusionMainImageWidth: 'w-72' },
-            { name: '3', minCardWidth: '240px', maxCardWidth: '260px', evolutionBox: 'w-72 h-auto', fusionThumb: 'w-48 h-auto', fusionPartner: 'w-80 h-auto', fusionMainMaxH: 'max-h-[32rem]', fusionMainImageWidth: 'w-80' },
-            { name: '4', minCardWidth: '280px', maxCardWidth: '300px', evolutionBox: 'w-80 h-auto', fusionThumb: 'w-56 h-auto', fusionPartner: 'w-96 h-auto', fusionMainMaxH: 'max-h-[36rem]', fusionMainImageWidth: 'w-96' },
-            { name: '5', minCardWidth: '320px', maxCardWidth: '340px', evolutionBox: 'w-96 h-auto', fusionThumb: 'w-64 h-auto', fusionPartner: 'w-[28rem] h-auto', fusionMainMaxH: 'max-h-[40rem]', fusionMainImageWidth: 'w-[26rem]' }
+            { name: 'Çok Küçük ', minCardWidth: '200px', maxCardWidth: '220px', evolutionBox: 'w-64 h-auto', fusionThumb: 'w-44 h-auto', fusionPartner: 'w-72 h-auto', fusionMainMaxH: 'max-h-[28rem]', fusionMainImageWidth: 'w-72' },
+            { name: 'Küçük ', minCardWidth: '240px', maxCardWidth: '260px', evolutionBox: 'w-72 h-auto', fusionThumb: 'w-48 h-auto', fusionPartner: 'w-80 h-auto', fusionMainMaxH: 'max-h-[32rem]', fusionMainImageWidth: 'w-80' },
+            { name: 'Normal ', minCardWidth: '280px', maxCardWidth: '300px', evolutionBox: 'w-80 h-auto', fusionThumb: 'w-56 h-auto', fusionPartner: 'w-96 h-auto', fusionMainMaxH: 'max-h-[36rem]', fusionMainImageWidth: 'w-96' },
+            { name: 'Büyük ', minCardWidth: '320px', maxCardWidth: '340px', evolutionBox: 'w-96 h-auto', fusionThumb: 'w-64 h-auto', fusionPartner: 'w-[28rem] h-auto', fusionMainMaxH: 'max-h-[40rem]', fusionMainImageWidth: 'w-[26rem]' }
         ];
+
+        function updateSizeCycleButtonText() {
+            const currentSizeName = sizeProfiles[imageSizeIndex].name;
+            sizeCycleBtn.innerHTML = `${currentSizeName} <i class="fa fa-text-height" aria-hidden="true"></i>`;
+        }
 
         function getStarEmojis(starCount, applyGlow = false) { 
             const colors = { 
@@ -638,7 +641,6 @@
             return card;
         }
         
-        // DEĞİŞİKLİK: Yeni Arama Sonuç Kartı Oluşturma Fonksiyonu
         function createSearchResultCard(item) {
             const card = document.createElement('div');
             card.className = 'bg-gray-800 rounded-lg shadow-lg p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-700 transition-colors duration-200';
@@ -680,12 +682,6 @@
                 }
             });
         }
-        
-        function updateZoomControls() {
-            currentSizeLabel.textContent = sizeProfiles[imageSizeIndex].name;
-            zoomOutBtn.disabled = imageSizeIndex === 0;
-            zoomInBtn.disabled = imageSizeIndex === sizeProfiles.length - 1;
-        }
 
         Object.entries(filterButtons).forEach(([key, button]) => {
             const modeMap = { oneStar: '1-star', twoStar: '2-star', threeStar: '3-star', fusion: 'fusion', all: 'all' };
@@ -695,23 +691,12 @@
             });
         });
         
-        zoomInBtn.addEventListener('click', () => {
-            if (imageSizeIndex < sizeProfiles.length - 1) {
-                imageSizeIndex++;
-                updateZoomControls();
-                renderCharacters();
-                // Arama sonuçları artık etkilenmiyor, çünkü kendi düzeni var.
-            }
+        sizeCycleBtn.addEventListener('click', () => {
+            imageSizeIndex = (imageSizeIndex + 1) % sizeProfiles.length;
+            updateSizeCycleButtonText();
+            renderCharacters();
         });
 
-        zoomOutBtn.addEventListener('click', () => {
-            if (imageSizeIndex > 0) {
-                imageSizeIndex--;
-                updateZoomControls();
-                renderCharacters();
-                // Arama sonuçları artık etkilenmiyor, çünkü kendi düzeni var.
-            }
-        });
 
         function openModal(modalElement, contentElement) {
             modalElement.classList.remove('hidden');
@@ -801,7 +786,7 @@
                 evoDiv.className = `flex flex-col items-center p-3 bg-gray-600 rounded-lg shadow-sm ${evolutionBoxClass}`;
                 const imageUrl = getCharacterImageUrlByStar(clickedChar.id, evo.star);
                 evoDiv.innerHTML = `
-                    <img src="${imageUrl}" alt="${clickedChar.name} ${evo.star} Yıldız" class="${evolutionImageBaseClass}" onclick="enlargeImage(this.src)" onerror="this.onerror=null;this.src='https://placehold.co/300x400/CCCCCC/000000?text=Resim+Yok;">
+                    <img src="${imageUrl}" alt="${clickedChar.name} ${evo.star} Yıldız" class="${evolutionImageBaseClass}" onclick="enlargeImage(this.src)" onerror="this.onerror=null;this.src='https://placehold.co/300x400/CCCCCC/000000?text=Resim+Yok';">
                     <p class="text-lg font-medium text-gray-200">${getStarEmojis(evo.star)}</p>
                 `;
                 characterModal.evolutions.appendChild(evoDiv);
@@ -1011,10 +996,9 @@
             dynamicColumnCount = parseInt(columnCountSlider.value);
             columnCountValue.textContent = dynamicColumnCount;
             
-            updateZoomControls(); 
+            updateSizeCycleButtonText();
             renderCharacters(); 
         };
-
     </script>
 </body>
 </html>
