@@ -3,286 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karakter Galerisi</title>
+    <title>Karakter Galerisi - Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Uncial+Antiqua&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <style>
-        html {
-            scroll-behavior: smooth;
+        :root {
+            --md-sys-color-primary-rgb: 189, 179, 255;
+            --md-sys-color-primary: rgb(var(--md-sys-color-primary-rgb));
+            --md-sys-color-on-primary: #2d235c;
+            --md-sys-color-primary-container: #443a74;
+            --md-sys-color-on-primary-container: #e6deff;
+
+            --md-sys-color-fusion-rgb: 224, 179, 255;
+            --md-sys-color-fusion: rgb(var(--md-sys-color-fusion-rgb));
+            --md-sys-color-on-fusion: #490071;
+            --md-sys-color-fusion-container: #63009b;
+            --md-sys-color-on-fusion-container: #f4d9ff;
+
+            --md-sys-color-background: #131318;
+            --md-sys-color-on-background: #e5e1e6;
+            --md-sys-color-surface-container: #201f25;
+            --md-sys-color-surface-container-high: #2a2830;
+            --md-sys-color-on-surface: #e5e1e6;
+            --md-sys-color-on-surface-variant: #c8c4d0;
+            --md-sys-color-outline-variant: #48454e;
         }
+
+        body.modal-open { overflow: hidden; }
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a202c;
-            color: #e2e8f0;
+            font-family: 'Manrope', sans-serif;
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            position: relative;
+            overflow-x: hidden;
         }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #2d3748; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6a7280; cursor: pointer; }
-
-        .modal-backdrop {
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 15% 25%, rgba(var(--md-sys-color-primary-rgb), 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 65%, rgba(var(--md-sys-color-fusion-rgb), 0.12) 0%, transparent 45%);
+            z-index: -1;
+            animation: aurora-flow 20s infinite alternate ease-in-out;
         }
-
-        .enlarged-image-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1000; cursor: zoom-out;
-        }
-        .enlarged-image {
-            max-width: 90%; max-height: 90%;
-            object-fit: contain; border-radius: 12px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        @keyframes aurora-flow {
+            from { transform: translate(0, 0) rotate(0deg) scale(1.2); }
+            to { transform: translate(5vw, -5vh) rotate(10deg) scale(1.2); }
         }
 
-        h1.main-title {
-            font-family: 'Cinzel Decorative', cursive;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        .control-panel {
+            background-color: rgba(27, 27, 32, 0.7); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            border: 1px solid rgba(146, 143, 153, 0.2);
         }
-        #modal-character-name, #modal-fusion-name {
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        .chip {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 8px 16px; border-radius: 20px; font-weight: 600;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background-color: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface-variant);
+            transition: all 0.2s ease-in-out;
+        }
+        .chip:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        .chip.selected {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-color: var(--md-sys-color-primary);
+            font-weight: 700;
+        }
+
+        #character-grid { display: grid; gap: 1.5rem; justify-content: center; }
+        .character-card {
+            background-color: var(--md-sys-color-surface-container);
+            border-radius: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+            overflow: hidden; position: relative; opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            animation: card-fade-in 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease;
+        }
+        @keyframes card-fade-in { to { opacity: 1; transform: translateY(0) scale(1); } }
+        .character-card:hover { box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
+        .character-card-image-wrapper { aspect-ratio: 3 / 4; width: 100%; overflow: hidden; border-radius: 18px; }
+        .character-card-image { object-fit: cover; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
+        .character-card:hover .character-card-image { transform: scale(1.1); }
+        .character-name { color: var(--md-sys-color-on-surface); }
+        
+        .fusion-card .character-name { color: var(--md-sys-color-on-fusion-container); }
+        .fusion-stars .material-symbols-outlined { animation: star-glow-pulse 1.5s infinite alternate; }
+        @keyframes star-glow-pulse {
+            from { text-shadow: 0 0 4px #fff, 0 0 8px var(--md-sys-color-fusion), 0 0 12px var(--md-sys-color-fusion); transform: scale(1); }
+            to { text-shadow: 0 0 8px #fff, 0 0 16px var(--md-sys-color-fusion), 0 0 24px var(--md-sys-color-fusion); transform: scale(1.1); }
         }
         
-        .font-fusion {
-            font-family: 'Uncial Antiqua', cursive;
-            text-shadow: 1px 1px 3px rgba(167, 139, 250, 0.4);
+        .font-fantastical-fusion { font-family: 'Metamorphous', serif; }
+
+        .m3-dialog-backdrop { z-index: 1000; }
+        .m3-dialog-container {
+            background-color: rgba(32, 31, 37, 0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(146, 143, 153, 0.2);
+            border-radius: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            height: 100%;
+            max-height: 90vh; max-width: 95vw; width: 1200px;
+            display: flex; flex-direction: column;
+            opacity: 0; transform: scale(0.95) translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            position: relative;
         }
+        .m3-dialog-content { overflow-y: auto; min-height: 0; }
+        .m3-dialog-container.visible { opacity: 1; transform: scale(1) translateY(0); }
+        .m3-dialog-footer { display:flex; justify-content: space-between; align-items: center; }
+        .modal-nav-button { display: flex; align-items: center; gap: 8px; color: var(--md-sys-color-on-surface-variant); border-radius: 99px; padding: 4px; }
         
-        #zoom-out-btn:disabled, #zoom-in-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
+        .fusion-modal-background { position: relative; overflow: hidden; }
+        .fusion-modal-background::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 100%, rgba(var(--md-sys-color-fusion-rgb), 0.6) 0%, transparent 70%);
+            animation: prism-pulse 5s infinite alternate ease-in-out;
+            z-index: -1;
+        }
+        @keyframes prism-pulse { from { transform: scale(2); opacity: 1; } to { transform: scale(1.5); opacity: 1; } }
+        .fusion-partner-card { border: 2px solid var(--md-sys-color-fusion); }
+        .enlarged-image-container { z-index: 1100; position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.85); }
+        .enlarged-image { max-width: 96%; max-height: 96%; object-fit: contain; }
+        .icon-button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background-color: transparent; color: var(--md-sys-color-on-surface-variant); cursor: pointer; transition: all 0.2s; }
+        .icon-button:hover { background-color: rgba(var(--md-sys-color-primary-rgb), 0.08); }
+        .ripple-effect { position: relative; overflow: hidden; }
+        .ripple { position: absolute; border-radius: 50%; background-color: rgba(255, 255, 255, 0.3); transform: scale(0); animation: ripple-animation 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); pointer-events: none; }
+        @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
+        #character-grid.grid-fade-out { opacity: 0; transition: opacity 0.2s ease-out; }
+        .modal-transform-paused { transform: none !important; }
+
+        #fitToScreenToggleBtn.active {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+        #fitToScreenToggleBtn.active:hover {
+            background-color: var(--md-sys-color-primary);
         }
 
-        .glow-purple {
-            box-shadow: 
-                0 0 8px rgba(167, 139, 250, 0.6),
-                0 0 20px rgba(167, 139, 250, 0.4),
-                0 0 40px rgba(167, 139, 250, 0.2);
+        .search-result-card {
+            display: flex; align-items: center; gap: 1rem; padding: 0.75rem;
+            border-radius: 12px; background-color: var(--md-sys-color-surface-container);
+            transition: all 0.2s ease-in-out; cursor: pointer;
         }
-        
-        @keyframes text-pulse-glow {
-            0% { filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.8)); }
-            50% { filter: drop-shadow(0 0 12px rgba(167, 139, 250, 1.0)) drop-shadow(0 0 20px rgba(167, 139, 250, 0.6)); }
-            100% { filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.8)); }
+        .search-result-card:hover {
+            background-color: var(--md-sys-color-surface-container-high);
+            transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-
-        .glow-text-purple-animated {
-            animation: text-pulse-glow 1.5s infinite alternate;
-        }
-
-        .fusion-modal-background-glow {
-            box-shadow: 
-                inset 0 0 20px rgba(167, 139, 250, 0.3),
-                0 0 25px rgba(167, 139, 250, 0.5),
-                0 0 50px rgba(167, 139, 250, 0.2);
-            background: radial-gradient(circle at center, rgba(167, 139, 250, 0.1) 0%, rgba(94, 234, 212, 0.05) 50%, rgba(68, 76, 94, 0) 100%), 
-                        linear-gradient(135deg, #5a2a7a 0%, #3a1a4a 100%);
-        }
-
-        #character-grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: repeat(auto-fit, minmax(var(--grid-min-card-width), var(--grid-max-card-width)));
-            justify-content: center;
-        }
-
         #search-results-grid {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+             display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         }
-
-
-        .character-card-image {
-            width: 100%;
-            height: auto;
-            max-height: 100%;
-            object-fit: contain;
+           #search-input:focus {
+            border-color: var(--md-sys-color-primary);
         }
-
-        .character-name-ellipsis {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-        }
-
-        .modal-nav-button {
-            @apply px-3 py-1.5 rounded-full text-base font-semibold transition-all duration-300 ease-in-out;
-            @apply bg-gray-600 text-gray-200 shadow-md hover:bg-gray-500;
-        }
-        .modal-nav-button:disabled {
-            @apply opacity-50 cursor-not-allowed;
-        }
-
-        .modal-nav-text {
-            @apply text-gray-300 text-sm whitespace-nowrap overflow-hidden text-overflow-ellipsis max-w-[100px] md:max-w-[150px];
-        }
-
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
-<body class="p-4 md:p-8">
-    <div id="app" class="max-w-7xl mx-auto bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 relative">
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div id="app" class="max-w-screen-2xl mx-auto">
         
-        <div class="flex justify-between items-center mb-8 flex-wrap">
-            <h1 class="text-4xl font-extrabold text-center text-indigo-400 main-title mb-4 sm:mb-0">Karakter Galerisi</h1>
-        </div>
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi</h1>
+            <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet</p>
+        </header>
 
+        <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
             
-            <div class="flex flex-wrap justify-center items-center gap-2 md:gap-4 mb-8">
-            <button id="open-search-modal-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600" aria-label="Arama Yap">
-               Arama <i class="fa fa-search" aria-hidden="true"></i>
-            </button>
-            <button id="show-1-star-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600">
-                <span class="text-orange-400">★</span>
-            </button>
-            <button id="show-2-star-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600">
-                <span class="text-gray-400">★★</span>
-            </button>
-            <button id="show-3-star-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600">
-                <span class="text-yellow-400">★★★</span>
-            </button>
-            <button id="show-fusion-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600">
-                <span class="text-purple-400">★★★★</span>
-            </button>
-            <button id="show-all-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-indigo-600 text-white shadow-md hover:bg-indigo-700">
-                Tüm Karakterler
-            </button>
-
-            
-            <button id="fitToScreenToggleBtn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600" aria-label="Daha Fazla Karakter Göster / Normal Mod">
-               Sığdır <i class="fa fa-expand" aria-hidden="true"></i>
-            </button>
-            
-            <button id="size-cycle-btn" class="px-3 py-2 md:px-5 md:py-2 rounded-full text-sm md:text-lg font-semibold transition-all duration-300 ease-in-out bg-gray-700 text-gray-200 shadow-md hover:bg-gray-600" aria-label="Galeri Kart Boyutunu Değiştir">
-               Boyut 4 <i class="fa fa-text-height" aria-hidden="true"></i>
-            </button>
-            
-            <div id="columns-slider-container" class="mt-2 w-full hidden"> 
-                <label for="column-count-slider" class="block text-gray-200 font-medium mb-1 text-center text-sm">Yan Yana Sığacak Kart: <span id="column-count-value">4</span></label>
-                <input type="range" id="column-count-slider" min="2" max="6" value="4" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-            </div>
-            
-        </div>
-
-        <div id="character-grid"></div>
-
-        <div id="character-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden flex items-center justify-center p-4 z-50 overflow-y-auto" onclick="closeCharacterModal()">
-           <div class="bg-gray-700 rounded-xl shadow-2xl p-6 w-full h-full transform transition-all duration-300 ease-out scale-95 opacity-0 overflow-y-auto flex flex-col" id="character-modal-content" onclick="event.stopPropagation()">
-                <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h2 id="modal-character-name" class="text-2xl font-bold text-indigo-400 text-center flex-grow mx-2"></h2>
-                    <button class="text-gray-400 hover:text-gray-200 text-3xl font-light" onclick="closeCharacterModal()" aria-label="Karakter Detaylarını Kapat">&times;</button>
+            <div class="flex flex-wrap justify-center items-center gap-2">
+<button id="open-search-btn" class="chip ripple-effect">
+                    <span class="material-symbols-outlined">search</span>
+                    <span>Arama</span>
+                </button>
+                <div class="relative" id="filter-container">
+                    <button id="filter-toggle-btn" class="chip ripple-effect">
+                        <span class="material-symbols-outlined">filter_list</span>
+                        <span id="filter-label">Tümü</span>
+                    </button>
+                    <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
+                        <button data-filter="all" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">Tümü</button>
+                        <button data-filter="1-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">1 ★</button>
+                        <button data-filter="2-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">2 ★</button>
+                        <button data-filter="3-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">3 ★</button>
+                        <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">Füzyon</button>
+                    </div>
                 </div>
+                <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--md-sys-color-outline-variant); background-color: var(--md-sys-color-surface-container-high);">
+                    <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült">
+                        <span class="material-symbols-outlined flex items-center">zoom_out</span>
+                    </button>
+                    <span id="current-size-label" class="px-3 text-sm font-semibold border-x" style="border-color: var(--md-sys-color-outline-variant);">Boyut: 4</span>
+                    <button id="zoom-in-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Büyüt">
+                        <span class="material-symbols-outlined flex items-center">zoom_in</span>
+                    </button>
+                </div>
+                <button id="fitToScreenToggleBtn" class="chip ripple-effect" aria-label="Daha Fazla Sığdır Modu">
+                    <span class="material-symbols-outlined">auto_awesome_mosaic</span>
+                </button>
                 
-                <div class="flex-grow overflow-y-auto pr-2">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="flex flex-col col-span-full">
-                            <h3 class="text-xl font-semibold text-indigo-400 border-b pb-2 mb-2">Açıklama:</h3>
-                            <p id="modal-character-description" class="text-gray-200 mb-4"></p>
-                        </div>
-                        <div id="modal-evolutions" class="col-span-full flex flex-wrap justify-center gap-4 mb-6"></div>
-                    </div>
-                    <div id="modal-fusions" class="mt-6">
-                        <h3 class="text-xl font-semibold text-indigo-400 border-b pb-2 mb-4">Katıldığı Füzyonlar:</h3>
-                        <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
-                    </div>
-                </div>
-
-                <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-600 flex-shrink-0">
-                    <div class="flex items-center space-x-2">
-                        <button id="prev-char-btn" class="modal-nav-button text-lg" aria-label="Önceki Karakter">&#8592;</button>
-                        <span id="prev-char-name" class="modal-nav-text"></span>
-                    </div>
-                    <div class="flex items-center space-x-2 justify-end">
-                        <span id="next-char-name" class="modal-nav-text text-right"></span>
-                        <button id="next-char-btn" class="modal-nav-button text-lg" aria-label="Sonraki Karakter">&#8594;</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="fusion-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden flex items-center justify-center p-4 z-50 overflow-y-auto" onclick="closeFusionModal()">
-            <div class="bg-gray-700 rounded-xl shadow-2xl p-6 w-full h-full transform transition-all duration-300 ease-out scale-95 opacity-0 overflow-y-auto flex flex-col" id="fusion-modal-content" onclick="event.stopPropagation()">
-                <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h2 id="modal-fusion-name" class="text-2xl font-bold text-indigo-400 text-center flex-grow mx-2"></h2>
-                    <button class="text-gray-400 hover:text-gray-200 text-3xl font-light" onclick="closeFusionModal()" aria-label="Füzyon Detaylarını Kapat">&times;</button>
-                </div>
                 
-                <div class="flex-grow overflow-y-auto pr-2">
-                    <h3 class="text-xl font-semibold text-indigo-400 border-b pb-2 mb-2">Açıklama:</h3>
-                    <p id="modal-fusion-description" class="text-gray-200 mb-6"></p>
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
-                        <div class="flex flex-col items-center text-center cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition duration-200" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                            <img id="modal-fusion-left-char-image" src="" alt="Sol Karakter" class="object-contain rounded-lg border-4 border-indigo-500 shadow-md">
-                            <p id="modal-fusion-left-char-name" class="mt-2 text-lg font-semibold text-gray-200"></p>
-                            <p class="text-lg font-medium text-gray-200" id="modal-fusion-left-char-star"></p>
-                        </div>
-                        <div id="modal-fusion-image-container" class="flex flex-col items-center">
-                            <img id="modal-fusion-image" src="" alt="Füzyon Resmi" class="w-full h-auto object-contain rounded-lg shadow-md cursor-zoom-in" onclick="enlargeImage(this.src)">
-                            <p id="modal-fusion-star" class="text-xl font-semibold text-gray-200 mt-2"></p>
-                        </div>
-                        <div class="flex flex-col items-center text-center cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition duration-200" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                            <img id="modal-fusion-right-char-image" src="" alt="Sağ Karakter" class="object-contain rounded-lg border-4 border-indigo-500 shadow-md">
-                            <p id="modal-fusion-right-char-name" class="mt-2 text-lg font-semibold text-gray-200"></p>
-                            <p class="text-lg font-medium text-gray-200" id="modal-fusion-right-char-star"></p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-600 flex-shrink-0">
-                    <div class="flex items-center space-x-2">
-                        <button id="prev-fusion-btn" class="modal-nav-button text-lg" aria-label="Önceki Füzyon">&#8592;</button>
-                        <span id="prev-fusion-name" class="modal-nav-text"></span>
-                    </div>
-                    <div class="flex items-center space-x-2 justify-end">
-                        <span id="next-fusion-name" class="modal-nav-text text-right"></span>
-                        <button id="next-fusion-btn" class="modal-nav-button text-lg" aria-label="Sonraki Füzyon">&#8594;</button>
-                    </div>
-                </div>
             </div>
-        </div>
-        
-        <div id="search-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden flex items-center justify-center p-4 z-50 overflow-y-auto" onclick="closeSearchModal()">
-            <div class="bg-gray-700 rounded-xl shadow-2xl p-6 w-full h-full transform transition-all duration-300 ease-out scale-95 opacity-0 overflow-y-auto flex flex-col" id="search-modal-content" onclick="event.stopPropagation()">
-                <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h2 class="text-2xl font-bold text-indigo-400 text-center flex-grow mx-2">Arama</h2>
-                    <button class="text-gray-400 hover:text-gray-200 text-3xl font-light" onclick="closeSearchModal()" aria-label="Arama Penceresini Kapat">&times;</button>
-                </div>
-                 <div class="mb-4 flex-shrink-0">
-                    <input type="text" id="search-input" placeholder="Karakter adı veya ID'si girin..." class="w-full px-4 py-3 bg-gray-800 text-gray-200 border-2 border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition duration-200">
-                </div>
-                <div class="flex-grow overflow-y-auto pr-2">
-                    <div id="search-results-grid">
-                        </div>
-                </div>
-            </div>
+
+            
         </div>
 
-
-        <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()">
-            <button class="absolute top-4 right-4 text-gray-200 hover:text-white text-5xl font-light z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat">&times;</button>
-            <img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image">
-        </div>
-
+        <main id="character-grid"></main>
     </div>
-    
-    <button id="back-to-top-btn" class="fixed bottom-5 right-5 bg-indigo-600 text-white rounded-full p-3 shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-opacity opacity-0 z-40" aria-label="Yukarı Çık">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
-    </button>
 
+    <div id="character-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeCharacterModal()">
+        <div class="m3-dialog-container" id="character-modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeCharacterModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <header class="m3-dialog-header p-4 flex-shrink-0">
+                <h2 id="modal-character-name" class="m3-dialog-title text-3xl font-bold">Karakter Adı</h2>
+            </header>
+            <div class="m3-dialog-content px-4 flex-grow flex flex-col items-center">
+                <div id="modal-evolutions" class="grid gap-4 justify-center w-full"></div>
+                <p id="modal-character-description" class="text-lg mt-6 mb-8 text-center max-w-4xl" style="color: var(--md-sys-color-on-surface-variant);"></p>
+                <div id="modal-fusions" class="hidden w-full">
+                    <h3 class="text-xl font-bold mb-4 text-center" style="color: var(--md-sys-color-fusion);">Katıldığı Füzyonlar</h3>
+                    <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-center"></div>
+                </div>
+            </div>
+            <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
+                <button id="prev-char-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-char-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                <button id="next-char-btn" class="modal-nav-button ripple-effect"><span id="next-char-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
+            </footer>
+        </div>
+    </div>
+
+    <div id="fusion-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeFusionModal()">
+        <div class="m3-dialog-container fusion-modal-background" id="fusion-modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeFusionModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <header class="m3-dialog-header p-4 flex-shrink-0">
+                <h2 id="modal-fusion-name" class="m3-dialog-title text-3xl font-bold" style="color: var(--md-sys-color-fusion);">Füzyon Adı</h2>
+            </header>
+            <div class="m3-dialog-content px-4 flex-grow">
+                <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+                     <div id="fusion-partner-left" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-left-char-image" src="" alt="Sol Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-left-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-left-char-star" class="text-lg font-medium"></p></div>
+                    <div id="fusion-main-image" class="flex flex-col items-center text-center lg:col-span-1"><img id="modal-fusion-image" src="" alt="Füzyon Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl"><p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p></div>
+                    <div id="fusion-partner-right" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-right-char-image" src="" alt="Sağ Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-right-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-right-char-star" class="text-lg font-medium"></p></div>
+                </div>
+                 <p id="modal-fusion-description" class="text-lg mt-8 text-center max-w-4xl mx-auto" style="color: var(--md-sys-color-on-surface-variant);"></p>
+            </div>
+            <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
+                 <button id="prev-fusion-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                <button id="next-fusion-btn" class="modal-nav-button ripple-effect"><span id="next-fusion-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
+            </footer>
+        </div>
+    </div>
+
+    <div id="search-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeSearchModal()">
+        <div class="m3-dialog-container" id="search-modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeSearchModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <header class="m3-dialog-header p-4 flex-shrink-0">
+                <h2 class="m3-dialog-title text-3xl font-bold">Karakter Araması</h2>
+            </header>
+            <div class="m3-dialog-content px-4 pb-4 flex flex-col">
+                <div class="mb-4 flex-shrink-0">
+                    <input type="text" id="search-input" placeholder="Karakter adı veya ID'si girin..." class="w-full px-4 py-3 rounded-full border-2 outline-none transition-colors" style="background-color: var(--md-sys-color-surface-container); border-color: var(--md-sys-color-outline-variant); color: var(--md-sys-color-on-surface);">
+                </div>
+                <div id="search-results-container" class="flex-grow overflow-y-auto pr-2">
+                    <p id="search-placeholder" class="text-center text-lg mt-8" style="color: var(--md-sys-color-on-surface-variant);">Aramak için yukarıya bir isim veya ID yazın.</p>
+                    <div id="search-results-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()"><button class="icon-button absolute top-4 right-4 text-white text-4xl z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat"><span class="material-symbols-outlined" style="font-size: 36px;">close</span></button><img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image"></div>
 
     <script>
-        const FUSION_BACKGROUND_COLOR = '#5a2a7a'; 
-        const FUSION_STAR_COLOR_CLASS = 'text-purple-400'; 
-        const THREE_STAR_COLOR_CLASS = 'text-yellow-400'; 
-
+        const FUSION_STAR_COLOR_CLASS = 'text-fuchsia-400';
+        const THREE_STAR_COLOR_CLASS = 'text-amber-400';
+        const TWO_STAR_COLOR_CLASS = 'text-slate-400';
+        const ONE_STAR_COLOR_CLASS = 'text-orange-400';
         const characters = [
-            // SADECE TEMEL KARAKTERLER (IDleri artık sayısız)
             { id: 'buyucu', name: 'Büyücü', description: 'Güçlü büyüleriyle öne çıkan bu sarışın büyücü, zarif ve cüretkar kıyafetleriyle dikkat çekerken, mistik pembe büyülerle düşmanlarına korku salar.', star: 1, imageUrl: 'https://i.ibb.co/WW3DSjgT/b-y-c-1.jpg', 
                 evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/xK0j21XT/b-y-c-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/rKjQfVWR/b-y-c-3.jpg' }] },
             { id: 'rahibe', name: 'Rahibe', description: 'Kutsal iyileştirme güçlerine sahip bu kahverengi saçlı rahibe, hem nezaketi hem de güçlü duruşuyla ibadet ettiği mabetlerde ilahi ışık saçar.', star: 1, imageUrl: 'https://i.ibb.co/vvT9pLJV/rahibe1yeni.jpg', 
@@ -348,10 +348,7 @@
                 { id: 'demirci', name: 'Demirci', description: 'Gücü kaslarında ve çeliğe hükmeden sanatında olan efsanevi bir usta. Ocağının ateşiyle, krallara layık, kırılmaz silahlar döver.', star: 1, imageUrl: 'https://i.ibb.co/vMvSpxy/demir1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/B5xxXNBb/demir2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Vp9CGM2t/demir3.jpg' }] },
                 { id: 'mumya', name: 'Mumya', description: 'Binlerce yıllık uykusundan uyanmış, ebedi bir mezar koruyucusu. O, hem unutulmuş bir krallığın kraliçesi hem de kumların ve zamanın kendisidir.', star: 1, imageUrl: 'https://i.ibb.co/VWMhVCwH/mumya1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZRbdDvXd/mumya21.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/chGvch2Y/mumya3.jpg' }] },
                 { id: 'ejderdogan', name: 'Ejderdoğan', description: 'Damarlarında ejderha kanı dolaşan, asil ve güçlü bir savaşçı. İçindeki ilkel gücü keşfederek, ejderhaların gücünün ve asaletinin yeryüzündeki temsilcisi olur.', star: 1, imageUrl: 'https://i.ibb.co/LXn9yM5k/ejder.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/65XXz6r/ejder2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/mVsp6HJR/ejder3.jpg' }] },
-            // YENİ KARAKTERLER BURAYA ============================================================================================================================ =========================================================================================================================================================================================================================================================================================================================== 
-            // YENİ KARAKTER TEMPLATESİ:   { id: 'id', name: 'İsim', description: 'Açıklama', star: 1, imageUrl: 'resim1', evolutions: [{ star: 2, imageUrl: 'resim2' }, { star: 3, imageUrl: 'resim3' }] },
-            // FÜZYON KARAKTERLERİ
-            { id: 'cadı', name: 'Cadı', description: 'Hem karanlığın mistik bilgeliğini hem de kutsal ışığın gücünü barındıran bu melez büyü-rahibe, her adımıyla kadim bir dengeyi ve sınırsız bir potansiyeli temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/gbJDXPX9/cadiyeni.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
+            { id: 'cadı', name: 'Cadı', description: 'Hem karanlığın mistik bilgeliğini hem de kutsal ışığın gücünü barındıran bu melez büyü-rahibe, her adımıyla kadim bir dengeyi ve sınırsız bir potenziyeli temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/gbJDXPX9/cadiyeni.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
             { id: 'kozmik-dansci', name: 'Kozmik Dansçı', description: 'Yıldızların ritmiyle evreni adımlayan bu göksel dansçı, kehanetin fısıltılarıyla dans ederken kozmik enerjiyi zarafetle şekillendirir.', star: 4, imageUrl: 'https://i.ibb.co/whpyGMMQ/kozmik-yolcu.jpg', isFusion: true, fusionPartners: ['dansoz', 'falci'] },
             { id: 'siren', name: 'Batık Hazine', description: 'Derin denizlerin baştan çıkarıcı şarkısıyla korsanların cüretkar ruhunu birleştiren bu siren, dalgalardan yükselerek hem cazibeyi hem de tehlikeyi çağırır.', star: 4, imageUrl: 'https://i.ibb.co/Pvg53HMY/merge-video-1753634899103.gif', isFusion: true, fusionPartners: ['dansoz', 'korsan'] },
             { id: 'valkur', name: 'Valkür', description: 'Göksel bir savaş narasıyla ilahi gücü harmanlayan bu Valkür, kutsal bir gazapla savaş meydanına inen, hem koruyucu hem de yıkıcı bir melektir.', star: 4, imageUrl: 'https://i.ibb.co/6Jm7LGdW/valk-ryenigif.gif', isFusion: true, fusionPartners: ['rahibe', 'savasci'] },
@@ -379,7 +376,7 @@
             { id: 'anka-kusu', name: 'Anka Kusu', description: 'Küllerinden yeniden doğuşun ve dizginlenemez ateşli gücün kutsal simgesi. O, gökyüzünde alevden kanatlarıyla süzülen, her bir tüyünden yaşam ve yıkım saçan, ilahi bir varlıktır.', star: 4, imageUrl: 'https://i.ibb.co/ch7vsRSp/anka.jpg', isFusion: true, fusionPartners: ['atesbuyucusu', 'kuskadin'] },
             { id: 'yuce-melek', name: 'Yüce Melek', description: 'İlahi yargının ve korkutucu huzurun tecessümü. Göksel kanatlarıyla adaleti yeryüzüne indiren, hem şefkatli bir koruyucu hem de amansız bir cezalandırıcı olan, göklerin kutsal habercisidir.', star: 4, imageUrl: 'https://i.ibb.co/sd5XfzyR/1753596990473.gif', isFusion: true, fusionPartners: ['kuskadin', 'rahibe'] },
             { id: 'kan-cicegi', name: 'Kan Çiçeği', description: 'Vampirin ölümsüz kanıyla sulanmış, Orman Ruhunun en nadide tohumundan filizlenmiş, hem cennet kadar güzel hem de cehennem kadar tehlikeli bir çiçektir. Kurbanlarını baştan çıkarıcı kokusuyla kendine çeker ve onları, köklerinin sonsuza dek besleneceği tatlı bir anıya dönüştürür.', star: 4, imageUrl: 'https://i.ibb.co/1f4kd5L1/kan.jpg', isFusion: true, fusionPartners: ['ormanruhu', 'vampir'] },
-            { id: 'golem-efendisi', name: 'Golem Efendisi', description: 'Bir mekanigin yaratici dehasi ile bir illuzyonistin zihin kontrol gucu, bu komutanda birleşti. O, savas alanina kendi adim atmaz; onun yerine, ruhunu ve iradesini bahsettigi devasa golemi, bir kukla ustasinin zarafetiyle yonetir.', star: 4, imageUrl: 'https://i.ibb.co/m561FTzp/1753596929882.gif', isFusion: true, fusionPartners: ['illuzyonist', 'mekanik'] },
+            { id: 'golem-efendisi', name: 'Golem Efendisi', description: 'Bir mekanigin yaratici dehasi ile bir illuzyonistin zihin kontrol gucu, bu komutanda birleşti. O, savas alanina kendi adim atmaz; onun yerine, ruhunu ve iradesini bahsettigi devasa golemi, bir kukla ustasinin zarafatiyle yonetir.', star: 4, imageUrl: 'https://i.ibb.co/m561FTzp/1753596929882.gif', isFusion: true, fusionPartners: ['illuzyonist', 'mekanik'] },
             { id: 'yildirim-elcisi', name: 'Yıldırım Elçisi', description: 'İzcinin topragin sirlarini bilen ayaklari ile Samanin gokyuzunun ofkesini cagiran sesi onda birleşti. O, firtinanin gelisini haber degil, firtinanin ta kendisi olan, doganin ilkel gucunun elcisidir.', star: 4, imageUrl: 'https://i.ibb.co/jkVbq1Gj/indir-29.jpg', isFusion: true, fusionPartners: ['izci', 'saman'] },
             { id: 'oluler-dusesi', name: 'Ölüler Düşesi', description: 'Bir vampirin olumsuz kaniyla muhurlenmis, en karanlik saman rituelerinin efendisidir. O, ruhlara sadece fisildamaz, onlara kanla hukumder ve mezarlarindan kaldirdigi sadik ordusuyla gecenin sessizligini bozar.', star: 4, imageUrl: 'https://i.ibb.co/Q3jDvRJd/merge-video-1753638876285.gif', isFusion: true, fusionPartners: ['saman', 'vampir'] },
             { id: 'meka-gladyator', name: 'Meka Gladyatör', description: 'Bir parali askerin sarsilmaz iradesi, bir mekanigin dahiyane zekasiyla birleştiginde, etle makinenin kusursuz bir uyumla dans ettigi bu durdurulamaz savasci dogdu. O, hem kendi bedeninin hem de dovustugu celigin mutlak efendisidir.', star: 4, imageUrl: 'https://i.ibb.co/wFpq0cLT/Efektli-Karakter-Videosu-Olu-turma.gif', isFusion: true, fusionPartners: ['mekanik', 'paraliasker'] },
@@ -391,618 +388,385 @@
             { id: 'cadi-doktor', name: 'Cadı Doktor', description: 'Bir şamanın ruhlara fısıldayan bilgeliği, bir goblinin bataklıktaki en nadir bitkiyi bulan kurnazlığıyla birleşti. O, hem en ölümcül zehirleri damıtan hem de en kadim ruhları çağıran, bataklığın tekinsiz ve güçlü kraliçesidir.', star: 4, imageUrl: 'https://i.ibb.co/tp2LYfZg/B-y-Efektli-Karakter-Videosu-Olu-turma.gif', isFusion: true, fusionPartners: ['goblin', 'saman'] },
             { id: 'kucuk-berserker', name: 'Küçük Berserker', description: 'Bir paralı askerin sarsılmaz cesareti, bir goblinin asla pes etmeyen, çılgın inadıyla birleşti. O, savaş alanındaki en küçük gölge olabilir, ama attığı her zafer çığlığı, en devasa orduların bile kalbine korku salmaya yeter.', star: 4, imageUrl: 'https://i.ibb.co/HTRsw2xs/indir-4.jpg', isFusion: true, fusionPartners: ['goblin', 'paraliasker'] },
             { id: 'kaos-perisi', name: 'Kaos Perisi', description: 'Bu füzyon, bir prensesin isyankar ruhu ile bir gökkuşağı perisinin saf neşesinin en kontrolsüz halidir. O, bir kraliçe değil; o, varlığıyla etrafına kontrol edilemez bir neşe, kahkaha ve rengarenk bir kaos yayan, yaşayan bir festivaldir.', star: 4, imageUrl: 'https://i.ibb.co/fGr9vW5g/1753844042911.gif', isFusion: true, fusionPartners: ['gokkusagiperisi', 'prenses'] },
-            { id: 'id', name: 'Günahkar Serenad', description: 'Düşmüş bir meleğin trajik asilliği ile bir succubusun saf, karşı konulmaz şehveti birleşti. O, hem cennetin kayıp ilahisini hem de cehennemin en tatlı günahını fısıldayan, yasak bir serenattır.', star: 4, imageUrl: 'https://i.ibb.co/WWs98BS1/vals.jpg', isFusion: true, fusionPartners: ['cazibe', 'dusmusmelek'] },
+            { id: 'gunahkar-serenad', name: 'Günahkar Serenad', description: 'Düşmüş bir meleğin trajik asilliği ile bir succubusun saf, karşı konulmaz şehveti birleşti. O, hem cennetin kayıp ilahisini hem de cehennemin en tatlı günahını fısıldayan, yasak bir serenattır.', star: 4, imageUrl: 'https://i.ibb.co/WWs98BS1/vals.jpg', isFusion: true, fusionPartners: ['cazibe', 'dusmusmelek'] },
             { id: 'aurora-perisi', name: 'Kuzey Işığı Perisi', description: 'Ayın gümüşi zarafeti ile buzun kristal saflığı, gökyüzünün en sihirli ve en büyüleyici fenomeni olan Kuzey Işıklarında birleşti. O, kutup gecesinin dans eden ruhudur.', star: 4, imageUrl: 'https://i.ibb.co/qLd5599m/aurorayeni.jpg', isFusion: true, fusionPartners: ['buzbuyucusu', 'mehtapperisi'] },
             { id: 'gunesin-hukmu', name: 'Güneşin Hükmü', description: 'Bir okçunun ölümcül isabeti, bir güneş şövalyesinin ilahi gücüyle birleşti. O, güneşin kendisinin, adaleti yerine getiren, asla ıskalamayan oku ve sarsılmaz iradesidir.', star: 4, imageUrl: 'https://i.ibb.co/1fjHJ2d9/gunesok.gif', isFusion: true, fusionPartners: ['okcu', 'gunessovalyesi'] },
             { id: 'ruya-isleyici', name: 'Rüya İşleyici', description: 'Bir demircinin çelik iradesi, bir illüzyonistin hayal gücüyle birleştiğinde, rüyaları bile dövebilen bu efsanevi zanaatkar doğdu. Onun örsünde, metal değil, düşünceler şekillenir; yarattığı her silah, sadece bedeni değil, aynı zamanda ruhu da kesen, yaşayan bir hayaldir.', star: 4, imageUrl: 'https://i.ibb.co/4Zj68Wkd/ruya.gif', isFusion: true, fusionPartners: ['demirci', 'illuzyonist'] },
             { id: 'olumsuz-firavun', name: 'Ölümsüz Firavun', description: 'Bir mumyanın bin yıllık sükuneti, bir dervişin o durdurulamaz, meditatif dönüşüyle birleşti. O, hem mezarının ebedi bekçisi hem de evrenin kendisiyle birlikte dönen, yaşayan bir kasırgadır. Sessizliği, fırtınanın gözü kadar sakin ve bir o kadar da tehlikelidir.', star: 4, imageUrl: 'https://i.ibb.co/bMGRkjKR/mumder.jpg', isFusion: true, fusionPartners: ['dervis', 'mumya'] },
             { id: 'kara-alev', name: 'Kara Alev', description: 'Cennetten kovulmuş bir meleğin o trajik güzelliği, bir ejderhanın o saf, ilkel öfkesiyle lanetlendi. O, ne kutsal ne de tamamen şeytani; o, hem cennetin kaybının yasını tutan hem de damarlarındaki o yakıcı, karanlık alevle her şeyi küle çevirmeye hazır, yaşayan bir çelişkidir.', star: 4, imageUrl: 'https://i.ibb.co/VYM44DHG/kara.gif', isFusion: true, fusionPartners: ['dusmusmelek', 'ejderdogan'] },
-            // YENİ FÜZYONLAR BURAYA =============================================================================================================================================================================================================================================================================================================================================================================
-            // YENİ FÜZYON TEMPLATESİ { id: 'id', name: 'isim', description: 'açıklama', star: 4, imageUrl: 'resim', isFusion: true, fusionPartners: ['id1', 'id2'] },
-            
-        ];  
-        
-        const characterGrid = document.getElementById('character-grid');
-        const filterButtons = {
-            oneStar: document.getElementById('show-1-star-btn'),
-            twoStar: document.getElementById('show-2-star-btn'),
-            threeStar: document.getElementById('show-3-star-btn'),
-            fusion: document.getElementById('show-fusion-btn'),
-            all: document.getElementById('show-all-btn'),
-        };
-        const characterModal = {
-            element: document.getElementById('character-modal'),
-            content: document.getElementById('character-modal-content'),
-            name: document.getElementById('modal-character-name'),
-            description: document.getElementById('modal-character-description'),
-            evolutions: document.getElementById('modal-evolutions'),
-            fusionsContainer: document.getElementById('modal-fusions'),
-            fusionList: document.getElementById('fusion-list'),
-            prevBtn: document.getElementById('prev-char-btn'),
-            nextBtn: document.getElementById('next-char-btn'),
-            prevName: document.getElementById('prev-char-name'),
-            nextName: document.getElementById('next-char-name'),
-        };
-        const fusionModal = {
-            element: document.getElementById('fusion-modal'),
-            content: document.getElementById('fusion-modal-content'),
-            name: document.getElementById('modal-fusion-name'),
-            description: document.getElementById('modal-fusion-description'),
-            image: document.getElementById('modal-fusion-image'),
-            imageContainer: document.getElementById('modal-fusion-image-container'),
-            star: document.getElementById('modal-fusion-star'),
-            leftChar: {
-                image: document.getElementById('modal-fusion-left-char-image'),
-                name: document.getElementById('modal-fusion-left-char-name'),
-                starDisplay: document.getElementById('modal-fusion-left-char-star'), 
-                container: document.getElementById('modal-fusion-left-char-image').parentElement
-            },
-            rightChar: {
-                image: document.getElementById('modal-fusion-right-char-image'),
-                name: document.getElementById('modal-fusion-right-char-name'),
-                starDisplay: document.getElementById('modal-fusion-right-char-star'), 
-                container: document.getElementById('modal-fusion-right-char-image').parentElement
-            },
-            prevBtn: document.getElementById('prev-fusion-btn'),
-            nextBtn: document.getElementById('next-fusion-btn'),
-            prevName: document.getElementById('prev-fusion-name'),
-            nextName: document.getElementById('next-fusion-name'),
-        };
-        const enlargedImageOverlay = document.getElementById('enlarged-image-overlay');
-        const enlargedImage = document.getElementById('enlarged-image');
-        
-        const searchModal = {
-            element: document.getElementById('search-modal'),
-            content: document.getElementById('search-modal-content'),
-            input: document.getElementById('search-input'),
-            resultsGrid: document.getElementById('search-results-grid'),
-            openBtn: document.getElementById('open-search-modal-btn'),
-        };
-        
-        const backToTopBtn = document.getElementById('back-to-top-btn');
-
-        const sizeCycleBtn = document.getElementById('size-cycle-btn');
-
-        const fitToScreenToggleBtn = document.getElementById('fitToScreenToggleBtn'); 
-        const columnsSliderContainer = document.getElementById('columns-slider-container');
-        const columnCountSlider = document.getElementById('column-count-slider');
-        const columnCountValue = document.getElementById('column-count-value');
-
-        let galleryMode = 'all';
-        let imageSizeIndex = 3; 
-        let isFitToScreenMode = true; 
-        let dynamicColumnCount = 4; 
-
-        let currentModalCharId = null;
-        let currentModalType = null; 
-        let uniqueNavigableList = [];
-
-        let sizeProfiles = [
-            { name: '1 ', minCardWidth: '160px', maxCardWidth: '180px', evolutionBox: 'w-56 h-auto', fusionThumb: 'w-40 h-auto', fusionPartner: 'w-64 h-auto', fusionMainMaxH: 'max-h-96', fusionMainImageWidth: 'w-64' },
-            { name: '2 ', minCardWidth: '200px', maxCardWidth: '220px', evolutionBox: 'w-64 h-auto', fusionThumb: 'w-44 h-auto', fusionPartner: 'w-72 h-auto', fusionMainMaxH: 'max-h-[28rem]', fusionMainImageWidth: 'w-72' },
-            { name: '3 ', minCardWidth: '240px', maxCardWidth: '260px', evolutionBox: 'w-72 h-auto', fusionThumb: 'w-48 h-auto', fusionPartner: 'w-80 h-auto', fusionMainMaxH: 'max-h-[32rem]', fusionMainImageWidth: 'w-80' },
-            { name: '4 ', minCardWidth: '280px', maxCardWidth: '300px', evolutionBox: 'w-80 h-auto', fusionThumb: 'w-56 h-auto', fusionPartner: 'w-96 h-auto', fusionMainMaxH: 'max-h-[36rem]', fusionMainImageWidth: 'w-96' },
-            { name: '5 ', minCardWidth: '320px', maxCardWidth: '340px', evolutionBox: 'w-96 h-auto', fusionThumb: 'w-64 h-auto', fusionPartner: 'w-[28rem] h-auto', fusionMainMaxH: 'max-h-[40rem]', fusionMainImageWidth: 'w-[26rem]' }
         ];
 
-        function updateSizeCycleButtonText() {
-            const currentSizeName = sizeProfiles[imageSizeIndex].name;
-            sizeCycleBtn.innerHTML = `${currentSizeName} Boyut <i class="fa fa-text-height" aria-hidden="true"></i>`;
-        }
+        const dom = {};
+        const state = { galleryMode: 'all', imageSizeIndex: 3, isFitToScreenMode: true, currentModalCharId: null, currentModalType: null, uniqueNavigableList: [] };
+        const sizeProfiles = [ { name: '1', minCardWidth: '170px' }, { name: '2', minCardWidth: '220px' }, { name: '3', minCardWidth: '270px' }, { name: '4', minCardWidth: '320px' }, { name: '5', minCardWidth: '370px' }, { name: '6', minCardWidth: '420px' } ];
 
-        function getStarEmojis(starCount, applyGlow = false) { 
-            const colors = { 
-                1: 'text-orange-400', 
-                2: 'text-gray-400', 
-                3: 'text-yellow-400', 
-                4: FUSION_STAR_COLOR_CLASS 
-            };
-            const glowClass = applyGlow ? 'glow-text-purple-animated' : ''; 
-            return Array(starCount).fill(`<span class="${colors[starCount]} text-2xl ${glowClass}">★</span>`).join('');
-        }
+        const getStarEmojis = (isFusion, starCount) => {
+            const colors = { 1: ONE_STAR_COLOR_CLASS, 2: TWO_STAR_COLOR_CLASS, 3: THREE_STAR_COLOR_CLASS, 4: FUSION_STAR_COLOR_CLASS };
+            const starIcon = `<span class="material-symbols-outlined ${colors[starCount]}" style="font-variation-settings: 'FILL' 1;">star</span>`;
+            const starHtml = Array(starCount).fill(starIcon).join('');
+            return isFusion ? `<div class="flex fusion-stars">${starHtml}</div>` : `<div class="flex">${starHtml}</div>`;
+        };
+        
+        const get3StarImageUrl = (baseCharId) => {
+            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
+            const threeStarEvo = baseChar?.evolutions.find(e => e.star === 3);
+            return threeStarEvo ? threeStarEvo.imageUrl : (baseChar ? baseChar.imageUrl : '');
+        };
 
-        function getCharacterImageUrlByStar(baseCharId, star) {
+        const getCharacterImageUrlByStar = (baseCharId, star) => {
             const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
             if (!baseChar) return '';
             if (star === 1) return baseChar.imageUrl;
             const evolution = baseChar.evolutions.find(e => e.star === star);
             return evolution ? evolution.imageUrl : '';
-        }
-
-        function get3StarImageUrl(baseCharId) {
-            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
-            if (!baseChar) return '';
-            const threeStarEvo = baseChar.evolutions.find(e => e.star === 3);
-            return threeStarEvo ? threeStarEvo.imageUrl : '';
-        }
+        };
 
         function renderCharacters() {
-            characterGrid.innerHTML = '';
-            
-            if (isFitToScreenMode) {
-                characterGrid.style.setProperty('--grid-min-card-width', '0'); 
-                characterGrid.style.setProperty('--grid-max-card-width', '1fr'); 
-                characterGrid.style.gridTemplateColumns = `repeat(${dynamicColumnCount}, minmax(0, 1fr))`;
-            } else {
-                characterGrid.style.setProperty('--grid-min-card-width', sizeProfiles[imageSizeIndex].minCardWidth);
-                characterGrid.style.setProperty('--grid-max-card-width', sizeProfiles[imageSizeIndex].maxCardWidth);
-                characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(var(--grid-min-card-width), var(--grid-max-card-width)))`;
-            }
-
-            let allDisplayableCharacters = [];
-            let currentUniqueNavigableList = [];
-
-            if (galleryMode === 'fusion') {
-                allDisplayableCharacters = characters.filter(char => char.isFusion)
-                    .map(char => ({...char, displayStar: char.star, displayImageUrl: char.imageUrl}));
-            } else if (galleryMode === 'all') {
-                characters.forEach(char => {
-                    if (!char.isFusion) { 
-                        allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl }); 
-                        if (char.evolutions) {
-                            char.evolutions.forEach(evo => {
-                                allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }); 
-                            });
+            dom.characterGrid.classList.add('grid-fade-out');
+            setTimeout(() => {
+                dom.characterGrid.innerHTML = '';
+                dom.characterGrid.classList.remove('grid-fade-out');
+                const cardWidthPx = parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth, 10);
+                if (state.isFitToScreenMode) {
+                    const gridContainerWidth = dom.characterGrid.offsetWidth;
+                    const gapPx = 24;
+                    const baseColumnCount = Math.floor((gridContainerWidth + gapPx) / (cardWidthPx + gapPx)) || 1;
+                    const moreColumnCount = Math.max(2, Math.ceil(baseColumnCount * 1.5));
+                    dom.characterGrid.style.gridTemplateColumns = `repeat(${moreColumnCount}, minmax(0, 1fr))`;
+                } else {
+                    dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
+                }
+                let allDisplayableCharacters = [];
+                if (state.galleryMode === 'fusion') {
+                    allDisplayableCharacters = characters.filter(char => char.isFusion);
+                } else if (state.galleryMode === 'all') {
+                    characters.forEach(char => {
+                        if (!char.isFusion) {
+                            allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+                            char.evolutions?.forEach(evo => allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
                         }
-                    } 
+                    });
+                    allDisplayableCharacters.push(...characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})));
+                } else {
+                    const starFilter = parseInt(state.galleryMode.split('-')[0]);
+                    allDisplayableCharacters = characters.filter(char => !char.isFusion).flatMap(char => {
+                        if (starFilter === 1) return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
+                        const evo = char.evolutions?.find(e => e.star === starFilter);
+                        return evo ? [{ ...char, displayStar: starFilter, displayImageUrl: evo.imageUrl }] : [];
+                    });
+                }
+                allDisplayableCharacters.sort((a, b) => {
+                    if (a.isFusion !== b.isFusion) return a.isFusion ? 1 : -1;
+                    const nameCompare = a.name.localeCompare(b.name, 'tr');
+                    return nameCompare !== 0 ? nameCompare : (a.displayStar || a.star) - (b.displayStar || b.star);
                 });
-                allDisplayableCharacters = allDisplayableCharacters.concat(characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})));
-
-            } else { 
-                allDisplayableCharacters = characters.filter(char => !char.isFusion && char.star === 1).flatMap(char => {
-                    if (galleryMode === '1-star') {
-                        return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
-                    } else if (galleryMode === '2-star') {
-                        const evo2 = char.evolutions.find(e => e.star === 2);
-                        return evo2 ? [{ ...char, displayStar: 2, displayImageUrl: evo2.imageUrl }] : [];
-                    } else if (galleryMode === '3-star') {
-                        const evo3 = char.evolutions.find(e => e.star === 3);
-                        return evo3 ? [{ ...char, displayStar: 3, displayImageUrl: evo3.imageUrl }] : [];
-                    }
-                    return [];
+                state.uniqueNavigableList = characters.filter(c => c.star === 1 || c.isFusion).sort((a, b) => (a.isFusion !== b.isFusion) ? (a.isFusion ? 1 : -1) : a.name.localeCompare(b.name, 'tr'));
+                if (allDisplayableCharacters.length === 0) {
+                    dom.characterGrid.innerHTML = `<p class="col-span-full text-center text-lg" style="color: var(--md-sys-color-on-surface-variant);">Bu filtrede gösterilecek karakter bulunamadı.</p>`;
+                    return;
+                }
+                allDisplayableCharacters.forEach((char, index) => {
+                    const card = document.createElement('div');
+                    const isFusion = char.isFusion;
+                    card.className = `character-card ripple-effect flex flex-col cursor-pointer ${isFusion ? 'fusion-card' : ''}`;
+                    card.dataset.id = char.id;
+                    card.style.animationDelay = `${index * 40}ms`;
+                    card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id);
+                    const nameClass = isFusion ? 'font-fantastical-fusion' : '';
+                    card.innerHTML = `<div class="character-card-image-wrapper"><img src="${char.displayImageUrl || char.imageUrl}" alt="${char.name}" class="character-card-image" loading="lazy"></div><div class="p-4 flex-grow flex flex-col justify-end"><h3 class="character-name text-lg font-bold truncate ${nameClass}">${char.name}</h3><div class="flex mt-1">${getStarEmojis(isFusion, char.displayStar || char.star)}</div></div>`;
+                    dom.characterGrid.appendChild(card);
                 });
-            }
-            
-            allDisplayableCharacters.sort((a, b) => {
-                if (!a.isFusion && b.isFusion) return -1;
-                if (a.isFusion && !b.isFusion) return 1;
-                const nameCompare = a.name.localeCompare(b.name, 'tr');
-                if (nameCompare !== 0) return nameCompare;
-                return a.displayStar - b.displayStar;
-            });
-
-            currentUniqueNavigableList = [];
-            const processedBaseCharIds = new Set();
-            characters.forEach(char => {
-                if (!char.isFusion && !processedBaseCharIds.has(char.id)) {
-                    currentUniqueNavigableList.push({ ...char, displayStar: 1 });
-                    processedBaseCharIds.add(char.id);
-                } else if (char.isFusion) {
-                    currentUniqueNavigableList.push(char);
-                }
-            });
-
-            currentUniqueNavigableList.sort((a, b) => {
-                if (!a.isFusion && b.isFusion) return -1;
-                if (a.isFusion && !b.isFusion) return 1;
-                return a.name.localeCompare(b.name, 'tr');
-            });
-
-            uniqueNavigableList = currentUniqueNavigableList;
-
-            if (allDisplayableCharacters.length === 0) {
-                characterGrid.innerHTML = '<p class="col-span-full text-center text-gray-400 text-lg">Gösterilecek karakter bulunamadı.</p>';
-                return;
-            }
-
-            allDisplayableCharacters.forEach(char => {
-                const card = createCharacterCard(char, char.displayImageUrl, char.displayStar);
-                characterGrid.appendChild(card);
-            });
-            updateFilterButtons();
+                addInteractiveEffects();
+            }, 200);
         }
 
-        function createCharacterCard(char, imageUrlToDisplay, starCountToDisplay) {
-            const card = document.createElement('div');
-            let borderColor = 'border-indigo-500';
-            let glowClassForCard = '';
-            
-            if (char.isFusion) {
-                borderColor = 'border-purple-500';
-                glowClassForCard = 'glow-purple';
-            } else if (starCountToDisplay === 2) {
-                borderColor = 'border-gray-500';
-            } else if (starCountToDisplay === 3) {
-                borderColor = 'border-yellow-500';
-            } else if (starCountToDisplay === 1) {
-                borderColor = 'border-orange-400';
-            }
-
-            const nameClass = char.isFusion ? 'font-fusion' : '';
-
-            card.className = `relative rounded-xl shadow-lg p-4 flex flex-col items-center justify-between cursor-pointer transform hover:scale-105 transition duration-300 ease-in-out border-b-4 ${borderColor} ${glowClassForCard}`;
-            card.style.backgroundColor = char.isFusion ? FUSION_BACKGROUND_COLOR : '#4a5568';
-            card.dataset.id = char.id;
-            
-            card.onclick = () => {
-                if (char.isFusion) {
-                    openFusionModal(char.id);
-                } else {
-                    openCharacterModal(char.id);
-                }
-                if (!searchModal.element.classList.contains('hidden')) {
-                    closeSearchModal();
-                }
-            };
-
-            const starsHtml = getStarEmojis(starCountToDisplay, char.isFusion);
-
-            card.innerHTML = `
-                <img src="${imageUrlToDisplay}" alt="${char.name}" class="character-card-image rounded-lg mb-3 shadow-sm" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x400/CCCCCC/000000?text=Resim+Yok';">
-                <h3 class="text-xl font-semibold text-gray-100 mb-1 text-center character-name-ellipsis ${nameClass}">${char.name}</h3>
-                <div class="flex">${starsHtml}</div>
-            `;
-            return card;
+        function updateUI() {
+            dom.zoom.label.textContent = `Boyut: ${sizeProfiles[state.imageSizeIndex].name.trim()}`;
+            dom.zoom.outBtn.disabled = state.imageSizeIndex === 0;
+            dom.zoom.inBtn.disabled = state.imageSizeIndex === sizeProfiles.length - 1;
+            dom.layout.toggleBtn.classList.toggle('active', state.isFitToScreenMode);
         }
-        
-        function createSearchResultCard(item) {
-            const card = document.createElement('div');
-            card.className = 'bg-gray-800 rounded-lg shadow-lg p-3 flex items-center gap-4 cursor-pointer hover:bg-gray-700 transition-colors duration-200';
-            
-            card.onclick = () => {
-                if (item.isFusion) {
-                    openFusionModal(item.id);
-                } else {
-                    openCharacterModal(item.id);
-                }
-                closeSearchModal();
-            };
-
-            const starsHtml = getStarEmojis(item.star, item.isFusion);
-            const nameClass = item.isFusion ? 'font-fusion' : '';
-
-            card.innerHTML = `
-                <div class="flex-shrink-0">
-                    <img src="${item.imageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md shadow-sm" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/100x100/CCCCCC/000000?text=...';">
-                </div>
-                <div class="flex-grow">
-                    <h4 class="text-lg font-bold text-gray-100 ${nameClass}">${item.name}</h4>
-                    <div class="my-1">${starsHtml}</div>
-                    <p class="text-xs text-gray-400 font-mono">ID: ${item.id}</p>
-                </div>
-            `;
-            return card;
-        }
-
-        function updateFilterButtons() {
-            Object.entries(filterButtons).forEach(([key, button]) => {
-                const modeMap = { oneStar: '1-star', twoStar: '2-star', threeStar: '3-star', fusion: 'fusion', all: 'all' };
-                if (galleryMode === modeMap[key]) {
-                    button.classList.add('bg-indigo-600', 'text-white');
-                    button.classList.remove('bg-gray-700', 'text-gray-200');
-                } else {
-                    button.classList.remove('bg-indigo-600', 'text-white');
-                    button.classList.add('bg-gray-700', 'text-gray-200');
-                }
-            });
-        }
-
-        Object.entries(filterButtons).forEach(([key, button]) => {
-            const modeMap = { oneStar: '1-star', twoStar: '2-star', threeStar: '3-star', fusion: 'fusion', all: 'all' };
-            button.addEventListener('click', () => {
-                galleryMode = modeMap[key];
-                renderCharacters();
-            });
-        });
-        
-        sizeCycleBtn.addEventListener('click', () => {
-            imageSizeIndex = (imageSizeIndex + 1) % sizeProfiles.length;
-            updateSizeCycleButtonText();
-            renderCharacters();
-        });
-
 
         function openModal(modalElement, contentElement) {
+            document.body.classList.add('modal-open');
             modalElement.classList.remove('hidden');
-            setTimeout(() => contentElement.classList.remove('scale-95', 'opacity-0'), 50);
+            modalElement.classList.add('flex');
+            setTimeout(() => contentElement.classList.add('visible'), 20);
         }
 
         function closeModal(modalElement, contentElement) {
-            contentElement.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => modalElement.classList.add('hidden'), 300);
-            currentModalCharId = null; 
-            currentModalType = null;
+            document.body.classList.remove('modal-open');
+            contentElement.classList.remove('visible');
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+                modalElement.classList.remove('flex');
+            }, 300);
+            state.currentModalCharId = null;
+            state.currentModalType = null;
         }
 
         function updateModalNavigation(id, type) {
-            currentModalCharId = id;
-            currentModalType = type;
-
-            const listToNavigate = uniqueNavigableList;
-            const currentIndex = listToNavigate.findIndex(item => item.id === id); 
-
-            const prevItem = currentIndex > 0 ? listToNavigate[currentIndex - 1] : null;
-            const nextItem = currentIndex < listToNavigate.length - 1 ? listToNavigate[currentIndex + 1] : null;
-
-            const modalInfo = type === 'character' ? characterModal : fusionModal;
-            
+            state.currentModalCharId = id;
+            state.currentModalType = type;
+            const currentIndex = state.uniqueNavigableList.findIndex(item => item.id === id);
+            const prevItem = currentIndex > 0 ? state.uniqueNavigableList[currentIndex - 1] : null;
+            const nextItem = currentIndex < state.uniqueNavigableList.length - 1 ? state.uniqueNavigableList[currentIndex + 1] : null;
+            const modal = type === 'character' ? dom.characterModal : dom.fusionModal;
             const openNextOrPrev = (item) => {
-                if (item.isFusion) { openFusionModal(item.id); } 
-                else { openCharacterModal(item.id); }
+                const closeFunc = type === 'character' ? closeCharacterModal : closeFusionModal;
+                closeFunc();
+                setTimeout(() => item.isFusion ? openFusionModal(item.id) : openCharacterModal(item.id), 310);
             };
-
-            const closeFunc = type === 'character' ? closeCharacterModal : closeFusionModal;
-            
-            if (prevItem) {
-                const prevAction = (e) => {
-                    e.stopPropagation();
-                    closeFunc();
-                    setTimeout(() => openNextOrPrev(prevItem), 300); 
-                };
-                modalInfo.prevBtn.disabled = false;
-                modalInfo.prevName.textContent = prevItem.name;
-                modalInfo.prevBtn.onclick = prevAction;
-                modalInfo.prevName.onclick = prevAction;
-                modalInfo.prevName.style.cursor = 'pointer';
-            } else {
-                modalInfo.prevBtn.disabled = true;
-                modalInfo.prevName.textContent = 'Yok';
-                modalInfo.prevBtn.onclick = null;
-                modalInfo.prevName.onclick = null;
-                modalInfo.prevName.style.cursor = 'default';
-            }
-
-            if (nextItem) {
-                const nextAction = (e) => {
-                    e.stopPropagation();
-                    closeFunc();
-                    setTimeout(() => openNextOrPrev(nextItem), 300);
-                };
-                modalInfo.nextBtn.disabled = false;
-                modalInfo.nextName.textContent = nextItem.name;
-                modalInfo.nextBtn.onclick = nextAction;
-                modalInfo.nextName.onclick = nextAction;
-                modalInfo.nextName.style.cursor = 'pointer';
-            } else {
-                modalInfo.nextBtn.disabled = true;
-                modalInfo.nextName.textContent = 'Yok';
-                modalInfo.nextBtn.onclick = null;
-                modalInfo.nextName.onclick = null;
-                modalInfo.nextName.style.cursor = 'default';
-            }
+            const setupNavControl = (control, nameSpan, item) => {
+                const action = item ? (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
+                control.disabled = !item;
+                control.onclick = action;
+                if (nameSpan) {
+                    nameSpan.textContent = item ? item.name : (control.id.startsWith('prev') ? 'Başlangıç' : 'Son');
+                    nameSpan.onclick = action;
+                    nameSpan.style.cursor = item ? 'pointer' : 'default';
+                }
+            };
+            setupNavControl(modal.prevBtn, modal.prevName, prevItem);
+            setupNavControl(modal.nextBtn, modal.nextName, nextItem);
         }
 
         function openCharacterModal(characterId) {
-            const clickedChar = characters.find(c => c.id === characterId && !c.isFusion);
-            if (!clickedChar) return; 
-
-            characterModal.name.textContent = clickedChar.name;
-            characterModal.description.textContent = clickedChar.description;
-            characterModal.evolutions.innerHTML = '';
-            
-            const currentSize = sizeProfiles[imageSizeIndex];
-            const evolutionImageBaseClass = `w-full h-auto object-contain rounded-lg mb-2 cursor-zoom-in`;
-            const evolutionBoxClass = currentSize.evolutionBox;
-            const allEvolutions = [{ star: 1, imageUrl: clickedChar.imageUrl, id: clickedChar.id }, ...(clickedChar.evolutions || [])];
-
+            const char = characters.find(c => c.id === characterId && !c.isFusion);
+            if (!char) return;
+            const modal = dom.characterModal;
+            const modalImageMinWidth = sizeProfiles[state.imageSizeIndex].minCardWidth;
+            modal.evolutions.style.gridTemplateColumns = `repeat(auto-fit, ${modalImageMinWidth})`;
+            modal.name.textContent = char.name;
+            modal.description.textContent = char.description;
+            modal.evolutions.innerHTML = '';
+            const allEvolutions = [{ star: 1, imageUrl: char.imageUrl }, ...(char.evolutions || [])];
             allEvolutions.forEach(evo => {
                 const evoDiv = document.createElement('div');
-                evoDiv.className = `flex flex-col items-center p-3 bg-gray-600 rounded-lg shadow-sm ${evolutionBoxClass}`;
-                const imageUrl = getCharacterImageUrlByStar(clickedChar.id, evo.star);
-                evoDiv.innerHTML = `
-                    <img src="${imageUrl}" alt="${clickedChar.name} ${evo.star} Yıldız" class="${evolutionImageBaseClass}" onclick="enlargeImage(this.src)" onerror="this.onerror=null;this.src='https://placehold.co/300x400/CCCCCC/000000?text=Resim+Yok';">
-                    <p class="text-lg font-medium text-gray-200">${getStarEmojis(evo.star)}</p>
-                `;
-                characterModal.evolutions.appendChild(evoDiv);
+                evoDiv.className = `flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--md-sys-color-surface-container-highest)]`;
+                evoDiv.style.backgroundColor = 'var(--md-sys-color-surface-container)';
+                const imgWrapper = document.createElement('div');
+                imgWrapper.style.width = modalImageMinWidth;
+                imgWrapper.innerHTML = `<img src="${getCharacterImageUrlByStar(char.id, evo.star)}" alt="${char.name} ${evo.star} Yıldız" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+                const p = document.createElement('p');
+                p.className = 'text-lg font-medium flex';
+                p.innerHTML = getStarEmojis(false, evo.star);
+                evoDiv.appendChild(imgWrapper);
+                evoDiv.appendChild(p);
+                modal.evolutions.appendChild(evoDiv);
             });
-
-            characterModal.fusionList.innerHTML = '';
-            const fusionsOfThisCharacter = characters.filter(fusion => 
-                fusion.isFusion && fusion.fusionPartners && fusion.fusionPartners.includes(clickedChar.id)
-            );
-
-            if (fusionsOfThisCharacter.length > 0) {
-                characterModal.fusionsContainer.classList.remove('hidden');
-                fusionsOfThisCharacter.forEach(fusionChar => {
+            const fusions = characters.filter(f => f.isFusion && f.fusionPartners.includes(char.id));
+            modal.fusionsContainer.classList.toggle('hidden', fusions.length === 0);
+            if (fusions.length > 0) {
+                modal.fusionList.innerHTML = '';
+                fusions.forEach(fusion => {
                     const fusionCard = document.createElement('div');
-                    fusionCard.className = `rounded-lg shadow-md p-3 flex flex-col items-center cursor-pointer hover:opacity-80 transition duration-200 ${'glow-purple'}`; 
-                    fusionCard.style.backgroundColor = FUSION_BACKGROUND_COLOR; 
-                    fusionCard.onclick = (e) => { e.stopPropagation(); closeCharacterModal(); openFusionModal(fusionChar.id); };
-                    const fusionThumbImageClass = `${currentSize.fusionThumb} object-cover rounded-lg mb-2 border-2 border-purple-400`;
-                    fusionCard.innerHTML = `
-                        <img src="${fusionChar.imageUrl}" alt="${fusionChar.name}" class="${fusionThumbImageClass} ${'glow-purple'}" onerror="this.onerror=null;this.src='https://placehold.co/150x150/CCCCCC/000000?text=Resim+Yok;">
-                        <p class="text-md font-semibold text-gray-200 text-center font-fusion">${fusionChar.name}</p>
-                    `;
-                    characterModal.fusionList.appendChild(fusionCard);
+                    fusionCard.className = `rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105`;
+                    fusionCard.style.backgroundColor = 'var(--md-sys-color-fusion-container)';
+                    fusionCard.onclick = (e) => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
+                    const nameClass = 'font-fantastical-fusion';
+                    fusionCard.innerHTML = `<img src="${fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center ${nameClass}" style="color: var(--md-sys-color-on-fusion-container);">${fusion.name}</p>`;
+                    modal.fusionList.appendChild(fusionCard);
                 });
-            } else {
-                characterModal.fusionsContainer.classList.add('hidden');
             }
-
-            openModal(characterModal.element, characterModal.content);
-            updateModalNavigation(characterId, 'character'); 
+            openModal(modal.element, modal.content);
+            updateModalNavigation(characterId, 'character');
         }
-
-        function closeCharacterModal() { closeModal(characterModal.element, characterModal.content); }
+        function closeCharacterModal() { closeModal(dom.characterModal.element, dom.characterModal.content); }
 
         function openFusionModal(fusionId) {
-            const fusionChar = characters.find(c => c.id === fusionId && c.isFusion);
-            if (!fusionChar) return;
-            
-            const currentSize = sizeProfiles[imageSizeIndex];
-            fusionModal.name.textContent = fusionChar.name;
-            fusionModal.name.classList.add('font-fusion');
-            fusionModal.description.textContent = fusionChar.description;
-            fusionModal.image.src = fusionChar.imageUrl;
-            fusionModal.image.alt = fusionChar.name;
-
-            const fusionMainImageClass = `w-full h-auto object-contain rounded-lg shadow-md cursor-zoom-in ${currentSize.fusionMainMaxH}`;
-            fusionModal.imageContainer.className = `flex flex-col items-center ${currentSize.fusionMainImageWidth}`;
-            
-            const fusionPartnerImageClass = `${currentSize.fusionPartner} object-contain rounded-lg border-4 border-indigo-500 shadow-md`;
-            fusionModal.image.className = `${fusionMainImageClass} ${'glow-purple'}`;
-            fusionModal.content.style.backgroundColor = FUSION_BACKGROUND_COLOR; 
-            fusionModal.content.classList.add('fusion-modal-background-glow');
-            const [partner1BaseId, partner2BaseId] = fusionChar.fusionPartners;
-            const partner1BaseChar = characters.find(c => c.id === partner1BaseId && !c.isFusion);
-            const partner2BaseChar = characters.find(c => c.id === partner2BaseId && !c.isFusion);
-
-            if (partner1BaseChar) {
-                const partner1ThreeStarImage = get3StarImageUrl(partner1BaseChar.id); 
-                fusionModal.leftChar.image.src = partner1ThreeStarImage;
-                fusionModal.leftChar.image.className = `${fusionPartnerImageClass} ${'glow-purple'}`; 
-                fusionModal.leftChar.name.textContent = partner1BaseChar.name;
-                fusionModal.leftChar.container.dataset.characterId = partner1BaseChar.id;
-                fusionModal.leftChar.starDisplay.innerHTML = `<span class="text-lg font-medium ${THREE_STAR_COLOR_CLASS}">★★★</span>`; 
+            const fusion = characters.find(c => c.id === fusionId && c.isFusion);
+            if (!fusion) return;
+            const modal = dom.fusionModal;
+            const mainImageWidth = sizeProfiles[state.imageSizeIndex].minCardWidth;
+            const partnerImageWidth = `${parseInt(mainImageWidth, 10) * 0.75}px`;
+            modal.name.textContent = fusion.name;
+            modal.name.classList.add('font-fantastical-fusion');
+            modal.description.textContent = fusion.description;
+            modal.image.src = fusion.imageUrl;
+            modal.image.setAttribute('onclick', `enlargeImage('${fusion.imageUrl}')`);
+            const [p1, p2] = fusion.fusionPartners.map(id => characters.find(c => c.id === id));
+            if (p1) {
+                modal.leftChar.image.src = get3StarImageUrl(p1.id);
+                modal.leftChar.container.style.width = partnerImageWidth;
+                modal.leftChar.name.textContent = p1.name;
+                modal.leftChar.container.dataset.characterId = p1.id;
+                modal.leftChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`;
             }
-             if (partner2BaseChar) {
-                const partner2ThreeStarImage = get3StarImageUrl(partner2BaseChar.id); 
-                fusionModal.rightChar.image.src = partner2ThreeStarImage;
-                fusionModal.rightChar.image.className = `${fusionPartnerImageClass} ${'glow-purple'}`; 
-                fusionModal.rightChar.name.textContent = partner2BaseChar.name;
-                fusionModal.rightChar.container.dataset.characterId = partner2BaseChar.id;
-                fusionModal.rightChar.starDisplay.innerHTML = `<span class="text-lg font-medium ${THREE_STAR_COLOR_CLASS}">★★★</span>`; 
+            if (p2) {
+                modal.rightChar.image.src = get3StarImageUrl(p2.id);
+                modal.rightChar.container.style.width = partnerImageWidth;
+                modal.rightChar.name.textContent = p2.name;
+                modal.rightChar.container.dataset.characterId = p2.id;
+                modal.rightChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`;
             }
-
-            fusionModal.star.innerHTML = `<span class="text-3xl ${FUSION_STAR_COLOR_CLASS} ${'glow-text-purple-animated'}">★★★★</span>`; 
-            openModal(fusionModal.element, fusionModal.content);
-            updateModalNavigation(fusionId, 'fusion'); 
+            modal.imageContainer.style.width = mainImageWidth;
+            modal.star.innerHTML = `${getStarEmojis(true, 4)}`;
+            openModal(modal.element, modal.content);
+            updateModalNavigation(fusionId, 'fusion');
         }
-
         function closeFusionModal() {
-            fusionModal.name.classList.remove('font-fusion');
-            fusionModal.content.classList.remove('fusion-modal-background-glow');
-            closeModal(fusionModal.element, fusionModal.content);
+            dom.fusionModal.name.classList.remove('font-fantastical-fusion');
+            closeModal(dom.fusionModal.element, dom.fusionModal.content);
         }
 
         function openSearchModal() {
-            openModal(searchModal.element, searchModal.content);
-            searchModal.input.value = '';
-            searchModal.resultsGrid.innerHTML = '<p class="col-span-full text-center text-gray-400">Aramak için bir karakter adı veya ID\'si yazın.</p>';
-            searchModal.input.focus();
+            openModal(dom.search.modal, dom.search.content);
+            dom.search.input.value = '';
+            renderSearchResults();
+            dom.search.input.focus();
         }
 
-        function closeSearchModal() {
-            closeModal(searchModal.element, searchModal.content);
+        function closeSearchModal() { closeModal(dom.search.modal, dom.search.content); }
+
+        function createSearchResultCard(item) {
+            const card = document.createElement('div');
+            card.className = 'search-result-card';
+            const action = item.isFusion ? `closeSearchModal(); openFusionModal('${item.id}');` : `closeSearchModal(); openCharacterModal('${item.id}');`;
+            card.setAttribute('onclick', action);
+            const nameClass = item.isFusion ? 'font-fantastical-fusion' : '';
+            card.innerHTML = `
+                <img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0">
+                <div class="flex flex-col gap-1">
+                    <h4 class="text-lg font-bold ${nameClass}">${item.name}</h4>
+                    <div>${getStarEmojis(item.isFusion, item.displayStar)}</div>
+                    <p class="text-xs font-mono" style="color: var(--md-sys-color-on-surface-variant);">ID: ${item.id}</p>
+                </div>
+            `;
+            return card;
         }
-        
+
         function renderSearchResults() {
-            const grid = searchModal.resultsGrid;
+            const grid = dom.search.resultsGrid;
+            const placeholder = dom.search.placeholder;
             grid.innerHTML = '';
-            
-            const searchTerm = searchModal.input.value.toLowerCase().trim();
+            const searchTerm = dom.search.input.value.toLowerCase().trim();
 
             if (!searchTerm) {
-                grid.innerHTML = '<p class="col-span-full text-center text-gray-400">Aramak için bir karakter adı veya ID\'si yazın.</p>';
+                placeholder.textContent = 'Aramak için yukarıya bir isim veya ID yazın.';
+                placeholder.classList.remove('hidden');
                 return;
             }
-
-            const allSearchableItems = [];
+            const foundItems = [];
             characters.forEach(char => {
-                if(char.isFusion) {
-                    allSearchableItems.push(char);
-                } else {
-                    allSearchableItems.push({ ...char, star: 1, imageUrl: char.imageUrl });
-                    if (char.evolutions) {
-                        char.evolutions.forEach(evo => {
-                            allSearchableItems.push({ ...char, star: evo.star, imageUrl: evo.imageUrl });
+                const nameMatch = char.name.toLowerCase().includes(searchTerm);
+                const idMatch = char.id.toLowerCase().includes(searchTerm);
+                if (nameMatch || idMatch) {
+                    if (char.isFusion) {
+                        foundItems.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+                    } else {
+                        foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+                        char.evolutions?.forEach(evo => {
+                            foundItems.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
                         });
                     }
                 }
             });
-
-            const foundItems = allSearchableItems.filter(item => 
-                item.name.toLowerCase().includes(searchTerm) || 
-                item.id.toLowerCase().includes(searchTerm)
-            );
-
             if (foundItems.length === 0) {
-                grid.innerHTML = '<p class="col-span-full text-center text-gray-400">Arama sonucu bulunamadı.</p>';
+                placeholder.textContent = `"${dom.search.input.value}" için sonuç bulunamadı.`;
+                placeholder.classList.remove('hidden');
                 return;
             }
-
+            placeholder.classList.add('hidden');
             foundItems.forEach(item => {
                 const card = createSearchResultCard(item);
                 grid.appendChild(card);
             });
         }
-        
-        searchModal.openBtn.addEventListener('click', openSearchModal);
-        searchModal.input.addEventListener('input', renderSearchResults);
-
 
         function enlargeImage(src) {
-            enlargedImage.src = src;
-            enlargedImageOverlay.classList.remove('hidden');
+            const openModal = document.querySelector('.m3-dialog-container.visible');
+            if (openModal) { openModal.classList.add('modal-transform-paused'); }
+            dom.enlargedImage.image.src = src;
+            dom.enlargedImage.overlay.classList.remove('hidden');
         }
 
         function closeEnlargedImage(event) {
             if (event) event.stopPropagation();
-            enlargedImageOverlay.classList.add('hidden');
+            const pausedModal = document.querySelector('.modal-transform-paused');
+            if (pausedModal) { pausedModal.classList.remove('modal-transform-paused'); }
+            dom.enlargedImage.overlay.classList.add('hidden');
         }
 
-        fitToScreenToggleBtn.addEventListener('click', () => {
-            isFitToScreenMode = !isFitToScreenMode; 
+        function addInteractiveEffects() {
+            document.querySelectorAll('.ripple-effect').forEach(el => {
+                if (el.dataset.rippleAttached) return;
+                el.dataset.rippleAttached = 'true';
+                el.addEventListener('click', function (e) {
+                    const rect = this.getBoundingClientRect();
+                    const ripple = document.createElement('span');
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.style.width = ripple.style.height = `${size}px`;
+                    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+                    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+                    ripple.classList.add('ripple');
+                    const existingRipple = this.querySelector('.ripple');
+                    if (existingRipple) existingRipple.remove();
+                    this.appendChild(ripple);
+                });
+            });
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const { width, height } = rect;
+                    const rotateX = (y / height - 0.5) * -15;
+                    const rotateY = (x / width - 0.5) * 15;
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+                });
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Object.assign(dom, {
+                characterGrid: document.getElementById('character-grid'),
+                characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), description: document.getElementById('modal-character-description'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
+                fusionModal: { element: document.getElementById('fusion-modal'), content: document.getElementById('fusion-modal-content'), name: document.getElementById('modal-fusion-name'), description: document.getElementById('modal-fusion-description'), image: document.getElementById('modal-fusion-image'), imageContainer: document.getElementById('fusion-main-image'), star: document.getElementById('modal-fusion-star'), leftChar: { image: document.getElementById('modal-fusion-left-char-image'), name: document.getElementById('modal-fusion-left-char-name'), starDisplay: document.getElementById('modal-fusion-left-char-star'), container: document.getElementById('fusion-partner-left') }, rightChar: { image: document.getElementById('modal-fusion-right-char-image'), name: document.getElementById('modal-fusion-right-char-name'), starDisplay: document.getElementById('modal-fusion-right-char-star'), container: document.getElementById('fusion-partner-right') }, prevBtn: document.getElementById('prev-fusion-btn'), nextBtn: document.getElementById('next-fusion-btn'), prevName: document.getElementById('prev-fusion-name'), nextName: document.getElementById('next-fusion-name') },
+                enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
+                zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
+                layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
+                filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
+                search: {
+                    openBtn: document.getElementById('open-search-btn'),
+                    modal: document.getElementById('search-modal'),
+                    content: document.getElementById('search-modal-content'),
+                    input: document.getElementById('search-input'),
+                    resultsGrid: document.getElementById('search-results-grid'),
+                    placeholder: document.getElementById('search-placeholder')
+                }
+            });
             
-            if (isFitToScreenMode) {
-                fitToScreenToggleBtn.classList.add('bg-indigo-600', 'text-white');
-                fitToScreenToggleBtn.classList.remove('bg-gray-700', 'text-gray-200');
-            } else {
-                fitToScreenToggleBtn.classList.remove('bg-indigo-600', 'text-white');
-                fitToScreenToggleBtn.classList.add('bg-gray-700', 'text-gray-200');
-            }
-            renderCharacters();
-        });
+            dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
+            dom.filter.buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    state.galleryMode = button.dataset.filter;
+                    dom.filter.label.textContent = button.textContent;
+                    dom.filter.menu.classList.add('hidden');
+                    updateUI();
+                    renderCharacters();
+                });
+            });
 
-        columnCountSlider.addEventListener('input', () => {
-            dynamicColumnCount = columnCountSlider.value;
-            columnCountValue.textContent = dynamicColumnCount;
-            renderCharacters();
-        });
+            dom.search.openBtn.addEventListener('click', openSearchModal);
+            dom.search.input.addEventListener('input', renderSearchResults);
 
-        backToTopBtn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 300) {
-                backToTopBtn.classList.remove('opacity-0');
-            } else {
-                backToTopBtn.classList.add('opacity-0');
-            }
-        });
-
-        window.onload = () => {
-            if (isFitToScreenMode) {
-                fitToScreenToggleBtn.classList.add('bg-indigo-600', 'text-white');
-                fitToScreenToggleBtn.classList.remove('bg-gray-700', 'text-gray-200');
-            } else {
-                fitToScreenToggleBtn.classList.remove('bg-indigo-600', 'text-white');
-                fitToScreenToggleBtn.classList.add('bg-gray-700', 'text-gray-200');
-            }
-
-            const tempCard = document.createElement('div');
-            tempCard.style.width = sizeProfiles[imageSizeIndex].maxCardWidth; 
-            tempCard.style.visibility = 'hidden';
-            tempCard.style.position = 'absolute';
-            characterGrid.appendChild(tempCard);
-            const cardWidthPx = tempCard.offsetWidth;
-            characterGrid.removeChild(tempCard);
-            const gridContainerWidth = characterGrid.offsetWidth;
-            const gapWidth = 24;
-            let estimatedBaseCols = Math.floor((gridContainerWidth + gapWidth) / (cardWidthPx + gapWidth));
-            estimatedBaseCols = Math.max(1, estimatedBaseCols);
-            const minSliderValue = Math.max(2, Math.ceil(estimatedBaseCols * 1.5));
-            const maxSliderValue = Math.max(minSliderValue, estimatedBaseCols * 2);
-            columnCountSlider.min = Math.max(2, minSliderValue);
-            columnCountSlider.max = Math.max(3, maxSliderValue);
-            columnCountSlider.value = columnCountSlider.min;
-            dynamicColumnCount = parseInt(columnCountSlider.value);
-            columnCountValue.textContent = dynamicColumnCount;
+            window.addEventListener('click', (e) => {
+                if (!dom.filter.menu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
+                    dom.filter.menu.classList.add('hidden');
+                }
+            });
             
-            updateSizeCycleButtonText();
+            dom.zoom.inBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); } });
+            dom.zoom.outBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); } });
+            dom.layout.toggleBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
+
+            updateUI(); 
             renderCharacters(); 
-        };
+        });
     </script>
 </body>
 </html>
