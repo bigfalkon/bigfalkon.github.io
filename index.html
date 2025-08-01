@@ -178,7 +178,7 @@
             <div class="flex flex-wrap justify-center items-center gap-2">
 <button id="open-search-btn" class="chip ripple-effect">
                     <span class="material-symbols-outlined">search</span>
-                    <span></span> //arama
+                    <span>Arama</span>
                 </button>
                 <div class="relative" id="filter-container">
                     <button id="filter-toggle-btn" class="chip ripple-effect">
@@ -197,7 +197,7 @@
                     <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült">
                         <span class="material-symbols-outlined flex items-center">zoom_out</span>
                     </button>
-                    <span id="current-size-label" class="px-3 text-sm font-semibold border-x" style="border-color: var(--md-sys-color-outline-variant);">4</span>  //boyut: 4
+                    <span id="current-size-label" class="px-3 text-sm font-semibold border-x" style="border-color: var(--md-sys-color-outline-variant);">3</span>  
                     <button id="zoom-in-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Büyüt">
                         <span class="material-symbols-outlined flex items-center">zoom_in</span>
                     </button>
@@ -348,6 +348,10 @@
                 { id: 'demirci', name: 'Demirci', description: 'Gücü kaslarında ve çeliğe hükmeden sanatında olan efsanevi bir usta. Ocağının ateşiyle, krallara layık, kırılmaz silahlar döver.', star: 1, imageUrl: 'https://i.ibb.co/vMvSpxy/demir1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/B5xxXNBb/demir2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Vp9CGM2t/demir3.jpg' }] },
                 { id: 'mumya', name: 'Mumya', description: 'Binlerce yıllık uykusundan uyanmış, ebedi bir mezar koruyucusu. O, hem unutulmuş bir krallığın kraliçesi hem de kumların ve zamanın kendisidir.', star: 1, imageUrl: 'https://i.ibb.co/VWMhVCwH/mumya1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZRbdDvXd/mumya21.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/chGvch2Y/mumya3.jpg' }] },
                 { id: 'ejderdogan', name: 'Ejderdoğan', description: 'Damarlarında ejderha kanı dolaşan, asil ve güçlü bir savaşçı. İçindeki ilkel gücü keşfederek, ejderhaların gücünün ve asaletinin yeryüzündeki temsilcisi olur.', star: 1, imageUrl: 'https://i.ibb.co/LXn9yM5k/ejder.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/65XXz6r/ejder2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/mVsp6HJR/ejder3.jpg' }] },
+                //YENİ KARAKTERLER BURAYA = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+                //YENİ KARAKTER ŞABLONU:
+                //{ id: 'id', name: 'isim', description: 'açıklama', star: 1, imageUrl: 'resim1', evolutions: [{ star: 2, imageUrl: 'resim2' }, { star: 3, imageUrl: 'resim3' }] },
+                //FÜZYONLAR
             { id: 'cadı', name: 'Cadı', description: 'Hem karanlığın mistik bilgeliğini hem de kutsal ışığın gücünü barındıran bu melez büyü-rahibe, her adımıyla kadim bir dengeyi ve sınırsız bir potenziyeli temsil eder.', star: 4, imageUrl: 'https://i.ibb.co/gbJDXPX9/cadiyeni.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
             { id: 'kozmik-dansci', name: 'Kozmik Dansçı', description: 'Yıldızların ritmiyle evreni adımlayan bu göksel dansçı, kehanetin fısıltılarıyla dans ederken kozmik enerjiyi zarafetle şekillendirir.', star: 4, imageUrl: 'https://i.ibb.co/whpyGMMQ/kozmik-yolcu.jpg', isFusion: true, fusionPartners: ['dansoz', 'falci'] },
             { id: 'siren', name: 'Batık Hazine', description: 'Derin denizlerin baştan çıkarıcı şarkısıyla korsanların cüretkar ruhunu birleştiren bu siren, dalgalardan yükselerek hem cazibeyi hem de tehlikeyi çağırır.', star: 4, imageUrl: 'https://i.ibb.co/Pvg53HMY/merge-video-1753634899103.gif', isFusion: true, fusionPartners: ['dansoz', 'korsan'] },
@@ -394,6 +398,9 @@
             { id: 'ruya-isleyici', name: 'Rüya İşleyici', description: 'Bir demircinin çelik iradesi, bir illüzyonistin hayal gücüyle birleştiğinde, rüyaları bile dövebilen bu efsanevi zanaatkar doğdu. Onun örsünde, metal değil, düşünceler şekillenir; yarattığı her silah, sadece bedeni değil, aynı zamanda ruhu da kesen, yaşayan bir hayaldir.', star: 4, imageUrl: 'https://i.ibb.co/4Zj68Wkd/ruya.gif', isFusion: true, fusionPartners: ['demirci', 'illuzyonist'] },
             { id: 'olumsuz-firavun', name: 'Ölümsüz Firavun', description: 'Bir mumyanın bin yıllık sükuneti, bir dervişin o durdurulamaz, meditatif dönüşüyle birleşti. O, hem mezarının ebedi bekçisi hem de evrenin kendisiyle birlikte dönen, yaşayan bir kasırgadır. Sessizliği, fırtınanın gözü kadar sakin ve bir o kadar da tehlikelidir.', star: 4, imageUrl: 'https://i.ibb.co/bMGRkjKR/mumder.jpg', isFusion: true, fusionPartners: ['dervis', 'mumya'] },
             { id: 'kara-alev', name: 'Kara Alev', description: 'Cennetten kovulmuş bir meleğin o trajik güzelliği, bir ejderhanın o saf, ilkel öfkesiyle lanetlendi. O, ne kutsal ne de tamamen şeytani; o, hem cennetin kaybının yasını tutan hem de damarlarındaki o yakıcı, karanlık alevle her şeyi küle çevirmeye hazır, yaşayan bir çelişkidir.', star: 4, imageUrl: 'https://i.ibb.co/VYM44DHG/kara.gif', isFusion: true, fusionPartners: ['dusmusmelek', 'ejderdogan'] },
+            //YENİ FÜZYONLAR BURAYA = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+            //YENİ FÜZYON ŞABLONU
+            //{ id: 'id', name: 'isim', description: 'açıklama', star: 4, imageUrl: 'resim', isFusion: true, fusionPartners: ['krktr1', 'krktr2'] },
         ];
 
         const dom = {};
