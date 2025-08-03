@@ -169,18 +169,21 @@
     <div id="app" class="max-w-screen-2xl mx-auto">
         
         <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi</h1>
+            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">
+                Karakter Galerisi
+                <span id="easter-egg-indicator" class="material-symbols-outlined text-yellow-400 hidden ml-2 align-middle cursor-pointer" style="font-size: 2.5rem;">auto_awesome</span>
+            </h1>
             <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet</p>
         </header>
 
         <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
             
             <div class="flex flex-wrap justify-center items-center gap-2">
-<button id="open-search-btn" class="chip ripple-effect">
+                <button id="open-search-btn" class="chip ripple-effect">
                     <span class="material-symbols-outlined">search</span>
                 </button>
                 <div class="relative" id="filter-container">
-                    <button id="filter-toggle-btn" class="chip ripple-effect">
+                    <button id="filter-toggle-btn" class="chip ripple-effect selected">
                         <span id="filter-label">Tümü</span>
                     </button>
                     <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
@@ -191,6 +194,10 @@
                         <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">4★</button>
                     </div>
                 </div>
+                <button id="easter-egg-filter-btn" class="chip ripple-effect hidden">
+                    <span class="material-symbols-outlined text-yellow-500">auto_awesome</span>
+                    <span>Sırlar</span>
+                </button>
                 <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--md-sys-color-outline-variant); background-color: var(--md-sys-color-surface-container-high);">
                     <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült">
                         <span class="material-symbols-outlined flex items-center">zoom_out</span>
@@ -203,11 +210,7 @@
                 <button id="fitToScreenToggleBtn" class="chip ripple-effect" aria-label="Daha Fazla Sığdır Modu">
                     <span class="material-symbols-outlined">auto_awesome_mosaic</span>
                 </button>
-                
-                
             </div>
-
-            
         </div>
 
         <main id="character-grid"></main>
@@ -219,7 +222,7 @@
             <header class="m3-dialog-header p-4 flex-shrink-0">
                 <h2 id="modal-character-name" class="m3-dialog-title text-3xl font-bold">Karakter Adı</h2>
             </header>
-            <div class="m3-dialog-content px-4 py-6 flex-grow flex flex-col items-center">
+            <div class="m3-dialog-content px-4 py-6 flex-grow flex flex-col items-center justify-between">
                 <div id="modal-evolutions" class="grid gap-4 justify-center w-full"></div>
                 <div id="modal-fusions" class="hidden w-full mt-8">
                     <h3 class="text-xl font-bold mb-4 text-center" style="color: var(--md-sys-color-fusion);">Katıldığı Füzyonlar</h3>
@@ -253,6 +256,31 @@
         </div>
     </div>
 
+    <div id="easter-egg-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeEasterEggModal()">
+        <div class="m3-dialog-container" id="easter-egg-modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-4 right-4 z-10" onclick="closeEasterEggModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <header class="m3-dialog-header p-4 flex-shrink-0">
+                <h2 id="ee-modal-name" class="m3-dialog-title text-3xl font-bold" style="color: var(--md-sys-color-primary);">Gizli Karakter Adı</h2>
+            </header>
+            <div class="m3-dialog-content px-4 py-6 flex-grow">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-items-center h-full">
+                    <div class="flex flex-col items-center text-center h-full">
+                        <h3 class="text-xl font-semibold mb-3" style="color: var(--md-sys-color-primary-container);">Sır Hali</h3>
+                        <img id="ee-modal-new-image" src="" alt="Gizli Karakter Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl max-h-[55vh]" onclick="enlargeImage(this.src)">
+                    </div>
+                    <div class="flex flex-col items-center text-center h-full">
+                         <h3 id="ee-modal-original-label" class="text-xl font-semibold mb-3" style="color: var(--md-sys-color-on-surface-variant);">Orijinal Hali</h3>
+                        <img id="ee-modal-original-image" src="" alt="Orijinal Karakter Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-lg max-h-[55vh]" onclick="enlargeImage(this.src)">
+                    </div>
+                </div>
+            </div>
+            <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
+                 <button id="prev-ee-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-ee-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                <button id="next-ee-btn" class="modal-nav-button ripple-effect"><span id="next-ee-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
+            </footer>
+        </div>
+    </div>
+
     <div id="search-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeSearchModal()">
         <div class="m3-dialog-container" id="search-modal-content" onclick="event.stopPropagation()">
             <button class="icon-button absolute top-4 right-4 z-10" onclick="closeSearchModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
@@ -278,8 +306,14 @@
         const THREE_STAR_COLOR_CLASS = 'text-amber-400';
         const TWO_STAR_COLOR_CLASS = 'text-slate-400';
         const ONE_STAR_COLOR_CLASS = 'text-orange-400';
+        const EASTER_EGG_PASSWORD = '1234';
+        // === GİZLİ KARTLAR İÇİN MERKEZİ YILDIZ AYARLARI ===
+        const EASTER_EGG_STAR_COUNT = 1; // Gizli kartlarda kaç tane sembol/yıldız olacağı.
+        const EASTER_EGG_STAR_IS_FUSION_STYLE = true; // 'true' ise parlak (füzyon stili), 'false' ise normal olur.
+        const EASTER_EGG_STAR_ICON = 'female male'; // Gösterilecek sembolün adı. Örnek: 'star', 'diamond', 'favorite', 'local_fire_department'
+
         const characters = [
-        //KARAKTERLER = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+            //KARAKTERLER = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
             { id: 'buyucu', name: 'Büyücü', star: 1, imageUrl: 'https://i.ibb.co/WW3DSjgT/b-y-c-1.jpg', 
                 evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/xK0j21XT/b-y-c-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/rKjQfVWR/b-y-c-3.jpg' }] },
             { id: 'rahibe', name: 'Rahibe', star: 1, imageUrl: 'https://i.ibb.co/vvT9pLJV/rahibe1yeni.jpg', 
@@ -348,7 +382,7 @@
             { id: 'soytari', name: 'Soytarı', star: 1, imageUrl: 'https://i.ibb.co/TBhL4d1G/soy1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Fb87wvt9/soy2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/MxCV6tZp/soy3.jpg' }] },
             { id: 'bombaci', name: 'Patlama Uzmanı', star: 1, imageUrl: 'https://i.ibb.co/GgzPhZ8/bomb1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/6crLzgm5/bomb2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/PsJn9DGK/bomb3.jpg' }] },
             { id: 'seytancagirici', name: 'Şeytan Çağırıcı', star: 1, imageUrl: 'https://i.ibb.co/8Dgcw4d3/a-r1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Kxk8QqYQ/cagirici2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/NnY60hLB/a-r3.jpg' }] },
-            { id: 'kavgaci', name: 'Kavgacı', star: 1, imageUrl: 'https://i.ibb.co/sdFY25ST/kavga1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/LX09VZN4/kavga2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/PZZgzMzz/kavga3.jpg' }] },
+            { id: 'kavgaci', name: 'KAVGACI', star: 1, imageUrl: 'https://i.ibb.co/sdFY25ST/kavga1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/LX09VZN4/kavga2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/PZZgzMzz/kavga3.jpg' }] },
             { id: 'tarikatci', name: 'Tarikatçı', star: 1, imageUrl: 'https://i.ibb.co/Vczy8Qr3/tarik1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ccQ4bDMj/tarik2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/G4xD9w7V/tarik3.jpg' }] },
             //YENİ KARAKTERLER BURAYA = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
             //YENİ KARAKTER ŞABLONU: { id: 'İD', name: 'İSİM', star: 1, imageUrl: 'RESİM1', evolutions: [{ star: 2, imageUrl: 'RESİM2' }, { star: 3, imageUrl: 'RESİM3' }] },
@@ -401,20 +435,44 @@
             { id: 'kara-alev', name: 'Kara Alev', star: 4, imageUrl: 'https://i.ibb.co/VYM44DHG/kara.gif', isFusion: true, fusionPartners: ['dusmusmelek', 'ejderdogan'] },
             { id: 'renk-cumbusu', name: 'Renk Cümbüşü', star: 4, imageUrl: 'https://i.ibb.co/SZLqtnw/bombrenk.jpg', isFusion: true, fusionPartners: ['bombaci', 'soytari'] },
             { id: 'bozulmus-yemin', name: 'Bozulmuş Yemin', star: 4, imageUrl: 'https://i.ibb.co/yB72D5Tc/sheytan.jpg', isFusion: true, fusionPartners: ['dusmusmelek', 'seytancagirici'] },
-            { id: 'demir-yumruk', name: 'Demir Yumruk', star: 4, imageUrl: 'https://i.ibb.co/5XtVzLVb/kavdem.jpg', isFusion: true, fusionPartners: ['demirci', 'kavgaci'] },
+            { id: 'demir-yumruk', name: 'DEMİR YUMRUK', star: 4, imageUrl: 'https://i.ibb.co/5XtVzLVb/kavdem.jpg', isFusion: true, fusionPartners: ['demirci', 'kavgaci'] },
             { id: 'kiyamet-alameti', name: 'Kıyamet Alameti', star: 4, imageUrl: 'https://i.ibb.co/20Nwtq4d/tarikyemin.jpg', isFusion: true, fusionPartners: ['seytancagirici', 'tarikatci'] },
             //YENİ FÜZYONLAR BURAYA  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
             //YENİ FÜZYON ŞABLONU: { id: 'İD', name: 'İSİM', star: 4, imageUrl: 'RESİM4', isFusion: true, fusionPartners: ['KRKTR1', 'KRKTR2'] },
             //KARAKTERLERİN SONU  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
         ];
 
+        // AYRI EASTER EGG DİZİSİ
+        const easterEggs = [
+            { id: 'ee_hazine', name: 'İlginç Totem', imageUrl: 'https://i.ibb.co/hJXBvQmq/avc.jpg', originalCharacterId: 'hazine-avcisi' },
+            { id: 'ee_buz', name: 'Soğuk Yatak', imageUrl: 'https://i.ibb.co/hJRDVrHB/buzz.jpg', originalCharacterId: 'buzbuyucusu' },
+            { id: 'ee_cariye', name: 'Özel Poz', imageUrl: 'https://i.ibb.co/mrspQNLN/cariye.jpg', originalCharacterId: 'cariye' },
+            { id: 'ee_dovus', name: 'Şampiyonun Ödülü', imageUrl: 'https://i.ibb.co/jP6hsznC/d-v.jpg', originalCharacterId: 'kavgaci' },
+            { id: 'ee_meyve', name: 'Gizli Bahçe', imageUrl: 'https://i.ibb.co/fdcfghMP/meyve.jpg', originalCharacterId: 'yasak-meyve' },
+            { id: 'ee_savas', name: 'Savaş Sonrası Temizlenme', imageUrl: 'https://i.ibb.co/jk8j1ffw/savas.jpg', originalCharacterId: 'savasci' },
+            { id: 'ee_ninja', name: 'Soyunma', imageUrl: 'https://i.ibb.co/Wp2T0hbm/ninja.jpg', originalCharacterId: 'ninja' },
+            { id: 'ee_siren', name: 'Serbest Dalış', imageUrl: 'https://i.ibb.co/JjkvXD2T/siren.jpg', originalCharacterId: 'siren' },
+            { id: 'ee_tentacle', name: 'Öfkeli Tanrı', imageUrl: 'https://i.ibb.co/h1BgZTKj/tenta.jpg', originalCharacterId: 'tarikatci' },
+            { id: 'ee_hararet', name: 'Hararetli Dövüşçü', imageUrl: 'https://i.ibb.co/jPq156wc/indir.jpg', originalCharacterId: 'demir-yumruk' },
+        ];
+
         const dom = {};
-        const state = { galleryMode: 'all', imageSizeIndex: 3, isFitToScreenMode: true, currentModalCharId: null, currentModalType: null, uniqueNavigableList: [] };
+        const state = { 
+            galleryMode: 'all', 
+            imageSizeIndex: 3, 
+            isFitToScreenMode: true, 
+            currentModalCharId: null, 
+            currentModalType: null, 
+            uniqueNavigableList: [],
+            isEasterEggMode: false
+        };
         const sizeProfiles = [ { name: '1', minCardWidth: '170px' }, { name: '2', minCardWidth: '220px' }, { name: '3', minCardWidth: '270px' }, { name: '4', minCardWidth: '320px' }, { name: '5', minCardWidth: '370px' }, { name: '6', minCardWidth: '420px' } ];
 
-        const getStarEmojis = (isFusion, starCount) => {
+        const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
+            if (!starCount || starCount < 1) starCount = 1; // Hata olmaması için en az 1 yıldız göster
+            const colorKey = Math.min(starCount, 4); // 4'ten büyük yıldız sayısı için 4 yıldız rengini kullan
             const colors = { 1: ONE_STAR_COLOR_CLASS, 2: TWO_STAR_COLOR_CLASS, 3: THREE_STAR_COLOR_CLASS, 4: FUSION_STAR_COLOR_CLASS };
-            const starIcon = `<span class="material-symbols-outlined ${colors[starCount]}" style="font-variation-settings: 'FILL' 1;">star</span>`;
+            const starIcon = `<span class="material-symbols-outlined ${colors[colorKey]}" style="font-variation-settings: 'FILL' 1;">${iconName}</span>`;
             const starHtml = Array(starCount).fill(starIcon).join('');
             return isFusion ? `<div class="flex fusion-stars">${starHtml}</div>` : `<div class="flex">${starHtml}</div>`;
         };
@@ -448,17 +506,29 @@
                 } else {
                     dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
                 }
+                
                 let allDisplayableCharacters = [];
-                if (state.galleryMode === 'fusion') {
-                    allDisplayableCharacters = characters.filter(char => char.isFusion);
+                let isEasterEggView = false;
+
+                if (state.galleryMode === 'easter-egg') {
+                    allDisplayableCharacters = easterEggs.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+                    isEasterEggView = true;
+                } else if (state.galleryMode === 'fusion') {
+                    allDisplayableCharacters = characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
+                    allDisplayableCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 } else if (state.galleryMode === 'all') {
-                    characters.forEach(char => {
-                        if (!char.isFusion) {
-                            allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
-                            char.evolutions?.forEach(evo => allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
-                        }
+                    // DÜZELTME 1: Sıralama mantığı burada güncellendi
+                    const nonFusions = characters.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+                    nonFusions.forEach(char => {
+                        allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+                        char.evolutions?.forEach(evo => {
+                            allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
+                        });
                     });
-                    allDisplayableCharacters.push(...characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})));
+                    const sortedFusions = characters.filter(char => char.isFusion)
+                        .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
+                        .map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
+                    allDisplayableCharacters.push(...sortedFusions);
                 } else {
                     const starFilter = parseInt(state.galleryMode.split('-')[0]);
                     allDisplayableCharacters = characters.filter(char => !char.isFusion).flatMap(char => {
@@ -466,30 +536,49 @@
                         const evo = char.evolutions?.find(e => e.star === starFilter);
                         return evo ? [{ ...char, displayStar: starFilter, displayImageUrl: evo.imageUrl }] : [];
                     });
+                    allDisplayableCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 }
-                allDisplayableCharacters.sort((a, b) => {
-                    if (a.isFusion !== b.isFusion) return a.isFusion ? 1 : -1;
-                    const nameCompare = a.name.localeCompare(b.name, 'tr');
-                    return nameCompare !== 0 ? nameCompare : (a.displayStar || a.star) - (b.displayStar || b.star);
-                });
+                
                 state.uniqueNavigableList = characters.filter(c => c.star === 1 || c.isFusion).sort((a, b) => (a.isFusion !== b.isFusion) ? (a.isFusion ? 1 : -1) : a.name.localeCompare(b.name, 'tr'));
+                
                 if (allDisplayableCharacters.length === 0) {
                     dom.characterGrid.innerHTML = `<p class="col-span-full text-center text-lg" style="color: var(--md-sys-color-on-surface-variant);">Bu filtrede gösterilecek karakter bulunamadı.</p>`;
                     return;
                 }
+                
                 allDisplayableCharacters.forEach((char, index) => {
                     const card = document.createElement('div');
                     const isFusion = char.isFusion;
-                    card.className = `character-card ripple-effect flex flex-col cursor-pointer ${isFusion ? 'fusion-card' : ''}`;
+                    card.className = `character-card ripple-effect flex flex-col cursor-pointer ${isFusion || isEasterEggView ? 'fusion-card' : ''}`;
                     card.dataset.id = char.id;
                     card.style.animationDelay = `${index * 40}ms`;
-                    card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id);
-                    const nameClass = isFusion ? 'font-fantastical-fusion' : '';
-                    card.innerHTML = `<div class="character-card-image-wrapper"><img src="${char.displayImageUrl || char.imageUrl}" alt="${char.name}" class="character-card-image" loading="lazy"></div><div class="p-4 flex-grow flex flex-col justify-end"><h3 class="character-name text-lg font-bold truncate ${nameClass}">${char.name}</h3><div class="flex mt-1">${getStarEmojis(isFusion, char.displayStar || char.star)}</div></div>`;
+                    
+                    if(isEasterEggView) {
+                        card.onclick = () => openEasterEggModal(char.id);
+                    } else {
+                        card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id);
+                    }
+
+                    const nameClass = isFusion || isEasterEggView ? 'font-fantastical-fusion' : '';
+                    const stars = isEasterEggView ? getStarEmojis(EASTER_EGG_STAR_IS_FUSION_STYLE, EASTER_EGG_STAR_COUNT, EASTER_EGG_STAR_ICON) : getStarEmojis(isFusion, char.displayStar || char.star);
+                    const imageUrl = isEasterEggView ? char.imageUrl : (char.displayImageUrl || char.imageUrl);
+
+                    card.innerHTML = `<div class="character-card-image-wrapper"><img src="${imageUrl}" alt="${char.name}" class="character-card-image" loading="lazy"></div><div class="p-4 flex-grow flex flex-col justify-end"><h3 class="character-name text-lg font-bold truncate ${nameClass}">${char.name}</h3><div class="flex mt-1">${stars}</div></div>`;
                     dom.characterGrid.appendChild(card);
                 });
                 addInteractiveEffects();
             }, 200);
+        }
+
+        function updateFilterSelection() {
+            dom.filter.toggleBtn.classList.remove('selected');
+            dom.easterEgg.filterBtn.classList.remove('selected');
+
+            if (state.galleryMode === 'easter-egg') {
+                dom.easterEgg.filterBtn.classList.add('selected');
+            } else {
+                dom.filter.toggleBtn.classList.add('selected');
+            }
         }
 
         function updateUI() {
@@ -497,6 +586,9 @@
             dom.zoom.outBtn.disabled = state.imageSizeIndex === 0;
             dom.zoom.inBtn.disabled = state.imageSizeIndex === sizeProfiles.length - 1;
             dom.layout.toggleBtn.classList.toggle('active', state.isFitToScreenMode);
+            dom.easterEgg.indicator.classList.toggle('hidden', !state.isEasterEggMode);
+            dom.easterEgg.filterBtn.classList.toggle('hidden', !state.isEasterEggMode);
+            updateFilterSelection();
         }
 
         function openModal(modalElement, contentElement) {
@@ -517,18 +609,23 @@
             state.currentModalType = null;
         }
 
-        function updateModalNavigation(id, type) {
+        function updateModalNavigation(id, type, list, modalElements) {
             state.currentModalCharId = id;
             state.currentModalType = type;
-            const currentIndex = state.uniqueNavigableList.findIndex(item => item.id === id);
-            const prevItem = currentIndex > 0 ? state.uniqueNavigableList[currentIndex - 1] : null;
-            const nextItem = currentIndex < state.uniqueNavigableList.length - 1 ? state.uniqueNavigableList[currentIndex + 1] : null;
-            const modal = type === 'character' ? dom.characterModal : dom.fusionModal;
+            const currentIndex = list.findIndex(item => item.id === id);
+            const prevItem = currentIndex > 0 ? list[currentIndex - 1] : null;
+            const nextItem = currentIndex < list.length - 1 ? list[currentIndex + 1] : null;
+            
             const openNextOrPrev = (item) => {
-                const closeFunc = type === 'character' ? closeCharacterModal : closeFusionModal;
+                let closeFunc, openFunc;
+                if (type === 'character') { closeFunc = closeCharacterModal; openFunc = openCharacterModal; } 
+                else if (type === 'fusion') { closeFunc = closeFusionModal; openFunc = openFusionModal; }
+                else if (type === 'easter-egg') { closeFunc = closeEasterEggModal; openFunc = openEasterEggModal; }
+                
                 closeFunc();
-                setTimeout(() => item.isFusion ? openFusionModal(item.id) : openCharacterModal(item.id), 310);
+                setTimeout(() => openFunc(item.id), 310);
             };
+
             const setupNavControl = (control, nameSpan, item) => {
                 const action = item ? (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
                 control.disabled = !item;
@@ -539,8 +636,9 @@
                     nameSpan.style.cursor = item ? 'pointer' : 'default';
                 }
             };
-            setupNavControl(modal.prevBtn, modal.prevName, prevItem);
-            setupNavControl(modal.nextBtn, modal.nextName, nextItem);
+
+            setupNavControl(modalElements.prevBtn, modalElements.prevName, prevItem);
+            setupNavControl(modalElements.nextBtn, modalElements.nextName, nextItem);
         }
 
         function openCharacterModal(characterId) {
@@ -581,7 +679,7 @@
                 });
             }
             openModal(modal.element, modal.content);
-            updateModalNavigation(characterId, 'character');
+            updateModalNavigation(characterId, 'character', state.uniqueNavigableList, dom.characterModal);
         }
         function closeCharacterModal() { closeModal(dom.characterModal.element, dom.characterModal.content); }
 
@@ -613,20 +711,44 @@
             modal.imageContainer.style.width = mainImageWidth;
             modal.star.innerHTML = `${getStarEmojis(true, 4)}`;
             openModal(modal.element, modal.content);
-            updateModalNavigation(fusionId, 'fusion');
+            updateModalNavigation(fusionId, 'fusion', state.uniqueNavigableList, dom.fusionModal);
         }
         function closeFusionModal() {
             dom.fusionModal.name.classList.remove('font-fantastical-fusion');
             closeModal(dom.fusionModal.element, dom.fusionModal.content);
         }
 
-        function openSearchModal() {
-            openModal(dom.search.modal, dom.search.content);
-            dom.search.input.value = '';
-            renderSearchResults();
-            dom.search.input.focus();
-        }
+        // DÜZELTME 2: Füzyonları da destekleyen Easter Egg modalı fonksiyonu
+        function openEasterEggModal(eeId) {
+            const ee = easterEggs.find(e => e.id === eeId);
+            if (!ee) return;
+            const originalChar = characters.find(c => c.id === ee.originalCharacterId);
+            if (!originalChar) return;
 
+            const modal = dom.easterEggModal;
+            modal.name.textContent = ee.name;
+            modal.newImage.src = ee.imageUrl;
+            
+            let originalImageUrl = '';
+            let originalLabel = '';
+
+            if (originalChar.isFusion) {
+                originalImageUrl = originalChar.imageUrl;
+                originalLabel = 'Orijinal Hali (4★)';
+            } else {
+                originalImageUrl = get3StarImageUrl(originalChar.id);
+                originalLabel = 'Orijinal Hali (3★)';
+            }
+            modal.originalImage.src = originalImageUrl;
+            modal.originalLabel.textContent = originalLabel;
+
+            openModal(modal.element, modal.content);
+            updateModalNavigation(eeId, 'easter-egg', easterEggs, dom.easterEggModal);
+        }
+        function closeEasterEggModal() { closeModal(dom.easterEggModal.element, dom.easterEggModal.content); }
+
+
+        function openSearchModal() { openModal(dom.search.modal, dom.search.content); dom.search.input.value = ''; renderSearchResults(); dom.search.input.focus(); }
         function closeSearchModal() { closeModal(dom.search.modal, dom.search.content); }
 
         function createSearchResultCard(item) {
@@ -635,14 +757,7 @@
             const action = item.isFusion ? `closeSearchModal(); openFusionModal('${item.id}');` : `closeSearchModal(); openCharacterModal('${item.id}');`;
             card.setAttribute('onclick', action);
             const nameClass = item.isFusion ? 'font-fantastical-fusion' : '';
-            card.innerHTML = `
-                <img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0">
-                <div class="flex flex-col gap-1">
-                    <h4 class="text-lg font-bold ${nameClass}">${item.name}</h4>
-                    <div>${getStarEmojis(item.isFusion, item.displayStar)}</div>
-                    <p class="text-xs font-mono" style="color: var(--md-sys-color-on-surface-variant);">ID: ${item.id}</p>
-                </div>
-            `;
+            card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0"><div class="flex flex-col gap-1"><h4 class="text-lg font-bold ${nameClass}">${item.name}</h4><div>${getStarEmojis(item.isFusion, item.displayStar)}</div><p class="text-xs font-mono" style="color: var(--md-sys-color-on-surface-variant);">ID: ${item.id}</p></div>`;
             return card;
         }
 
@@ -679,8 +794,7 @@
             }
             placeholder.classList.add('hidden');
             foundItems.forEach(item => {
-                const card = createSearchResultCard(item);
-                grid.appendChild(card);
+                grid.appendChild(createSearchResultCard(item));
             });
         }
 
@@ -717,32 +831,62 @@
             });
 
             document.querySelectorAll('.character-card').forEach(card => {
-                card.addEventListener('mouseenter', () => {
-                    card.style.transform = 'scale(1.05)';
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = 'scale(1)';
-                });
+                card.addEventListener('mouseenter', () => { card.style.transform = 'scale(1.05)'; });
+                card.addEventListener('mouseleave', () => { card.style.transform = 'scale(1)'; });
             });
         }
         
+        function setupEasterEgg() {
+            const headerTitle = document.querySelector('header h1');
+            let clickCount = 0;
+            let clickTimer = null;
+
+            headerTitle.addEventListener('click', () => {
+                clickCount++;
+                clearTimeout(clickTimer);
+                clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
+
+                if (clickCount === 5) {
+                    clickCount = 0;
+                    if(state.isEasterEggMode) return;
+                    const password = prompt("Sırrı fısılda...");
+                    if (password === EASTER_EGG_PASSWORD) {
+                        alert("Sırlar açığa çıktı!");
+                        state.isEasterEggMode = true;
+                        updateUI();
+                        renderCharacters();
+                    } else if (password !== null) {
+                        alert("Yanlış fısıltı...");
+                    }
+                }
+            });
+
+            dom.easterEgg.indicator.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm("Sırları tekrar gizlemek istiyor musun?")) {
+                    state.isEasterEggMode = false;
+                    if(state.galleryMode === 'easter-egg') {
+                        state.galleryMode = 'all';
+                        dom.filter.label.textContent = 'Tümü';
+                    }
+                    updateUI();
+                    renderCharacters();
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             Object.assign(dom, {
                 characterGrid: document.getElementById('character-grid'),
                 characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
                 fusionModal: { element: document.getElementById('fusion-modal'), content: document.getElementById('fusion-modal-content'), name: document.getElementById('modal-fusion-name'), image: document.getElementById('modal-fusion-image'), imageContainer: document.getElementById('fusion-main-image'), star: document.getElementById('modal-fusion-star'), leftChar: { image: document.getElementById('modal-fusion-left-char-image'), name: document.getElementById('modal-fusion-left-char-name'), starDisplay: document.getElementById('modal-fusion-left-char-star'), container: document.getElementById('fusion-partner-left') }, rightChar: { image: document.getElementById('modal-fusion-right-char-image'), name: document.getElementById('modal-fusion-right-char-name'), starDisplay: document.getElementById('modal-fusion-right-char-star'), container: document.getElementById('fusion-partner-right') }, prevBtn: document.getElementById('prev-fusion-btn'), nextBtn: document.getElementById('next-fusion-btn'), prevName: document.getElementById('prev-fusion-name'), nextName: document.getElementById('next-fusion-name') },
+                easterEggModal: { element: document.getElementById('easter-egg-modal'), content: document.getElementById('easter-egg-modal-content'), name: document.getElementById('ee-modal-name'), newImage: document.getElementById('ee-modal-new-image'), originalImage: document.getElementById('ee-modal-original-image'), originalLabel: document.getElementById('ee-modal-original-label'), prevBtn: document.getElementById('prev-ee-btn'), nextBtn: document.getElementById('next-ee-btn'), prevName: document.getElementById('prev-ee-name'), nextName: document.getElementById('next-ee-name') },
                 enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
                 zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
                 layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
                 filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
-                search: {
-                    openBtn: document.getElementById('open-search-btn'),
-                    modal: document.getElementById('search-modal'),
-                    content: document.getElementById('search-modal-content'),
-                    input: document.getElementById('search-input'),
-                    resultsGrid: document.getElementById('search-results-grid'),
-                    placeholder: document.getElementById('search-placeholder')
-                }
+                search: { openBtn: document.getElementById('open-search-btn'), modal: document.getElementById('search-modal'), content: document.getElementById('search-modal-content'), input: document.getElementById('search-input'), resultsGrid: document.getElementById('search-results-grid'), placeholder: document.getElementById('search-placeholder') },
+                easterEgg: { indicator: document.getElementById('easter-egg-indicator'), filterBtn: document.getElementById('easter-egg-filter-btn') }
             });
             
             dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
@@ -754,6 +898,12 @@
                     updateUI();
                     renderCharacters();
                 });
+            });
+
+            dom.easterEgg.filterBtn.addEventListener('click', () => {
+                state.galleryMode = 'easter-egg';
+                updateUI();
+                renderCharacters();
             });
 
             dom.search.openBtn.addEventListener('click', openSearchModal);
@@ -769,6 +919,7 @@
             dom.zoom.outBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); } });
             dom.layout.toggleBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
 
+            setupEasterEgg();
             updateUI(); 
             renderCharacters(); 
         });
