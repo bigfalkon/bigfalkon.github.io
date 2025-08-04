@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         :root {
             --md-sys-color-primary-rgb: 189, 179, 255;
@@ -244,13 +246,13 @@
             </header>
             <div class="m3-dialog-content px-4 py-6 flex-grow">
                 <div class="flex flex-col md:flex-row items-center justify-center gap-6">
-                     <div id="fusion-partner-left" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-left-char-image" src="" alt="Sol Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-left-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-left-char-star" class="text-lg font-medium"></p></div>
+                    <div id="fusion-partner-left" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-left-char-image" src="" alt="Sol Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-left-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-left-char-star" class="text-lg font-medium"></p></div>
                     <div id="fusion-main-image" class="flex flex-col items-center text-center lg:col-span-1"><img id="modal-fusion-image" src="" alt="Füzyon Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl"><p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p></div>
                     <div id="fusion-partner-right" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);"><img id="modal-fusion-right-char-image" src="" alt="Sağ Karakter" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105"><p id="modal-fusion-right-char-name" class="mt-2 text-lg font-semibold"></p><p id="modal-fusion-right-char-star" class="text-lg font-medium"></p></div>
                 </div>
             </div>
             <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
-                 <button id="prev-fusion-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                   <button id="prev-fusion-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="modal-nav-text font-semibold">Önceki</span></button>
                 <button id="next-fusion-btn" class="modal-nav-button ripple-effect"><span id="next-fusion-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
             </footer>
         </div>
@@ -269,13 +271,13 @@
                         <img id="ee-modal-new-image" src="" alt="Gizli Karakter Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl max-h-[55vh]" onclick="enlargeImage(this.src)">
                     </div>
                     <div class="flex flex-col items-center text-center h-full">
-                         <h3 id="ee-modal-original-label" class="text-xl font-semibold mb-3" style="color: var(--md-sys-color-on-surface-variant);">Orijinal Hali</h3>
+                           <h3 id="ee-modal-original-label" class="text-xl font-semibold mb-3" style="color: var(--md-sys-color-on-surface-variant);">Orijinal Hali</h3>
                         <img id="ee-modal-original-image" src="" alt="Orijinal Karakter Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-lg max-h-[55vh]" onclick="enlargeImage(this.src)">
                     </div>
                 </div>
             </div>
             <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
-                 <button id="prev-ee-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-ee-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                   <button id="prev-ee-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-ee-name" class="modal-nav-text font-semibold">Önceki</span></button>
                 <button id="next-ee-btn" class="modal-nav-button ripple-effect"><span id="next-ee-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
             </footer>
         </div>
@@ -312,163 +314,22 @@
         const EASTER_EGG_STAR_IS_FUSION_STYLE = true; // 'true' ise parlak (füzyon stili), 'false' ise normal olur.
         const EASTER_EGG_STAR_ICON = 'female male'; // Gösterilecek sembolün adı. Örnek: 'star', 'diamond', 'favorite', 'local_fire_department'
 
-        const characters = [
-            //KARAKTERLER = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-            { id: 'buyucu', name: 'Büyücü', star: 1, imageUrl: 'https://i.ibb.co/WW3DSjgT/b-y-c-1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/xK0j21XT/b-y-c-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/rKjQfVWR/b-y-c-3.jpg' }] },
-            { id: 'rahibe', name: 'Rahibe', star: 1, imageUrl: 'https://i.ibb.co/vvT9pLJV/rahibe1yeni.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/VYGvZHHq/rahibe2yeni.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/WW79pCvn/rahibe3yeni.jpg' }] },
-            { id: 'dansoz', name: 'Dansöz', star: 1, imageUrl: 'https://i.ibb.co/vxC47N0c/dans-1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/qMKfjQ6H/dans-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8gwWTnW1/dans-3.jpg' }] },
-            { id: 'falci', name: 'Falcı', star: 1, imageUrl: 'https://i.ibb.co/ynpvZp1L/falc-1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZRCkv6Sw/falc-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/1YSLR43x/falc-3.jpg' }] },
-            { id: 'korsan', name: 'Korsan', star: 1, imageUrl: 'https://i.ibb.co/CpVChGPv/korsan1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/SwLyG1tQ/korsan2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Q3QCJ7fP/korsan3.jpg' }] },
-            { id: 'savasci', name: 'Savaşçı', star: 1, imageUrl: 'https://i.ibb.co/F4pYctZB/savasci1yeni.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/dskBzGYd/savasci2yeni.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/5hrZyhdD/savasci3yeni.jpg' }] },
-            { id: 'okcu', name: 'Okçu', star: 1, imageUrl: 'https://i.ibb.co/7t5Pgxr0/ok-u1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Kcx424sg/ok-u2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/tTvN7j1H/ok-u3.jpg' }] },
-            { id: 'ninja', name: 'Ninja', star: 1, imageUrl: 'https://i.ibb.co/TJ4z4RP/ninja1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/SDrwNJrh/ninja2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/YBDCkTL9/ninja3.jpg' }] },
-            { id: 'izci', name: 'İzci', star: 1, imageUrl: 'https://i.ibb.co/4wvy0p7H/izci1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/B57pqBm4/izci2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Xr6wnQjC/izci3.jpg' }] },
-            { id: 'hayalet', name: 'Hayalet', star: 1, imageUrl: 'https://i.ibb.co/rfKR25Vm/hayalet1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/21VC2dPt/hayalet2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/YFR2Rw0K/hayalet3.jpg' }] },
-            { id: 'atesbuyucusu', name: 'Ateş Büyücüsü', star: 1, imageUrl: 'https://i.ibb.co/1GBHw5gc/ate-1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/xtVWHqq4/ate-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8gV8fSrh/ate-3.jpg' }] },
-            { id: 'buzbuyucusu', name: 'Buz Büyücüsü', star: 1, imageUrl: 'https://i.ibb.co/M4WT53b/buz1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/yzqR3jM/buz2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/zW97htBN/buz3.jpg' }] },
-            { id: 'silahsor', name: 'Silahşör', star: 1, imageUrl: 'https://i.ibb.co/ZpDDqkPP/indir-2.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/5WcQs9Nq/indir-3.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/SXFr056v/indir-4.jpg' }] },
-            { id: 'cazibe', name: 'Cazibe', star: 1, imageUrl: 'https://i.ibb.co/yBQBGL5Y/cazibe1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/k2hXkSKV/cazibe2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/xSxMwnz5/cazibe3.jpg' }] },
-            { id: 'ormanruhu', name: 'Orman Ruhu', star: 1, imageUrl: 'https://i.ibb.co/RkZfXFWX/do-a.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/XZxytsM4/do-a2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8DSbGRzR/do-a3.jpg' }] },
-            { id: 'sahinci', name: 'Şahinci', star: 1, imageUrl: 'https://i.ibb.co/pBSb9vVZ/ahin1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/JjmhzkBM/ahin2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Vptx2S9p/ahin3.jpg' }] },
-            { id: 'illuzyonist', name: 'İllüzyonist', star: 1, imageUrl: 'https://i.ibb.co/C5Lr8DDV/ill-zyon1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/fVtZpN8s/ill-zyon2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/VYSz0PYK/ill-zyon3.jpg' }] },
-            { id: 'dervis', name: 'Derviş', star: 1, imageUrl: 'https://i.ibb.co/dsZRZzpt/dervi-1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/zT3tm8sz/dervi-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/qMv1jB15/dervi-3.jpg' }] },
-            { id: 'prenses', name: 'Prenses', star: 1, imageUrl: 'https://i.ibb.co/cK8m4bMJ/peri1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZpgB5cjG/peri2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/jZbTFb9v/peri3.jpg' }] },
-            { id: 'simyaci', name: 'Simyacı', star: 1, imageUrl: 'https://i.ibb.co/0pg4Vrh0/simyac-1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/N65VzdkH/simyac-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/9387YgZf/simyac-3.jpg' }] },{ id: 'kedikadin', name: 'Kedi Kadın', star: 1, imageUrl: 'https://i.ibb.co/zWTLhSR7/kedi1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/qYxVScfn/kedi2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/LdYJX6Hd/kedi3.jpg' }] },
-            { id: 'kuskadin', name: 'Kuş Kadın', star: 1, imageUrl: 'https://i.ibb.co/RGWyqqQr/ku-1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/jkhsNMbx/ku-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/0j0d4xNb/ku-3.jpg' }] },
-            { id: 'vampir', name: 'Vampir', star: 1, imageUrl: 'https://i.ibb.co/6JHHhJw6/vampir1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/tP8fxr6C/vampir2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/RMh7SNB/vampir3.jpg' }] },{ id: 'paraliasker', name: 'Paralı Asker', star: 1, imageUrl: 'https://i.ibb.co/0g5P99T/asker1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/23RBCVzG/asker2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/8QkMRtg/asker3.jpg' }] },
-            { id: 'mekanik', name: 'Mekanik', star: 1, imageUrl: 'https://i.ibb.co/d0wmWp3M/mekanik1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/nsM8qXrZ/mekanik2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/jkCct99V/mekanik3.jpg' }] },
-            { id: 'saman', name: 'Şaman', star: 1, imageUrl: 'https://i.ibb.co/jZQjdxGr/aman1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/6cw94xmS/aman2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Z6qgBHf6/aman3.jpg' }] },
-            { id: 'cariye', name: 'Cariye', star: 1, imageUrl: 'https://i.ibb.co/jPv4b80h/indir-3.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/KcvSFBTT/indir-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/5xrxPvxB/indir-4.jpg' }] },
-            { id: 'hirsiz', name: 'Hırsız', star: 1, imageUrl: 'https://i.ibb.co/zhrYb4dp/indir-13.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/YYJ1jqj/indir-15.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/5mvbTxC/indir-20.jpg' }] },
-            { id: 'goblin', name: 'Goblin', star: 1, imageUrl: 'https://i.ibb.co/xtkzsqPM/goblin1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/YxHLGHt/goblin2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/LhHYGgWw/goblin3.jpg' }] },
-            { id: 'gokkusagiperisi', name: 'Gökkuşağı Perisi', star: 1, imageUrl: 'https://i.ibb.co/tTgmjpZp/peri1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Mkyk5X8r/peri2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/ksHpyWSz/peri3.jpg' }] },
-            { id: 'dusmusmelek', name: 'Düşmüş Melek', star: 1, imageUrl: 'https://i.ibb.co/0pWnGZY4/dusmus1.jpg', 
-                evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Jj3z5PDk/dusmus2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/TBjMxjHX/dusmus3.jpg' }] },
-            { id: 'mehtapperisi', name: 'Mehtap Perisi', star: 1, imageUrl: 'https://i.ibb.co/fd0WmqG1/ayperi1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/2XhXmTk/ayperi2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/rKMH34GL/ayperiyeni.jpg' }] },
-            { id: 'gunessovalyesi', name: 'Güneş Şövalyesi', star: 1, imageUrl: 'https://i.ibb.co/nq4hbJdj/paladin1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Zpp0P1qg/paladin2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/F4w4tqP9/paladin3.jpg' }] },
-            { id: 'demirci', name: 'Demirci', star: 1, imageUrl: 'https://i.ibb.co/vMvSpxy/demir1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/B5xxXNBb/demir2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Vp9CGM2t/demir3.jpg' }] },
-            { id: 'mumya', name: 'Mumya', star: 1, imageUrl: 'https://i.ibb.co/VWMhVCwH/mumya1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ZRbdDvXd/mumya21.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/chGvch2Y/mumya3.jpg' }] },
-            { id: 'ejderdogan', name: 'Ejderdoğan', star: 1, imageUrl: 'https://i.ibb.co/LXn9yM5k/ejder.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/65XXz6r/ejder2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/mVsp6HJR/ejder3.jpg' }] },
-            { id: 'soytari', name: 'Soytarı', star: 1, imageUrl: 'https://i.ibb.co/TBhL4d1G/soy1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Fb87wvt9/soy2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/MxCV6tZp/soy3.jpg' }] },
-            { id: 'bombaci', name: 'Patlama Uzmanı', star: 1, imageUrl: 'https://i.ibb.co/GgzPhZ8/bomb1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/6crLzgm5/bomb2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/PsJn9DGK/bomb3.jpg' }] },
-            { id: 'seytancagirici', name: 'Şeytan Çağırıcı', star: 1, imageUrl: 'https://i.ibb.co/8Dgcw4d3/a-r1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/Kxk8QqYQ/cagirici2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/NnY60hLB/a-r3.jpg' }] },
-            { id: 'kavgaci', name: 'Kavgacı', star: 1, imageUrl: 'https://i.ibb.co/sdFY25ST/kavga1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/LX09VZN4/kavga2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/PZZgzMzz/kavga3.jpg' }] },
-            { id: 'tarikatci', name: 'Tarikatçı', star: 1, imageUrl: 'https://i.ibb.co/Vczy8Qr3/tarik1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/ccQ4bDMj/tarik2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/G4xD9w7V/tarik3.jpg' }] },
-            { id: 'viking', name: 'Kalkan Kızı', star: 1, imageUrl: 'https://i.ibb.co/gbK5w0hj/viking1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/B56TjCXs/viking-2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/Xx1FNzHG/viking3.jpg' }] },
-            { id: 'golgemuhafiz', name: 'Gölge Muhafız', star: 1, imageUrl: 'https://i.ibb.co/RTF96pbP/golgemuha1.jpg', evolutions: [{ star: 2, imageUrl: 'https://i.ibb.co/qFF0vZL6/golgemuha2.jpg' }, { star: 3, imageUrl: 'https://i.ibb.co/xqq2bCd4/g-lge-muhaf-z3.jpg' }] },
-            //YENİ KARAKTERLER BURAYA = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-            //YENİ KARAKTER ŞABLONU: { id: 'İD', name: 'İSİM', star: 1, imageUrl: 'RESİM1', evolutions: [{ star: 2, imageUrl: 'RESİM2' }, { star: 3, imageUrl: 'RESİM3' }] },
-            //FÜZYONLAR  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-            { id: 'cadı', name: 'Cadı', star: 4, imageUrl: 'https://i.ibb.co/gbJDXPX9/cadiyeni.jpg', isFusion: true, fusionPartners: ['buyucu', 'rahibe'] },
-            { id: 'kozmik-dansci', name: 'Kozmik Dansçı', star: 4, imageUrl: 'https://i.ibb.co/4Rmz3WSL/dans.gif', isFusion: true, fusionPartners: ['dansoz', 'falci'] },
-            { id: 'siren', name: 'Batık Hazine', star: 4, imageUrl: 'https://i.ibb.co/Pvg53HMY/merge-video-1753634899103.gif', isFusion: true, fusionPartners: ['dansoz', 'korsan'] },
-            { id: 'valkur', name: 'Valkür', star: 4, imageUrl: 'https://i.ibb.co/6Jm7LGdW/valk-ryenigif.gif', isFusion: true, fusionPartners: ['rahibe', 'savasci'] },
-            { id: 'kahin', name: 'Kader Örücü', star: 4, imageUrl: 'https://i.ibb.co/DfJFYb15/1753596921039.gif', isFusion: true, fusionPartners: ['falci', 'ninja'] },
-            { id: 'avci', name: 'Avcı', star: 4, imageUrl: 'https://i.ibb.co/YTT1Y36M/mistik-avc.jpg', isFusion: true, fusionPartners: ['buyucu', 'okcu'] },
-            { id: 'nisanci', name: 'Filo Avcısı', star: 4, imageUrl: 'https://i.ibb.co/JP6NJHk/1753843652372.gif', isFusion: true, fusionPartners: ['korsan', 'okcu'] },
-            { id: 'suvari', name: 'Süvari', star: 4, imageUrl: 'https://i.ibb.co/fY8N7sqL/s-vari.jpg', isFusion: true, fusionPartners: ['izci', 'savasci'] },
-            { id: 'kadim-buyucu', name: 'Kadim Büyücü', star: 4, imageUrl: 'https://i.ibb.co/vgNxdtD/kadim.jpg', isFusion: true, fusionPartners: ['atesbuyucusu', 'buzbuyucusu'] },
-            { id: 'cehennem-dalgasi', name: 'Cehennem Dalgası', star: 4, imageUrl: 'https://i.ibb.co/r2F8Wcw6/Ate-Efektli-Karakter-Videosu.gif', isFusion: true, fusionPartners: ['atesbuyucusu', 'korsan'] },
-            { id: 'ruh-cagiran', name: 'Ruh Çağıran', star: 4, imageUrl: 'https://i.ibb.co/hxHC8XBm/ruh.jpg', isFusion: true, fusionPartners: ['falci', 'hayalet'] },
-            { id: 'ruh-avcisi', name: 'Ruh Avcısı', star: 4, imageUrl: 'https://i.ibb.co/MDbNYwmV/indir-6.jpg', isFusion: true, fusionPartners: ['hayalet', 'silahsor'] },
-            { id: 'keskin-nisanci', name: 'Keskin Nişancı', star: 4, imageUrl: 'https://i.ibb.co/fzGxn263/indir-9.jpg', isFusion: true, fusionPartners: ['okcu', 'silahsor'] },
-            { id: 'olumsuz-muhafiz', name: 'Ölümsüz Muhafız', star: 4, imageUrl: 'https://i.ibb.co/F4Z1pMBv/l-ms-z.jpg', isFusion: true, fusionPartners: ['hayalet', 'savasci'] },
-            { id: 'donmus-kalp', name: 'Donmuş Kalp', star: 4, imageUrl: 'https://i.ibb.co/p6x1XVF6/donuk-kalp.jpg', isFusion: true, fusionPartners: ['buzbuyucusu', 'cazibe'] },
-            { id: 'yasak-meyve', name: 'Yasak Meyve', star: 4, imageUrl: 'https://i.ibb.co/C5YtZyzm/yasak-elma.jpg', isFusion: true, fusionPartners: ['cazibe', 'ormanruhu'] },
-            { id: 'serap-kilici', name: 'Serap Kılıcı', star: 4, imageUrl: 'https://i.ibb.co/BK3rG036/serap.jpg', isFusion: true, fusionPartners: ['dervis', 'illuzyonist'] },
-            { id: 'hayalet-kanat', name: 'Hayalet Kanat', star: 4, imageUrl: 'https://i.ibb.co/fdnf9Hg9/g-lge.jpg', isFusion: true, fusionPartners: ['illuzyonist', 'sahinci'] },
-            { id: 'asi-kralice', name: 'Asi Kraliçe', star: 4, imageUrl: 'https://i.ibb.co/NgWyfWv2/krali-e.jpg', isFusion: true, fusionPartners: ['prenses', 'savasci'] },
-            { id: 'sehvet-perisi', name: 'Şehvet Perisi', star: 4, imageUrl: 'https://i.ibb.co/yB005D9y/sehvet.jpg', isFusion: true, fusionPartners: ['cazibe', 'prenses'] },
-            { id: 'ask-iksiri', name: 'Aşk İksiri', star: 4, imageUrl: 'https://i.ibb.co/Gf5Sfy3S/askyeni.jpg', isFusion: true, fusionPartners: ['cazibe', 'simyaci'] },
-            { id: 'zehir-tuccari', name: 'Zehir Tüccarı', star: 4, imageUrl: 'https://i.ibb.co/ZRSbLd0r/zehir.jpg', isFusion: true, fusionPartners: ['ninja', 'simyaci'] },
-            { id: 'golge-buyucu', name: 'Gölge Büyücü', star: 4, imageUrl: 'https://i.ibb.co/9k7NkHvb/Efektli-Oyun-Karakteri-Videosu-Haz-r.gif', isFusion: true, fusionPartners: ['buyucu', 'ninja'] },
-            { id: 'golge-panteri', name: 'Gölge Panteri', star: 4, imageUrl: 'https://i.ibb.co/nq7PjzvP/golgepanteri.jpg', isFusion: true, fusionPartners: ['kedikadin', 'ninja'] },
-            { id: 'olum-valsi', name: 'Ölüm Valsi', star: 4, imageUrl: 'https://i.ibb.co/W4rh6MnB/l-mvalsi.jpg', isFusion: true, fusionPartners: ['dansoz', 'dervis'] },
-            { id: 'anka-kusu', name: 'Anka Kusu', star: 4, imageUrl: 'https://i.ibb.co/Jj8MfcND/ate-gif.gif', isFusion: true, fusionPartners: ['atesbuyucusu', 'kuskadin'] },
-            { id: 'yuce-melek', name: 'Yüce Melek', star: 4, imageUrl: 'https://i.ibb.co/sd5XfzyR/1753596990473.gif', isFusion: true, fusionPartners: ['kuskadin', 'rahibe'] },
-            { id: 'kan-cicegi', name: 'Kan Çiçeği', star: 4, imageUrl: 'https://i.ibb.co/1f4kd5L1/kan.jpg', isFusion: true, fusionPartners: ['ormanruhu', 'vampir'] },
-            { id: 'golem-efendisi', name: 'Golem Efendisi', star: 4, imageUrl: 'https://i.ibb.co/m561FTzp/1753596929882.gif', isFusion: true, fusionPartners: ['illuzyonist', 'mekanik'] },
-            { id: 'yildirim-elcisi', name: 'Yıldırım Elçisi', star: 4, imageUrl: 'https://i.ibb.co/jkVbq1Gj/indir-29.jpg', isFusion: true, fusionPartners: ['izci', 'saman'] },
-            { id: 'oluler-dusesi', name: 'Ölüler Düşesi', star: 4, imageUrl: 'https://i.ibb.co/Q3jDvRJd/merge-video-1753638876285.gif', isFusion: true, fusionPartners: ['saman', 'vampir'] },
-            { id: 'meka-gladyator', name: 'Meka Gladyatör', star: 4, imageUrl: 'https://i.ibb.co/wFpq0cLT/Efektli-Karakter-Videosu-Olu-turma.gif', isFusion: true, fusionPartners: ['mekanik', 'paraliasker'] },
-            { id: 'dovus-kesisi', name: 'Dövüş Keşişi', star: 4, imageUrl: 'https://i.ibb.co/3yz8myZt/indir-33.jpg', isFusion: true, fusionPartners: ['dervis', 'saman'] },
-            { id: 'kitsune', name: 'Kitsune', star: 4, imageUrl: 'https://i.ibb.co/fd4VXtN0/indir-8.jpg', isFusion: true, fusionPartners: ['cariye', 'kedikadin'] },
-            { id: 'geysa', name: 'Geyşa', star: 4, imageUrl: 'https://i.ibb.co/BKCNBRSg/1753843742945.gif', isFusion: true, fusionPartners: ['cariye', 'dansoz'] },
-            { id: 'ucan-hollandali', name: 'Uçan Hollandalı', star: 4, imageUrl: 'https://i.ibb.co/hx2cqJ9j/Karaktere-Efekt-Ekleme-Talebi-Cevab.gif', isFusion: true, fusionPartners: ['hayalet', 'korsan'] },
-            { id: 'hazine-avcisi', name: 'Hazine Avcısı', star: 4, imageUrl: 'https://i.ibb.co/gMVTvL00/indir-21.jpg', isFusion: true, fusionPartners: ['hirsiz', 'izci'] },
-            { id: 'cadi-doktor', name: 'Cadı Doktor', star: 4, imageUrl: 'https://i.ibb.co/tp2LYfZg/B-y-Efektli-Karakter-Videosu-Olu-turma.gif', isFusion: true, fusionPartners: ['goblin', 'saman'] },
-            { id: 'kucuk-berserker', name: 'Küçük Berserker', star: 4, imageUrl: 'https://i.ibb.co/HTRsw2xs/indir-4.jpg', isFusion: true, fusionPartners: ['goblin', 'paraliasker'] },
-            { id: 'kaos-perisi', name: 'Kaos Perisi', star: 4, imageUrl: 'https://i.ibb.co/fGr9vW5g/1753844042911.gif', isFusion: true, fusionPartners: ['gokkusagiperisi', 'prenses'] },
-            { id: 'gunahkar-serenad', name: 'Günahkar Serenad', star: 4, imageUrl: 'https://i.ibb.co/WWs98BS1/vals.jpg', isFusion: true, fusionPartners: ['cazibe', 'dusmusmelek'] },
-            { id: 'aurora-perisi', name: 'Kuzey Işığı Perisi', star: 4, imageUrl: 'https://i.ibb.co/qLd5599m/aurorayeni.jpg', isFusion: true, fusionPartners: ['buzbuyucusu', 'mehtapperisi'] },
-            { id: 'gunesin-hukmu', name: 'Güneşin Hükmü', star: 4, imageUrl: 'https://i.ibb.co/1fjHJ2d9/gunesok.gif', isFusion: true, fusionPartners: ['okcu', 'gunessovalyesi'] },
-            { id: 'ruya-isleyici', name: 'Rüya İşleyici', star: 4, imageUrl: 'https://i.ibb.co/4Zj68Wkd/ruya.gif', isFusion: true, fusionPartners: ['demirci', 'illuzyonist'] },
-            { id: 'olumsuz-firavun', name: 'Ölümsüz Firavun', star: 4, imageUrl: 'https://i.ibb.co/bMGRkjKR/mumder.jpg', isFusion: true, fusionPartners: ['dervis', 'mumya'] },
-            { id: 'kara-alev', name: 'Kara Alev', star: 4, imageUrl: 'https://i.ibb.co/VYM44DHG/kara.gif', isFusion: true, fusionPartners: ['dusmusmelek', 'ejderdogan'] },
-            { id: 'renk-cumbusu', name: 'Renk Cümbüşü', star: 4, imageUrl: 'https://i.ibb.co/SZLqtnw/bombrenk.jpg', isFusion: true, fusionPartners: ['bombaci', 'soytari'] },
-            { id: 'bozulmus-yemin', name: 'Bozulmuş Yemin', star: 4, imageUrl: 'https://i.ibb.co/yB72D5Tc/sheytan.jpg', isFusion: true, fusionPartners: ['dusmusmelek', 'seytancagirici'] },
-            { id: 'demir-yumruk', name: 'Demir Yumruk', star: 4, imageUrl: 'https://i.ibb.co/v6xyyRQz/kawga.gif', isFusion: true, fusionPartners: ['demirci', 'kavgaci'] },
-            { id: 'kiyamet-alameti', name: 'Kıyamet Alameti', star: 4, imageUrl: 'https://i.ibb.co/20Nwtq4d/tarikyemin.jpg', isFusion: true, fusionPartners: ['seytancagirici', 'tarikatci'] },
-            { id: 'bifrost', name: 'Bifröst Gardiyanı', star: 4, imageUrl: 'https://i.ibb.co/Myb1hky7/bifrost.gif', isFusion: true, fusionPartners: ['gokkusagiperisi', 'viking'] },
-            { id: 'pers-olumsuzu', name: 'Pers Ölümsüzü', star: 4, imageUrl: 'https://i.ibb.co/h1ykLbW7/vamg-l.jpg', isFusion: true, fusionPartners: ['golgemuhafiz', 'vampir'] },
-            { id: 'sahmeran', name: 'Şahmeran', star: 4, imageUrl: 'https://i.ibb.co/39Tpxffk/indir-3.jpg', isFusion: true, fusionPartners: ['ejderdogan', 'golgemuhafiz'] },
-            { id: 'buyulu-boksor', name: 'Büyülü Dövüşçü', star: 4, imageUrl: 'https://i.ibb.co/bgg5s1g2/indir-4.jpg', isFusion: true, fusionPartners: ['buyucu', 'kavgaci'] },
-            { id: 'valhalla-savascisi', name: 'Valhalla Savaşçısı', star: 4, imageUrl: 'https://i.ibb.co/DPHFKc0B/indir-2.jpg', isFusion: true, fusionPartners: ['gunessovalyesi', 'viking'] },
-            //YENİ FÜZYONLAR BURAYA  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-            //YENİ FÜZYON ŞABLONU: { id: 'İD', name: 'İSİM', star: 4, imageUrl: 'RESİM4', isFusion: true, fusionPartners: ['KRKTR1', 'KRKTR2'] },
-            //KARAKTERLERİN SONU  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-        ];
+        // Firebase yapılandırması (firebase-app ve firebase-firestore yüklendi)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+            authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+            projectId: "karaktergalerisi-dc337",
+            storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+            messagingSenderId: "486669559067",
+            appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+        };
 
-        // AYRI EASTER EGG DİZİSİ
-        const easterEggs = [
-            { id: 'ee_hazine', name: 'İlginç Totem', imageUrl: 'https://i.ibb.co/hJXBvQmq/avc.jpg', originalCharacterId: 'hazine-avcisi' },
-            { id: 'ee_buz', name: 'Soğuk Yatak', imageUrl: 'https://i.ibb.co/hJRDVrHB/buzz.jpg', originalCharacterId: 'buzbuyucusu' },
-            { id: 'ee_dovus', name: 'Şampiyonun Ödülü', imageUrl: 'https://i.ibb.co/jP6hsznC/d-v.jpg', originalCharacterId: 'kavgaci' },
-            { id: 'ee_meyve', name: 'Gizli Bahçe', imageUrl: 'https://i.ibb.co/fdcfghMP/meyve.jpg', originalCharacterId: 'yasak-meyve' },
-            { id: 'ee_savas', name: 'Savaş Sonrası Temizlenme', imageUrl: 'https://i.ibb.co/jk8j1ffw/savas.jpg', originalCharacterId: 'savasci' },
-            { id: 'ee_ninja', name: 'Soyunma', imageUrl: 'https://i.ibb.co/Wp2T0hbm/ninja.jpg', originalCharacterId: 'ninja' },
-            { id: 'ee_siren', name: 'Serbest Dalış', imageUrl: 'https://i.ibb.co/JjkvXD2T/siren.jpg', originalCharacterId: 'siren' },
-            { id: 'ee_tentacle', name: 'Öfkeli Tanrı', imageUrl: 'https://i.ibb.co/h1BgZTKj/tenta.jpg', originalCharacterId: 'tarikatci' },
-            { id: 'ee_hararet', name: 'Hararetli Dövüşçü', imageUrl: 'https://i.ibb.co/jPq156wc/indir.jpg', originalCharacterId: 'demir-yumruk' },
-            { id: 'ee_gunes', name: 'Kutsal Yara', imageUrl: 'https://i.ibb.co/FbPN1Ghw/g-ne.jpg', originalCharacterId: 'gunessovalyesi' },
-            { id: 'ee_iksir', name: 'Şehvet İksiri', imageUrl: 'https://i.ibb.co/nMPXVJJ1/iksir.jpg', originalCharacterId: 'ask-iksiri' },
-            { id: 'ee_kedi', name: 'Av Sonrası Kestirme', imageUrl: 'https://i.ibb.co/27QPDsbK/kedi.jpg', originalCharacterId: 'kedikadin' },
-            { id: 'ee_robot', name: 'Bilimsel Haz', imageUrl: 'https://i.ibb.co/ZRyvqPxJ/mekanik.jpg', originalCharacterId: 'mekanik' },
-            { id: 'ee_buyu', name: 'Sabah Büyüsü', imageUrl: 'https://i.ibb.co/8n2s8H2f/buyucu.jpg', originalCharacterId: 'buyucu' },
-            { id: 'ee_rahat', name: 'Rahatlama Seansı', imageUrl: 'https://i.ibb.co/DgQKt5sx/cariye.jpg', originalCharacterId: 'cariye' },
-            { id: 'ee_calkanti', name: 'Çalkantılı İlişki', imageUrl: 'https://i.ibb.co/rKCdPy2c/korsan.jpg', originalCharacterId: 'korsan' },
-            { id: 'ee_yasak', name: 'Yasak Aşk', imageUrl: 'https://i.ibb.co/nqF8W85f/melek.jpg', originalCharacterId: 'dusmusmelek' },
-        ];
+        // Firebase uygulamasını başlat
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let characters = []; // Firebase'den gelecek karakterler
+        let easterEggs = []; // Firebase'den gelecek easter egg'ler
 
         const dom = {};
         const state = { 
@@ -483,8 +344,8 @@
         const sizeProfiles = [ { name: '1', minCardWidth: '170px' }, { name: '2', minCardWidth: '220px' }, { name: '3', minCardWidth: '270px' }, { name: '4', minCardWidth: '320px' }, { name: '5', minCardWidth: '370px' }, { name: '6', minCardWidth: '420px' } ];
 
         const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
-            if (!starCount || starCount < 1) starCount = 1; // Hata olmaması için en az 1 yıldız göster
-            const colorKey = Math.min(starCount, 4); // 4'ten büyük yıldız sayısı için 4 yıldız rengini kullan
+            if (!starCount || starCount < 1) starCount = 1; 
+            const colorKey = Math.min(starCount, 4); 
             const colors = { 1: ONE_STAR_COLOR_CLASS, 2: TWO_STAR_COLOR_CLASS, 3: THREE_STAR_COLOR_CLASS, 4: FUSION_STAR_COLOR_CLASS };
             const starIcon = `<span class="material-symbols-outlined ${colors[colorKey]}" style="font-variation-settings: 'FILL' 1;">${iconName}</span>`;
             const starHtml = Array(starCount).fill(starIcon).join('');
@@ -501,7 +362,7 @@
             const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
             if (!baseChar) return '';
             if (star === 1) return baseChar.imageUrl;
-            const evolution = baseChar.evolutions.find(e => e.star === star);
+            const evolution = baseChar.evolutions?.find(e => e.star === star); // '?' eklendi, evolutions olmayabilir.
             return evolution ? evolution.imageUrl : '';
         };
 
@@ -531,7 +392,6 @@
                     allDisplayableCharacters = characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
                     allDisplayableCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 } else if (state.galleryMode === 'all') {
-                    // DÜZELTME 1: Sıralama mantığı burada güncellendi
                     const nonFusions = characters.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
                     nonFusions.forEach(char => {
                         allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
@@ -889,54 +749,79 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            Object.assign(dom, {
-                characterGrid: document.getElementById('character-grid'),
-                characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
-                fusionModal: { element: document.getElementById('fusion-modal'), content: document.getElementById('fusion-modal-content'), name: document.getElementById('modal-fusion-name'), image: document.getElementById('modal-fusion-image'), imageContainer: document.getElementById('fusion-main-image'), star: document.getElementById('modal-fusion-star'), leftChar: { image: document.getElementById('modal-fusion-left-char-image'), name: document.getElementById('modal-fusion-left-char-name'), starDisplay: document.getElementById('modal-fusion-left-char-star'), container: document.getElementById('fusion-partner-left') }, rightChar: { image: document.getElementById('modal-fusion-right-char-image'), name: document.getElementById('modal-fusion-right-char-name'), starDisplay: document.getElementById('modal-fusion-right-char-star'), container: document.getElementById('fusion-partner-right') }, prevBtn: document.getElementById('prev-fusion-btn'), nextBtn: document.getElementById('next-fusion-btn'), prevName: document.getElementById('prev-fusion-name'), nextName: document.getElementById('next-fusion-name') },
-                easterEggModal: { element: document.getElementById('easter-egg-modal'), content: document.getElementById('easter-egg-modal-content'), name: document.getElementById('ee-modal-name'), newImage: document.getElementById('ee-modal-new-image'), originalImage: document.getElementById('ee-modal-original-image'), originalLabel: document.getElementById('ee-modal-original-label'), prevBtn: document.getElementById('prev-ee-btn'), nextBtn: document.getElementById('next-ee-btn'), prevName: document.getElementById('prev-ee-name'), nextName: document.getElementById('next-ee-name') },
-                enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
-                zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
-                layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
-                filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
-                search: { openBtn: document.getElementById('open-search-btn'), modal: document.getElementById('search-modal'), content: document.getElementById('search-modal-content'), input: document.getElementById('search-input'), resultsGrid: document.getElementById('search-results-grid'), placeholder: document.getElementById('search-placeholder') },
-                easterEgg: { indicator: document.getElementById('easter-egg-indicator'), filterBtn: document.getElementById('easter-egg-filter-btn') }
-            });
-            
-            dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
-            dom.filter.buttons.forEach(button => {
-                button.addEventListener('click', () => {
-                    state.galleryMode = button.dataset.filter;
-                    dom.filter.label.textContent = button.textContent;
-                    dom.filter.menu.classList.add('hidden');
+        // === UYGULAMA BAŞLATMA ===
+        // Bu kısım, Firebase'den veri çekildikten sonra DOM'u başlatmak için ana fonksiyondur.
+        async function initializeAppLogic() {
+            try {
+                console.log("Firebase verileri çekiliyor...");
+
+                const charactersSnapshot = await db.collection('characters').get();
+                characters = charactersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const easterEggsSnapshot = await db.collection('easterEggs').get();
+                easterEggs = easterEggsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                console.log("Firebase'den karakterler başarıyla çekildi:", characters);
+                console.log("Firebase'den easterEggs başarıyla çekildi:", easterEggs);
+
+                // DOM öğelerinin atanması (Daha önce HTML'de bu kısım DOMContentLoaded içinde manuel olarak yapılıyordu)
+                Object.assign(dom, {
+                    characterGrid: document.getElementById('character-grid'),
+                    characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
+                    fusionModal: { element: document.getElementById('fusion-modal'), content: document.getElementById('fusion-modal-content'), name: document.getElementById('modal-fusion-name'), image: document.getElementById('modal-fusion-image'), imageContainer: document.getElementById('fusion-main-image'), star: document.getElementById('modal-fusion-star'), leftChar: { image: document.getElementById('modal-fusion-left-char-image'), name: document.getElementById('modal-fusion-left-char-name'), starDisplay: document.getElementById('modal-fusion-left-char-star'), container: document.getElementById('fusion-partner-left') }, rightChar: { image: document.getElementById('modal-fusion-right-char-image'), name: document.getElementById('modal-fusion-right-char-name'), starDisplay: document.getElementById('modal-fusion-right-char-star'), container: document.getElementById('fusion-partner-right') }, prevBtn: document.getElementById('prev-fusion-btn'), nextBtn: document.getElementById('next-fusion-btn'), prevName: document.getElementById('prev-fusion-name'), nextName: document.getElementById('next-fusion-name') },
+                    easterEggModal: { element: document.getElementById('easter-egg-modal'), content: document.getElementById('easter-egg-modal-content'), name: document.getElementById('ee-modal-name'), newImage: document.getElementById('ee-modal-new-image'), originalImage: document.getElementById('ee-modal-original-image'), originalLabel: document.getElementById('ee-modal-original-label'), prevBtn: document.getElementById('prev-ee-btn'), nextBtn: document.getElementById('next-ee-btn'), prevName: document.getElementById('prev-ee-name'), nextName: document.getElementById('next-ee-name') },
+                    enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
+                    zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
+                    layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
+                    filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
+                    search: { openBtn: document.getElementById('open-search-btn'), modal: document.getElementById('search-modal'), content: document.getElementById('search-modal-content'), input: document.getElementById('search-input'), resultsGrid: document.getElementById('search-results-grid'), placeholder: document.getElementById('search-placeholder') },
+                    easterEgg: { indicator: document.getElementById('easter-egg-indicator'), filterBtn: document.getElementById('easter-egg-filter-btn') }
+                });
+                // Not: Orijinal kodda bu kısım 'add-edit-modal', 'edit-mode-indicator', 'addItemBtn' gibi öğeleri de içeriyordu. Eğer bu ekleme/düzenleme modüllerini kullanmıyorsan, bu satırları dom atamasından kaldırman iyi olur.
+
+                // Event Listener'lar
+                dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
+                dom.filter.buttons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        state.galleryMode = button.dataset.filter;
+                        dom.filter.label.textContent = button.textContent;
+                        dom.filter.menu.classList.add('hidden');
+                        updateUI();
+                        renderCharacters();
+                    });
+                });
+
+                dom.easterEgg.filterBtn.addEventListener('click', () => {
+                    state.galleryMode = 'easter-egg';
                     updateUI();
                     renderCharacters();
                 });
-            });
 
-            dom.easterEgg.filterBtn.addEventListener('click', () => {
-                state.galleryMode = 'easter-egg';
-                updateUI();
-                renderCharacters();
-            });
+                dom.search.openBtn.addEventListener('click', openSearchModal);
+                dom.search.input.addEventListener('input', renderSearchResults);
 
-            dom.search.openBtn.addEventListener('click', openSearchModal);
-            dom.search.input.addEventListener('input', renderSearchResults);
+                window.addEventListener('click', (e) => {
+                    if (!dom.filter.menu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
+                        dom.filter.menu.classList.add('hidden');
+                    }
+                });
+                
+                dom.zoom.inBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); } });
+                dom.zoom.outBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); } });
+                dom.layout.toggleBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
 
-            window.addEventListener('click', (e) => {
-                if (!dom.filter.menu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
-                    dom.filter.menu.classList.add('hidden');
-                }
-            });
-            
-            dom.zoom.inBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); } });
-            dom.zoom.outBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); } });
-            dom.layout.toggleBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
+                setupEasterEgg(); // Bu fonksiyonun tanımı mevcut
+                updateUI();    
+                renderCharacters(); // Karakterleri render et
 
-            setupEasterEgg();
-            updateUI(); 
-            renderCharacters(); 
-        });
+            } catch (error) {
+                console.error("Uygulama başlatılırken bir hata oluştu:", error);
+                alert("Uygulama yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.");
+            }
+        }
+
+        // Sayfa tamamen yüklendiğinde initializeAppLogic fonksiyonunu çağır
+        document.addEventListener('DOMContentLoaded', initializeAppLogic);
     </script>
 </body>
 </html>
