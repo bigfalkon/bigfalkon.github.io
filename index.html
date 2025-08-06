@@ -25,6 +25,11 @@
             --md-sys-color-fusion-container: #63009b;
             --md-sys-color-on-fusion-container: #f4d9ff;
 
+            --md-sys-color-dismissed: #796677;
+            --md-sys-color-on-dismissed: #e5e1e6;
+            --md-sys-color-dismissed-container: #48454e;
+            --md-sys-color-on-dismissed-container: #c8c4d0;
+
             --md-sys-color-background: #131318;
             --md-sys-color-on-background: #e5e1e6;
             --md-sys-color-surface-container: #201f25;
@@ -78,6 +83,12 @@
             border-color: var(--md-sys-color-primary);
             font-weight: 700;
         }
+        .chip.dismissed-selected {
+            background-color: var(--md-sys-color-dismissed);
+            color: var(--md-sys-color-on-dismissed);
+            border-color: var(--md-sys-color-dismissed);
+            font-weight: 700;
+        }
 
         #character-grid { display: grid; gap: 1.5rem; justify-content: center; }
         .character-card {
@@ -104,6 +115,10 @@
         
         .font-fantastical-fusion { font-family: 'Metamorphous', serif; }
 
+        .dismissed-card .character-name { color: var(--md-sys-color-on-dismissed-container); }
+        .dismissed-stars .material-symbols-outlined { animation: star-glow-pulse 1.5s infinite alternate; }
+        .dismissed-stars .material-symbols-outlined { color: var(--md-sys-color-dismissed-container); }
+        
         .m3-dialog-backdrop { z-index: 1000; }
         .m3-dialog-container {
             background-color: rgba(32, 31, 37, 0.85);
@@ -156,12 +171,12 @@
         }
         .search-result-card:hover {
             background-color: var(--md-sys-color-surface-container-high);
-            transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateY(-2px); box-shadow: 4px 8px 16px rgba(0,0,0,0.3);
         }
         #search-results-grid {
              display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         }
-           #search-input:focus {
+            #search-input:focus {
             border-color: var(--md-sys-color-primary);
         }
     </style>
@@ -175,7 +190,12 @@
                 Karakter Galerisi
                 <span id="easter-egg-indicator" class="material-symbols-outlined text-yellow-400 hidden ml-2 align-middle cursor-pointer" style="font-size: 2.5rem;">auto_awesome</span>
             </h1>
-            <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet</p>
+            <p class="text-lg mt-2 flex items-center justify-center gap-2" style="color: var(--md-sys-color-on-surface-variant);">
+                Evrenin Kahramanlarını Keşfet
+                <a href="index2.html" target="_blank" rel="noopener noreferrer" class="icon-button" aria-label="Ayarlar" style="background-color: transparent;">
+                    <span class="material-symbols-outlined" style="font-size: 1.2rem;">settings</span>
+                </a>
+            </p>
         </header>
 
         <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
@@ -194,16 +214,21 @@
                         <button data-filter="2-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">2 ★</button>
                         <button data-filter="3-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">3 ★</button>
                         <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">4 ★</button>
+                        <button id="dismissed-filter-menu-btn" data-filter="dismissed" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">
+                            <span class="material-symbols-outlined">badge</span>
+                            <span class="ml-2">Emekliler</span>
+                        </button>
+                        <button id="easter-egg-filter-menu-btn" data-filter="easter-egg" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2 hidden">
+                            <span class="material-symbols-outlined text-yellow-500">auto_awesome</span>
+                            <span class="ml-2">Sırlar</span>
+                        </button>
                     </div>
                 </div>
-                <button id="easter-egg-filter-btn" class="chip ripple-effect hidden">
-                    <span class="material-symbols-outlined text-yellow-500">auto_awesome</span>
-                </button>
                 <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--md-sys-color-outline-variant); background-color: var(--md-sys-color-surface-container-high);">
                     <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült">
                         <span class="material-symbols-outlined flex items-center">zoom_out</span>
                     </button>
-                    <span id="current-size-label" class="px-3 text-sm font-semibold border-x" style="border-color: var(--md-sys-color-outline-variant);">3</span>  
+                    <span id="current-size-label" class="px-3 text-sm font-semibold border-x" style="border-color: var(--md-sys-color-outline-variant);">3</span> 
                     <button id="zoom-in-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Büyüt">
                         <span class="material-symbols-outlined flex items-center">zoom_in</span>
                     </button>
@@ -211,9 +236,6 @@
                 <button id="fitToScreenToggleBtn" class="chip ripple-effect" aria-label="Daha Fazla Sığdır Modu">
                     <span class="material-symbols-outlined">auto_awesome_mosaic</span>
                 </button>
-                <a href="https://bigfalkon2.github.io" target="_blank" rel="noopener noreferrer" class="chip ripple-effect">
-                    <span class="material-symbols-outlined">settings</span>
-                </a>
             </div>
         </div>
 
@@ -254,7 +276,7 @@
                 </div>
             </div>
             <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
-                   <button id="prev-fusion-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                    <button id="prev-fusion-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="modal-nav-text font-semibold">Önceki</span></button>
                 <button id="next-fusion-btn" class="modal-nav-button ripple-effect"><span id="next-fusion-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
             </footer>
         </div>
@@ -279,7 +301,7 @@
                 </div>
             </div>
             <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
-                   <button id="prev-ee-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-ee-name" class="modal-nav-text font-semibold">Önceki</span></button>
+                    <button id="prev-ee-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-ee-name" class="modal-nav-text font-semibold">Önceki</span></button>
                 <button id="next-ee-btn" class="modal-nav-button ripple-effect"><span id="next-ee-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
             </footer>
         </div>
@@ -310,13 +332,12 @@
         const THREE_STAR_COLOR_CLASS = 'text-amber-400';
         const TWO_STAR_COLOR_CLASS = 'text-slate-400';
         const ONE_STAR_COLOR_CLASS = 'text-orange-400';
+        const DISMISSED_STAR_COLOR_CLASS = 'text-gray-400';
         const EASTER_EGG_PASSWORD = '1234';
-        // === GİZLİ KARTLAR İÇİN MERKEZİ YILDIZ AYARLARI ===
-        const EASTER_EGG_STAR_COUNT = 1; // Gizli kartlarda kaç tane sembol/yıldız olacağı.
-        const EASTER_EGG_STAR_IS_FUSION_STYLE = true; // 'true' ise parlak (füzyon stili), 'false' ise normal olur.
-        const EASTER_EGG_STAR_ICON = 'auto_awesome favorite auto_awesome'; // Gösterilecek sembolün adı. Örnek: 'star', 'diamond', 'favorite', 'local_fire_department'
+        const EASTER_EGG_STAR_COUNT = 1;
+        const EASTER_EGG_STAR_IS_FUSION_STYLE = true;
+        const EASTER_EGG_STAR_ICON = 'auto_awesome favorite auto_awesome';
 
-        // Firebase yapılandırması (firebase-app ve firebase-firestore yüklendi)
         const firebaseConfig = {
             apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
             authDomain: "karaktergalerisi-dc337.firebaseapp.com",
@@ -326,12 +347,13 @@
             appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
         };
 
-        // Firebase uygulamasını başlat
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let characters = []; // Firebase'den gelecek karakterler
-        let easterEggs = []; // Firebase'den gelecek easter egg'ler
+        let characters = []; 
+        let dismissedCharacters = [];
+        let easterEggs = [];
+        let masterNavigableList = [];
 
         const dom = {};
         const state = { 
@@ -340,13 +362,16 @@
             isFitToScreenMode: true, 
             currentModalCharId: null, 
             currentModalType: null, 
-            uniqueNavigableList: [],
             isEasterEggMode: false
         };
         const sizeProfiles = [ { name: '1', minCardWidth: '170px' }, { name: '2', minCardWidth: '220px' }, { name: '3', minCardWidth: '270px' }, { name: '4', minCardWidth: '320px' }, { name: '5', minCardWidth: '370px' }, { name: '6', minCardWidth: '420px' } ];
 
-        const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
+        const getStarEmojis = (isFusion, isDismissed, starCount, iconName = 'star') => {
             if (!starCount || starCount < 1) starCount = 1; 
+            if (isDismissed) {
+                const icon = `<span class="material-symbols-outlined ${DISMISSED_STAR_COLOR_CLASS}" style="font-variation-settings: 'FILL' 1;">badge</span>`;
+                return `<div class="flex dismissed-stars">${icon}</div>`;
+            }
             const colorKey = Math.min(starCount, 4); 
             const colors = { 1: ONE_STAR_COLOR_CLASS, 2: TWO_STAR_COLOR_CLASS, 3: THREE_STAR_COLOR_CLASS, 4: FUSION_STAR_COLOR_CLASS };
             const starIcon = `<span class="material-symbols-outlined ${colors[colorKey]}" style="font-variation-settings: 'FILL' 1;">${iconName}</span>`;
@@ -364,7 +389,7 @@
             const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
             if (!baseChar) return '';
             if (star === 1) return baseChar.imageUrl;
-            const evolution = baseChar.evolutions?.find(e => e.star === star); // '?' eklendi, evolutions olmayabilir.
+            const evolution = baseChar.evolutions?.find(e => e.star === star); 
             return evolution ? evolution.imageUrl : '';
         };
 
@@ -385,37 +410,37 @@
                 }
                 
                 let allDisplayableCharacters = [];
-                let isEasterEggView = false;
+                let isEasterEggView = state.galleryMode === 'easter-egg';
+                let isDismissedView = state.galleryMode === 'dismissed';
 
-                if (state.galleryMode === 'easter-egg') {
+                const activeCharacters = isDismissedView ? dismissedCharacters : characters;
+                
+                if (isEasterEggView) {
                     allDisplayableCharacters = easterEggs.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-                    isEasterEggView = true;
                 } else if (state.galleryMode === 'fusion') {
-                    allDisplayableCharacters = characters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
+                    allDisplayableCharacters = activeCharacters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
                     allDisplayableCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-                } else if (state.galleryMode === 'all') {
-                    const nonFusions = characters.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+                } else if (state.galleryMode === 'all' || isDismissedView) {
+                    const nonFusions = activeCharacters.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
                     nonFusions.forEach(char => {
                         allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
                         char.evolutions?.forEach(evo => {
                             allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
                         });
                     });
-                    const sortedFusions = characters.filter(char => char.isFusion)
+                    const sortedFusions = activeCharacters.filter(char => char.isFusion)
                         .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
                         .map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
                     allDisplayableCharacters.push(...sortedFusions);
                 } else {
                     const starFilter = parseInt(state.galleryMode.split('-')[0]);
-                    allDisplayableCharacters = characters.filter(char => !char.isFusion).flatMap(char => {
+                    allDisplayableCharacters = activeCharacters.filter(char => !char.isFusion).flatMap(char => {
                         if (starFilter === 1) return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
                         const evo = char.evolutions?.find(e => e.star === starFilter);
                         return evo ? [{ ...char, displayStar: starFilter, displayImageUrl: evo.imageUrl }] : [];
                     });
                     allDisplayableCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 }
-                
-                state.uniqueNavigableList = characters.filter(c => c.star === 1 || c.isFusion).sort((a, b) => (a.isFusion !== b.isFusion) ? (a.isFusion ? 1 : -1) : a.name.localeCompare(b.name, 'tr'));
                 
                 if (allDisplayableCharacters.length === 0) {
                     dom.characterGrid.innerHTML = `<p class="col-span-full text-center text-lg" style="color: var(--md-sys-color-on-surface-variant);">Bu filtrede gösterilecek karakter bulunamadı.</p>`;
@@ -425,20 +450,32 @@
                 allDisplayableCharacters.forEach((char, index) => {
                     const card = document.createElement('div');
                     const isFusion = char.isFusion;
-                    card.className = `character-card ripple-effect flex flex-col cursor-pointer ${isFusion || isEasterEggView ? 'fusion-card' : ''}`;
+                    const isDismissed = char.isDismissed;
+                    const isEasterEgg = char.isEasterEgg;
+
+                    let cardClass = 'character-card ripple-effect flex flex-col cursor-pointer';
+                    if (isFusion) cardClass += ' fusion-card';
+                    if (isDismissed) cardClass += ' dismissed-card';
+
+                    card.className = cardClass;
                     card.dataset.id = char.id;
                     card.style.animationDelay = `${index * 40}ms`;
                     
-                    if(isEasterEggView) {
+                    if(isEasterEgg) {
                         card.onclick = () => openEasterEggModal(char.id);
+                    } else if (isDismissed) {
+                        card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id, true);
                     } else {
-                        card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id);
+                        card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id, false);
                     }
 
-                    const nameClass = isFusion || isEasterEggView ? 'font-fantastical-fusion' : '';
-                    const stars = isEasterEggView ? getStarEmojis(EASTER_EGG_STAR_IS_FUSION_STYLE, EASTER_EGG_STAR_COUNT, EASTER_EGG_STAR_ICON) : getStarEmojis(isFusion, char.displayStar || char.star);
-                    const imageUrl = isEasterEggView ? char.imageUrl : (char.displayImageUrl || char.imageUrl);
-
+                    const nameClass = isFusion || isDismissed ? 'font-fantastical-fusion' : '';
+                    const stars = isDismissed 
+                        ? getStarEmojis(false, true, 1, 'badge')
+                        : (isEasterEgg 
+                            ? getStarEmojis(EASTER_EGG_STAR_IS_FUSION_STYLE, false, EASTER_EGG_STAR_COUNT, EASTER_EGG_STAR_ICON) 
+                            : getStarEmojis(isFusion, false, char.displayStar || char.star));
+                    const imageUrl = isEasterEgg ? char.imageUrl : (char.displayImageUrl || char.imageUrl);
                     card.innerHTML = `<div class="character-card-image-wrapper"><img src="${imageUrl}" alt="${char.name}" class="character-card-image" loading="lazy"></div><div class="p-4 flex-grow flex flex-col justify-end"><h3 class="character-name text-lg font-bold truncate ${nameClass}">${char.name}</h3><div class="flex mt-1">${stars}</div></div>`;
                     dom.characterGrid.appendChild(card);
                 });
@@ -447,13 +484,23 @@
         }
 
         function updateFilterSelection() {
-            dom.filter.toggleBtn.classList.remove('selected');
-            dom.easterEgg.filterBtn.classList.remove('selected');
+            dom.filter.buttons.forEach(btn => btn.classList.remove('selected'));
+            dom.filter.buttons.forEach(btn => btn.classList.remove('dismissed-selected'));
 
-            if (state.galleryMode === 'easter-egg') {
-                dom.easterEgg.filterBtn.classList.add('selected');
+            if (state.galleryMode === 'dismissed') {
+                dom.filter.label.textContent = 'Emekliler';
+                dom.dismissedFilterMenuBtn.classList.add('dismissed-selected');
+            } else if (state.galleryMode === 'easter-egg') {
+                dom.filter.label.textContent = 'Sırlar';
+                dom.easterEggFilterMenuBtn.classList.add('selected');
             } else {
-                dom.filter.toggleBtn.classList.add('selected');
+                const selectedButton = document.querySelector(`#filter-menu button[data-filter="${state.galleryMode}"]`);
+                if (selectedButton) {
+                    dom.filter.label.textContent = selectedButton.textContent;
+                    selectedButton.classList.add('selected');
+                } else {
+                     dom.filter.label.textContent = 'Tümü';
+                }
             }
         }
 
@@ -462,8 +509,8 @@
             dom.zoom.outBtn.disabled = state.imageSizeIndex === 0;
             dom.zoom.inBtn.disabled = state.imageSizeIndex === sizeProfiles.length - 1;
             dom.layout.toggleBtn.classList.toggle('active', state.isFitToScreenMode);
-            dom.easterEgg.indicator.classList.toggle('hidden', !state.isEasterEggMode);
-            dom.easterEgg.filterBtn.classList.toggle('hidden', !state.isEasterEggMode);
+            dom.easterEggIndicator.classList.toggle('hidden', !state.isEasterEggMode);
+            dom.easterEggFilterMenuBtn.classList.toggle('hidden', !state.isEasterEggMode);
             updateFilterSelection();
         }
 
@@ -484,22 +531,27 @@
             state.currentModalCharId = null;
             state.currentModalType = null;
         }
-
-        function updateModalNavigation(id, type, list, modalElements) {
+        
+        function updateModalNavigation(id, type) {
             state.currentModalCharId = id;
             state.currentModalType = type;
-            const currentIndex = list.findIndex(item => item.id === id);
-            const prevItem = currentIndex > 0 ? list[currentIndex - 1] : null;
-            const nextItem = currentIndex < list.length - 1 ? list[currentIndex + 1] : null;
+            const currentIndex = masterNavigableList.findIndex(item => item.id === id);
+            const prevItem = currentIndex > 0 ? masterNavigableList[currentIndex - 1] : null;
+            const nextItem = currentIndex < masterNavigableList.length - 1 ? masterNavigableList[currentIndex + 1] : null;
             
             const openNextOrPrev = (item) => {
-                let closeFunc, openFunc;
-                if (type === 'character') { closeFunc = closeCharacterModal; openFunc = openCharacterModal; } 
-                else if (type === 'fusion') { closeFunc = closeFusionModal; openFunc = openFusionModal; }
-                else if (type === 'easter-egg') { closeFunc = closeEasterEggModal; openFunc = openEasterEggModal; }
-                
-                closeFunc();
-                setTimeout(() => openFunc(item.id), 310);
+                closeCharacterModal();
+                closeFusionModal();
+                closeEasterEggModal();
+                setTimeout(() => {
+                    if (item.isFusion) {
+                        openFusionModal(item.id);
+                    } else if (item.isEasterEgg) {
+                        openEasterEggModal(item.id);
+                    } else {
+                        openCharacterModal(item.id, item.isDismissed);
+                    }
+                }, 310);
             };
 
             const setupNavControl = (control, nameSpan, item) => {
@@ -512,13 +564,18 @@
                     nameSpan.style.cursor = item ? 'pointer' : 'default';
                 }
             };
-
-            setupNavControl(modalElements.prevBtn, modalElements.prevName, prevItem);
-            setupNavControl(modalElements.nextBtn, modalElements.nextName, nextItem);
+            
+            setupNavControl(dom.characterModal.prevBtn, dom.characterModal.prevName, prevItem);
+            setupNavControl(dom.characterModal.nextBtn, dom.characterModal.nextName, nextItem);
+            setupNavControl(dom.fusionModal.prevBtn, dom.fusionModal.prevName, prevItem);
+            setupNavControl(dom.fusionModal.nextBtn, dom.fusionModal.nextName, nextItem);
+            setupNavControl(dom.easterEggModal.prevBtn, dom.easterEggModal.prevName, prevItem);
+            setupNavControl(dom.easterEggModal.nextBtn, dom.easterEggModal.nextName, nextItem);
         }
 
-        function openCharacterModal(characterId) {
-            const char = characters.find(c => c.id === characterId && !c.isFusion);
+        function openCharacterModal(characterId, isDismissed = false) {
+            const listToSearch = isDismissed ? dismissedCharacters : characters;
+            const char = listToSearch.find(c => c.id === characterId && !c.isFusion);
             if (!char) return;
             const modal = dom.characterModal;
             const modalImageMinWidth = sizeProfiles[state.imageSizeIndex].minCardWidth;
@@ -535,7 +592,7 @@
                 imgWrapper.innerHTML = `<img src="${getCharacterImageUrlByStar(char.id, evo.star)}" alt="${char.name} ${evo.star} Yıldız" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
                 const p = document.createElement('p');
                 p.className = 'text-lg font-medium flex';
-                p.innerHTML = getStarEmojis(false, evo.star);
+                p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
                 evoDiv.appendChild(imgWrapper);
                 evoDiv.appendChild(p);
                 modal.evolutions.appendChild(evoDiv);
@@ -555,12 +612,12 @@
                 });
             }
             openModal(modal.element, modal.content);
-            updateModalNavigation(characterId, 'character', state.uniqueNavigableList, dom.characterModal);
+            updateModalNavigation(characterId, 'character');
         }
         function closeCharacterModal() { closeModal(dom.characterModal.element, dom.characterModal.content); }
 
         function openFusionModal(fusionId) {
-            const fusion = characters.find(c => c.id === fusionId && c.isFusion);
+            const fusion = characters.find(c => c.id === fusionId && c.isFusion) || dismissedCharacters.find(c => c.id === fusionId && c.isFusion);
             if (!fusion) return;
             const modal = dom.fusionModal;
             const mainImageWidth = sizeProfiles[state.imageSizeIndex].minCardWidth;
@@ -569,32 +626,31 @@
             modal.name.classList.add('font-fantastical-fusion');
             modal.image.src = fusion.imageUrl;
             modal.image.setAttribute('onclick', `enlargeImage('${fusion.imageUrl}')`);
-            const [p1, p2] = fusion.fusionPartners.map(id => characters.find(c => c.id === id));
+            const [p1, p2] = fusion.fusionPartners.map(id => characters.find(c => c.id === id) || dismissedCharacters.find(c => c.id === id));
             if (p1) {
                 modal.leftChar.image.src = get3StarImageUrl(p1.id);
                 modal.leftChar.container.style.width = partnerImageWidth;
                 modal.leftChar.name.textContent = p1.name;
                 modal.leftChar.container.dataset.characterId = p1.id;
-                modal.leftChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`;
+                modal.leftChar.starDisplay.innerHTML = `${getStarEmojis(false, false, 3)}`;
             }
             if (p2) {
                 modal.rightChar.image.src = get3StarImageUrl(p2.id);
                 modal.rightChar.container.style.width = partnerImageWidth;
                 modal.rightChar.name.textContent = p2.name;
                 modal.rightChar.container.dataset.characterId = p2.id;
-                modal.rightChar.starDisplay.innerHTML = `${getStarEmojis(false, 3)}`;
+                modal.rightChar.starDisplay.innerHTML = `${getStarEmojis(false, false, 3)}`;
             }
             modal.imageContainer.style.width = mainImageWidth;
-            modal.star.innerHTML = `${getStarEmojis(true, 4)}`;
+            modal.star.innerHTML = `${getStarEmojis(true, false, 4)}`;
             openModal(modal.element, modal.content);
-            updateModalNavigation(fusionId, 'fusion', state.uniqueNavigableList, dom.fusionModal);
+            updateModalNavigation(fusionId, 'fusion');
         }
         function closeFusionModal() {
             dom.fusionModal.name.classList.remove('font-fantastical-fusion');
             closeModal(dom.fusionModal.element, dom.fusionModal.content);
         }
 
-        // DÜZELTME 2: Füzyonları da destekleyen Easter Egg modalı fonksiyonu
         function openEasterEggModal(eeId) {
             const ee = easterEggs.find(e => e.id === eeId);
             if (!ee) return;
@@ -619,7 +675,7 @@
             modal.originalLabel.textContent = originalLabel;
 
             openModal(modal.element, modal.content);
-            updateModalNavigation(eeId, 'easter-egg', easterEggs, dom.easterEggModal);
+            updateModalNavigation(eeId, 'easter-egg');
         }
         function closeEasterEggModal() { closeModal(dom.easterEggModal.element, dom.easterEggModal.content); }
 
@@ -630,10 +686,11 @@
         function createSearchResultCard(item) {
             const card = document.createElement('div');
             card.className = 'search-result-card';
-            const action = item.isFusion ? `closeSearchModal(); openFusionModal('${item.id}');` : `closeSearchModal(); openCharacterModal('${item.id}');`;
+            const action = item.isFusion ? `closeSearchModal(); openFusionModal('${item.id}');` : `closeSearchModal(); openCharacterModal('${item.id}', ${item.isDismissed});`;
             card.setAttribute('onclick', action);
-            const nameClass = item.isFusion ? 'font-fantastical-fusion' : '';
-            card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0"><div class="flex flex-col gap-1"><h4 class="text-lg font-bold ${nameClass}">${item.name}</h4><div>${getStarEmojis(item.isFusion, item.displayStar)}</div><p class="text-xs font-mono" style="color: var(--md-sys-color-on-surface-variant);">ID: ${item.id}</p></div>`;
+            const nameClass = item.isFusion || item.isDismissed ? 'font-fantastical-fusion' : '';
+            const stars = getStarEmojis(item.isFusion, item.isDismissed, item.displayStar);
+            card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0"><div class="flex flex-col gap-1"><h4 class="text-lg font-bold ${nameClass}">${item.name}</h4><div>${stars}</div><p class="text-xs font-mono" style="color: var(--md-sys-color-on-surface-variant);">ID: ${item.id}</p></div>`;
             return card;
         }
 
@@ -649,20 +706,27 @@
                 return;
             }
             const foundItems = [];
-            characters.forEach(char => {
+            const allSearchableCharacters = [...characters, ...dismissedCharacters, ...easterEggs];
+            
+            allSearchableCharacters.forEach(char => {
                 const nameMatch = char.name.toLowerCase().includes(searchTerm);
                 const idMatch = char.id.toLowerCase().includes(searchTerm);
                 if (nameMatch || idMatch) {
                     if (char.isFusion) {
                         foundItems.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+                    } else if (char.isEasterEgg) {
+                        foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: false, isEasterEgg: true });
+                    } else if (char.isDismissed) {
+                        foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: true });
                     } else {
-                        foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+                        foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: false });
                         char.evolutions?.forEach(evo => {
-                            foundItems.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
+                            foundItems.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl, isDismissed: false });
                         });
                     }
                 }
             });
+
             if (foundItems.length === 0) {
                 placeholder.textContent = `"${dom.search.input.value}" için sonuç bulunamadı.`;
                 placeholder.classList.remove('hidden');
@@ -737,22 +801,38 @@
                 }
             });
 
-            dom.easterEgg.indicator.addEventListener('click', (e) => {
+            dom.easterEggIndicator.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (confirm("Sırları tekrar gizlemek istiyor musun?")) {
                     state.isEasterEggMode = false;
                     if(state.galleryMode === 'easter-egg') {
                         state.galleryMode = 'all';
-                        dom.filter.label.textContent = 'Tümü';
                     }
                     updateUI();
                     renderCharacters();
                 }
             });
         }
+        
+        function createMasterNavigableList() {
+            const normalAndDismissed = [...characters.filter(c => !c.isFusion), ...dismissedCharacters.filter(c => !c.isFusion)]
+                .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+            
+            const fusionsAndDismissedFusions = [...characters.filter(c => c.isFusion), ...dismissedCharacters.filter(c => c.isFusion)]
+                .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+            const finalList = [...normalAndDismissed, ...fusionsAndDismissedFusions];
+
+            if (state.isEasterEggMode) {
+                const sortedEasterEggs = [...easterEggs].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+                finalList.push(...sortedEasterEggs);
+            }
+            
+            return finalList;
+        }
+
 
         // === UYGULAMA BAŞLATMA ===
-        // Bu kısım, Firebase'den veri çekildikten sonra DOM'u başlatmak için ana fonksiyondur.
         async function initializeAppLogic() {
             try {
                 console.log("Firebase verileri çekiliyor...");
@@ -760,13 +840,17 @@
                 const charactersSnapshot = await db.collection('characters').get();
                 characters = charactersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+                const dismissedSnapshot = await db.collection('dismissed').get();
+                dismissedCharacters = dismissedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isDismissed: true }));
+                
                 const easterEggsSnapshot = await db.collection('easterEggs').get();
-                easterEggs = easterEggsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                easterEggs = easterEggsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isEasterEgg: true }));
 
                 console.log("Firebase'den karakterler başarıyla çekildi:", characters);
+                console.log("Firebase'den dismissed karakterler başarıyla çekildi:", dismissedCharacters);
                 console.log("Firebase'den easterEggs başarıyla çekildi:", easterEggs);
 
-                // DOM öğelerinin atanması (Daha önce HTML'de bu kısım DOMContentLoaded içinde manuel olarak yapılıyordu)
+                // DOM öğelerinin atanması
                 Object.assign(dom, {
                     characterGrid: document.getElementById('character-grid'),
                     characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
@@ -777,26 +861,23 @@
                     layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
                     filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
                     search: { openBtn: document.getElementById('open-search-btn'), modal: document.getElementById('search-modal'), content: document.getElementById('search-modal-content'), input: document.getElementById('search-input'), resultsGrid: document.getElementById('search-results-grid'), placeholder: document.getElementById('search-placeholder') },
-                    easterEgg: { indicator: document.getElementById('easter-egg-indicator'), filterBtn: document.getElementById('easter-egg-filter-btn') }
+                    easterEggIndicator: document.getElementById('easter-egg-indicator'),
+                    easterEggFilterMenuBtn: document.getElementById('easter-egg-filter-menu-btn'),
+                    dismissedFilterMenuBtn: document.getElementById('dismissed-filter-menu-btn')
                 });
-                // Not: Orijinal kodda bu kısım 'add-edit-modal', 'edit-mode-indicator', 'addItemBtn' gibi öğeleri de içeriyordu. Eğer bu ekleme/düzenleme modüllerini kullanmıyorsan, bu satırları dom atamasından kaldırman iyi olur.
+
+                masterNavigableList = createMasterNavigableList();
 
                 // Event Listener'lar
                 dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
                 dom.filter.buttons.forEach(button => {
                     button.addEventListener('click', () => {
                         state.galleryMode = button.dataset.filter;
-                        dom.filter.label.textContent = button.textContent;
                         dom.filter.menu.classList.add('hidden');
+                        masterNavigableList = createMasterNavigableList(); // Filtre değiştiğinde navigasyon listesini yenile
                         updateUI();
                         renderCharacters();
                     });
-                });
-
-                dom.easterEgg.filterBtn.addEventListener('click', () => {
-                    state.galleryMode = 'easter-egg';
-                    updateUI();
-                    renderCharacters();
                 });
 
                 dom.search.openBtn.addEventListener('click', openSearchModal);
@@ -812,9 +893,9 @@
                 dom.zoom.outBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); } });
                 dom.layout.toggleBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
 
-                setupEasterEgg(); // Bu fonksiyonun tanımı mevcut
-                updateUI();    
-                renderCharacters(); // Karakterleri render et
+                setupEasterEgg(); 
+                updateUI();   
+                renderCharacters(); 
 
             } catch (error) {
                 console.error("Uygulama başlatılırken bir hata oluştu:", error);
@@ -822,7 +903,6 @@
             }
         }
 
-        // Sayfa tamamen yüklendiğinde initializeAppLogic fonksiyonunu çağır
         document.addEventListener('DOMContentLoaded', initializeAppLogic);
     </script>
 </body>
