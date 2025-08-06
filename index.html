@@ -183,23 +183,21 @@
             <div class="flex flex-wrap justify-center items-center gap-2">
                 <button id="open-search-btn" class="chip ripple-effect">
                     <span class="material-symbols-outlined">search</span>
-                    <span>Arama</span>
                 </button>
                 <div class="relative" id="filter-container">
                     <button id="filter-toggle-btn" class="chip ripple-effect selected">
-                        <span id="filter-label">Tüm Karakterler</span>
+                        <span id="filter-label">Tümü</span>
                     </button>
                     <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
-                        <button data-filter="all" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">Tüm Karakterler</button>
-                        <button data-filter="1-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★  1 Yıldız</button>
-                        <button data-filter="2-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★★  2 Yıldız</button>
-                        <button data-filter="3-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★★★  3 Yıldız</button>
-                        <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★★★★  Füzyon</button>
+                        <button data-filter="all" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">Tümü</button>
+                        <button data-filter="1-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">1 ★</button>
+                        <button data-filter="2-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">2 ★</button>
+                        <button data-filter="3-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">3 ★</button>
+                        <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">4 ★</button>
                     </div>
                 </div>
                 <button id="easter-egg-filter-btn" class="chip ripple-effect hidden">
                     <span class="material-symbols-outlined text-yellow-500">auto_awesome</span>
-                    <span>Sırlar</span>
                 </button>
                 <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--md-sys-color-outline-variant); background-color: var(--md-sys-color-surface-container-high);">
                     <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült">
@@ -212,11 +210,9 @@
                 </div>
                 <button id="fitToScreenToggleBtn" class="chip ripple-effect" aria-label="Daha Fazla Sığdır Modu">
                     <span class="material-symbols-outlined">auto_awesome_mosaic</span>
-                    <span>Sığdır</span>
                 </button>
                 <a href="https://bigfalkon2.github.io" target="_blank" rel="noopener noreferrer" class="chip ripple-effect">
                     <span class="material-symbols-outlined">settings</span>
-                    <span>Admin</span>
                 </a>
             </div>
         </div>
@@ -747,7 +743,7 @@
                     state.isEasterEggMode = false;
                     if(state.galleryMode === 'easter-egg') {
                         state.galleryMode = 'all';
-                        dom.filter.label.textContent = 'Tüm Karakterler';
+                        dom.filter.label.textContent = 'Tümü';
                     }
                     updateUI();
                     renderCharacters();
