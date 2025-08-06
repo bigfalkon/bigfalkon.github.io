@@ -68,7 +68,6 @@
             background-color: var(--md-sys-color-surface-container-high);
             color: var(--md-sys-color-on-surface-variant);
             transition: all 0.2s ease-in-out;
-            cursor: pointer; /* Bütün çiplere imleç ekleyelim */
         }
         .chip:hover {
             background-color: rgba(255, 255, 255, 0.08);
@@ -130,6 +129,7 @@
             animation: prism-pulse 5s infinite alternate ease-in-out;
             z-index: -1;
         }
+        @keyframes prism-pulse { from { transform: scale(2); opacity: 1; } to { transform: scale(1.5); opacity: 1; } }
         .fusion-partner-card { border: 2px solid var(--md-sys-color-fusion); }
         .enlarged-image-container { z-index: 1100; position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.85); }
         .enlarged-image { max-width: 96%; max-height: 96%; object-fit: contain; }
@@ -183,19 +183,24 @@
             <div class="flex flex-wrap justify-center items-center gap-2">
                 <button id="open-search-btn" class="chip ripple-effect">
                     <span class="material-symbols-outlined">search</span>
+                    <span>Arama</span>
                 </button>
-
-                <button data-filter="all" class="filter-button chip ripple-effect selected">Tümü</button>
-                <button data-filter="1-star" class="filter-button chip ripple-effect">1★</button>
-                <button data-filter="2-star" class="filter-button chip ripple-effect">2★</button>
-                <button data-filter="3-star" class="filter-button chip ripple-effect">3★</button>
-                <button data-filter="fusion" class="filter-button chip ripple-effect">4★</button>
-
+                <div class="relative" id="filter-container">
+                    <button id="filter-toggle-btn" class="chip ripple-effect selected">
+                        <span id="filter-label">Tüm Karakterler</span>
+                    </button>
+                    <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
+                        <button data-filter="all" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">Tüm Karakterler</button>
+                        <button data-filter="1-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★  1 Yıldız</button>
+                        <button data-filter="2-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★★  2 Yıldız</button>
+                        <button data-filter="3-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★★★  3 Yıldız</button>
+                        <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">★★★★  Füzyon</button>
+                    </div>
+                </div>
                 <button id="easter-egg-filter-btn" class="chip ripple-effect hidden">
                     <span class="material-symbols-outlined text-yellow-500">auto_awesome</span>
                     <span>Sırlar</span>
                 </button>
-
                 <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--md-sys-color-outline-variant); background-color: var(--md-sys-color-surface-container-high);">
                     <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült">
                         <span class="material-symbols-outlined flex items-center">zoom_out</span>
@@ -207,14 +212,15 @@
                 </div>
                 <button id="fitToScreenToggleBtn" class="chip ripple-effect" aria-label="Daha Fazla Sığdır Modu">
                     <span class="material-symbols-outlined">auto_awesome_mosaic</span>
+                    <span>Sığdır</span>
                 </button>
-                
-                <a href="https://bigfalkon2.github.io/" target="_blank" rel="noopener noreferrer" class="chip ripple-effect">
-                    <span class="material-symbols-outlined">link</span>
-                    <span>Harici Link</span>
+                <a href="https://bigfalkon2.github.io" target="_blank" rel="noopener noreferrer" class="chip ripple-effect">
+                    <span class="material-symbols-outlined">settings</span>
+                    <span>Admin</span>
                 </a>
             </div>
         </div>
+
         <main id="character-grid"></main>
     </div>
 
@@ -445,18 +451,13 @@
         }
 
         function updateFilterSelection() {
-            // Önce tüm filtre tuşlarından 'selected' class'ını kaldır
-            dom.filter.buttons.forEach(btn => btn.classList.remove('selected'));
+            dom.filter.toggleBtn.classList.remove('selected');
             dom.easterEgg.filterBtn.classList.remove('selected');
-            
-            // Mevcut galeri moduna göre doğru tuşa 'selected' class'ını ekle
+
             if (state.galleryMode === 'easter-egg') {
                 dom.easterEgg.filterBtn.classList.add('selected');
             } else {
-                const activeFilterButton = Array.from(dom.filter.buttons).find(btn => btn.dataset.filter === state.galleryMode);
-                if (activeFilterButton) {
-                    activeFilterButton.classList.add('selected');
-                }
+                dom.filter.toggleBtn.classList.add('selected');
             }
         }
 
@@ -597,6 +598,7 @@
             closeModal(dom.fusionModal.element, dom.fusionModal.content);
         }
 
+        // DÜZELTME 2: Füzyonları da destekleyen Easter Egg modalı fonksiyonu
         function openEasterEggModal(eeId) {
             const ee = easterEggs.find(e => e.id === eeId);
             if (!ee) return;
@@ -745,6 +747,7 @@
                     state.isEasterEggMode = false;
                     if(state.galleryMode === 'easter-egg') {
                         state.galleryMode = 'all';
+                        dom.filter.label.textContent = 'Tüm Karakterler';
                     }
                     updateUI();
                     renderCharacters();
@@ -753,6 +756,7 @@
         }
 
         // === UYGULAMA BAŞLATMA ===
+        // Bu kısım, Firebase'den veri çekildikten sonra DOM'u başlatmak için ana fonksiyondur.
         async function initializeAppLogic() {
             try {
                 console.log("Firebase verileri çekiliyor...");
@@ -766,7 +770,7 @@
                 console.log("Firebase'den karakterler başarıyla çekildi:", characters);
                 console.log("Firebase'den easterEggs başarıyla çekildi:", easterEggs);
 
-                // DOM öğelerinin atanması
+                // DOM öğelerinin atanması (Daha önce HTML'de bu kısım DOMContentLoaded içinde manuel olarak yapılıyordu)
                 Object.assign(dom, {
                     characterGrid: document.getElementById('character-grid'),
                     characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
@@ -775,20 +779,19 @@
                     enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
                     zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
                     layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
-                    // Değişiklik: Filtre DOM referansları güncellendi
-                    filter: { buttons: document.querySelectorAll('.filter-button') },
+                    filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
                     search: { openBtn: document.getElementById('open-search-btn'), modal: document.getElementById('search-modal'), content: document.getElementById('search-modal-content'), input: document.getElementById('search-input'), resultsGrid: document.getElementById('search-results-grid'), placeholder: document.getElementById('search-placeholder') },
                     easterEgg: { indicator: document.getElementById('easter-egg-indicator'), filterBtn: document.getElementById('easter-egg-filter-btn') }
                 });
+                // Not: Orijinal kodda bu kısım 'add-edit-modal', 'edit-mode-indicator', 'addItemBtn' gibi öğeleri de içeriyordu. Eğer bu ekleme/düzenleme modüllerini kullanmıyorsan, bu satırları dom atamasından kaldırman iyi olur.
 
-                // Değişiklik: Yeni filtre tuşları için olay dinleyicileri
+                // Event Listener'lar
+                dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
                 dom.filter.buttons.forEach(button => {
                     button.addEventListener('click', () => {
                         state.galleryMode = button.dataset.filter;
-                        // Seçili tuşun görselini güncellemek için
-                        dom.filter.buttons.forEach(btn => btn.classList.remove('selected'));
-                        button.classList.add('selected');
-                        // Galeri güncelleniyor
+                        dom.filter.label.textContent = button.textContent;
+                        dom.filter.menu.classList.add('hidden');
                         updateUI();
                         renderCharacters();
                     });
@@ -803,15 +806,19 @@
                 dom.search.openBtn.addEventListener('click', openSearchModal);
                 dom.search.input.addEventListener('input', renderSearchResults);
 
-                // Eski açılır menü için olan 'window' click listener kaldırıldı.
+                window.addEventListener('click', (e) => {
+                    if (!dom.filter.menu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
+                        dom.filter.menu.classList.add('hidden');
+                    }
+                });
                 
                 dom.zoom.inBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); } });
                 dom.zoom.outBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); } });
                 dom.layout.toggleBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
 
-                setupEasterEgg(); 
+                setupEasterEgg(); // Bu fonksiyonun tanımı mevcut
                 updateUI();    
-                renderCharacters();
+                renderCharacters(); // Karakterleri render et
 
             } catch (error) {
                 console.error("Uygulama başlatılırken bir hata oluştu:", error);
@@ -819,6 +826,7 @@
             }
         }
 
+        // Sayfa tamamen yüklendiğinde initializeAppLogic fonksiyonunu çağır
         document.addEventListener('DOMContentLoaded', initializeAppLogic);
     </script>
 </body>
