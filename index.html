@@ -179,6 +179,30 @@
             #search-input:focus {
             border-color: var(--md-sys-color-primary);
         }
+        /* --- Güzel Kaydırma Çubuğu Stilleri --- */
+.m3-dialog-content::-webkit-scrollbar, 
+#search-results-container::-webkit-scrollbar {
+    width: 8px;
+}
+.m3-dialog-content::-webkit-scrollbar-track,
+#search-results-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.m3-dialog-content::-webkit-scrollbar-thumb,
+#search-results-container::-webkit-scrollbar-thumb {
+    background-color: var(--md-sys-color-outline-variant);
+    border-radius: 4px;
+    border: 2px solid var(--md-sys-color-surface-container-high);
+}
+.m3-dialog-content::-webkit-scrollbar-thumb:hover,
+#search-results-container::-webkit-scrollbar-thumb:hover {
+    background-color: var(--md-sys-color-primary);
+}
+/* Firefox için ek destek */
+.m3-dialog-content, #search-results-container {
+    scrollbar-width: thin;
+    scrollbar-color: var(--md-sys-color-outline-variant) transparent;
+}
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -353,7 +377,7 @@
         let characters = []; 
         let dismissedCharacters = [];
         let easterEggs = [];
-        let masterNavigableList = [];
+   
 
         const dom = {};
         const state = { 
@@ -386,12 +410,12 @@
         };
 
         const getCharacterImageUrlByStar = (baseCharId, star) => {
-            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion);
-            if (!baseChar) return '';
-            if (star === 1) return baseChar.imageUrl;
-            const evolution = baseChar.evolutions?.find(e => e.star === star); 
-            return evolution ? evolution.imageUrl : '';
-        };
+    const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion) || dismissedCharacters.find(c => c.id === baseCharId && !c.isFusion);
+    if (!baseChar) return '';
+    if (star === 1) return baseChar.imageUrl;
+    const evolution = baseChar.evolutions?.find(e => e.star === star);
+    return evolution ? evolution.imageUrl : '';
+};
 
         function renderCharacters() {
             dom.characterGrid.classList.add('grid-fade-out');
@@ -533,45 +557,67 @@
         }
         
         function updateModalNavigation(id, type) {
-            state.currentModalCharId = id;
-            state.currentModalType = type;
-            const currentIndex = masterNavigableList.findIndex(item => item.id === id);
-            const prevItem = currentIndex > 0 ? masterNavigableList[currentIndex - 1] : null;
-            const nextItem = currentIndex < masterNavigableList.length - 1 ? masterNavigableList[currentIndex + 1] : null;
-            
-            const openNextOrPrev = (item) => {
-                closeCharacterModal();
-                closeFusionModal();
-                closeEasterEggModal();
-                setTimeout(() => {
-                    if (item.isFusion) {
-                        openFusionModal(item.id);
-                    } else if (item.isEasterEgg) {
-                        openEasterEggModal(item.id);
-                    } else {
-                        openCharacterModal(item.id, item.isDismissed);
-                    }
-                }, 310);
-            };
+    state.currentModalCharId = id;
+    state.currentModalType = type;
 
-            const setupNavControl = (control, nameSpan, item) => {
-                const action = item ? (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
-                control.disabled = !item;
-                control.onclick = action;
-                if (nameSpan) {
-                    nameSpan.textContent = item ? item.name : (control.id.startsWith('prev') ? 'Başlangıç' : 'Son');
-                    nameSpan.onclick = action;
-                    nameSpan.style.cursor = item ? 'pointer' : 'default';
-                }
-            };
-            
-            setupNavControl(dom.characterModal.prevBtn, dom.characterModal.prevName, prevItem);
-            setupNavControl(dom.characterModal.nextBtn, dom.characterModal.nextName, nextItem);
-            setupNavControl(dom.fusionModal.prevBtn, dom.fusionModal.prevName, prevItem);
-            setupNavControl(dom.fusionModal.nextBtn, dom.fusionModal.nextName, nextItem);
-            setupNavControl(dom.easterEggModal.prevBtn, dom.easterEggModal.prevName, prevItem);
-            setupNavControl(dom.easterEggModal.nextBtn, dom.easterEggModal.nextName, nextItem);
+    // --- YENİ NAVİGASYON MANTIĞI ---
+    let navigableList;
+    const isEasterEgg = easterEggs.some(e => e.id === id);
+    const isDismissed = dismissedCharacters.some(c => c.id === id);
+
+    if (isEasterEgg) {
+        // Sadece Sır karakterleri arasında gezin
+        navigableList = [...easterEggs].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    } else if (isDismissed) {
+        // Sadece Emekli karakterler arasında gezin (füzyonlar dahil)
+        const fusions = dismissedCharacters.filter(c => c.isFusion);
+        const normals = dismissedCharacters.filter(c => !c.isFusion);
+        navigableList = [...normals, ...fusions].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    } else {
+        // Sadece Normal karakterler arasında gezin (füzyonlar dahil)
+        const fusions = characters.filter(c => c.isFusion);
+        const normals = characters.filter(c => !c.isFusion);
+        navigableList = [...normals, ...fusions].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    }
+    // --- BİTİŞ ---
+
+    const currentIndex = navigableList.findIndex(item => item.id === id);
+    const prevItem = currentIndex > 0 ? navigableList[currentIndex - 1] : null;
+    const nextItem = currentIndex < navigableList.length - 1 ? navigableList[currentIndex + 1] : null;
+
+    const openNextOrPrev = (item) => {
+        closeCharacterModal();
+        closeFusionModal();
+        closeEasterEggModal();
+        setTimeout(() => {
+            if (item.isFusion) {
+                openFusionModal(item.id);
+            } else if (item.isEasterEgg) {
+                openEasterEggModal(item.id);
+            } else {
+                openCharacterModal(item.id, item.isDismissed);
+            }
+        }, 310);
+    };
+
+    const setupNavControl = (control, nameSpan, item) => {
+        const action = item ? (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
+        control.disabled = !item;
+        control.onclick = action;
+        if (nameSpan) {
+            nameSpan.textContent = item ? item.name : (control.id.startsWith('prev') ? 'Başlangıç' : 'Son');
+            nameSpan.onclick = action;
+            nameSpan.style.cursor = item ? 'pointer' : 'default';
         }
+    };
+
+    setupNavControl(dom.characterModal.prevBtn, dom.characterModal.prevName, prevItem);
+    setupNavControl(dom.characterModal.nextBtn, dom.characterModal.nextName, nextItem);
+    setupNavControl(dom.fusionModal.prevBtn, dom.fusionModal.prevName, prevItem);
+    setupNavControl(dom.fusionModal.nextBtn, dom.fusionModal.nextName, nextItem);
+    setupNavControl(dom.easterEggModal.prevBtn, dom.easterEggModal.prevName, prevItem);
+    setupNavControl(dom.easterEggModal.nextBtn, dom.easterEggModal.nextName, nextItem);
+}
 
         function openCharacterModal(characterId, isDismissed = false) {
             const listToSearch = isDismissed ? dismissedCharacters : characters;
@@ -706,7 +752,7 @@
                 return;
             }
             const foundItems = [];
-            const allSearchableCharacters = [...characters, ...dismissedCharacters, ...easterEggs];
+            const allSearchableCharacters = [...characters];
             
             allSearchableCharacters.forEach(char => {
                 const nameMatch = char.name.toLowerCase().includes(searchTerm);
@@ -814,23 +860,7 @@
             });
         }
         
-        function createMasterNavigableList() {
-            const normalAndDismissed = [...characters.filter(c => !c.isFusion), ...dismissedCharacters.filter(c => !c.isFusion)]
-                .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-            
-            const fusionsAndDismissedFusions = [...characters.filter(c => c.isFusion), ...dismissedCharacters.filter(c => c.isFusion)]
-                .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-
-            const finalList = [...normalAndDismissed, ...fusionsAndDismissedFusions];
-
-            if (state.isEasterEggMode) {
-                const sortedEasterEggs = [...easterEggs].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-                finalList.push(...sortedEasterEggs);
-            }
-            
-            return finalList;
-        }
-
+        
 
         // === UYGULAMA BAŞLATMA ===
         async function initializeAppLogic() {
@@ -866,7 +896,7 @@
                     dismissedFilterMenuBtn: document.getElementById('dismissed-filter-menu-btn')
                 });
 
-                masterNavigableList = createMasterNavigableList();
+
 
                 // Event Listener'lar
                 dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
@@ -874,7 +904,7 @@
                     button.addEventListener('click', () => {
                         state.galleryMode = button.dataset.filter;
                         dom.filter.menu.classList.add('hidden');
-                        masterNavigableList = createMasterNavigableList(); // Filtre değiştiğinde navigasyon listesini yenile
+                   
                         updateUI();
                         renderCharacters();
                     });
