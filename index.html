@@ -203,6 +203,12 @@
     scrollbar-width: thin;
     scrollbar-color: var(--md-sys-color-outline-variant) transparent;
 }
+@media (min-width: 1000px) {
+    .m3-dialog-container {
+        width: 1400px;
+        max-height: 100vh;
+    }
+}
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -382,13 +388,13 @@
         const dom = {};
         const state = { 
             galleryMode: 'all', 
-            imageSizeIndex: 3, 
+            imageSizeIndex: 2, 
             isFitToScreenMode: true, 
             currentModalCharId: null, 
             currentModalType: null, 
             isEasterEggMode: false
         };
-        const sizeProfiles = [ { name: '1', minCardWidth: '170px' }, { name: '2', minCardWidth: '220px' }, { name: '3', minCardWidth: '270px' }, { name: '4', minCardWidth: '320px' }, { name: '5', minCardWidth: '370px' }, { name: '6', minCardWidth: '420px' } ];
+        const sizeProfiles = [ { name: 'XS', minCardWidth: '240px' }, { name: 'S', minCardWidth: '270px' }, { name: 'M', minCardWidth: '300px' }, { name: 'L', minCardWidth: '330px' }, { name: 'XL', minCardWidth: '360px' } ];
 
         const getStarEmojis = (isFusion, isDismissed, starCount, iconName = 'star') => {
             if (!starCount || starCount < 1) starCount = 1; 
@@ -560,7 +566,6 @@
     state.currentModalCharId = id;
     state.currentModalType = type;
 
-    // --- YENİ NAVİGASYON MANTIĞI ---
     let navigableList;
     const isEasterEgg = easterEggs.some(e => e.id === id);
     const isDismissed = dismissedCharacters.some(c => c.id === id);
@@ -569,17 +574,16 @@
         // Sadece Sır karakterleri arasında gezin
         navigableList = [...easterEggs].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
     } else if (isDismissed) {
-        // Sadece Emekli karakterler arasında gezin (füzyonlar dahil)
-        const fusions = dismissedCharacters.filter(c => c.isFusion);
-        const normals = dismissedCharacters.filter(c => !c.isFusion);
-        navigableList = [...normals, ...fusions].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        // ÖNCE EMEKLİLERİ KENDİ İÇİNDE SIRALA, SONRA BİRLEŞTİR
+        const sortedNormals = dismissedCharacters.filter(c => !c.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        const sortedFusions = dismissedCharacters.filter(c => c.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        navigableList = [...sortedNormals, ...sortedFusions];
     } else {
-        // Sadece Normal karakterler arasında gezin (füzyonlar dahil)
-        const fusions = characters.filter(c => c.isFusion);
-        const normals = characters.filter(c => !c.isFusion);
-        navigableList = [...normals, ...fusions].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        // ÖNCE NORMAL KARAKTERLERİ KENDİ İÇİNDE SIRALA, SONRA BİRLEŞTİR
+        const sortedNormals = characters.filter(c => !c.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        const sortedFusions = characters.filter(c => c.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        navigableList = [...sortedNormals, ...sortedFusions];
     }
-    // --- BİTİŞ ---
 
     const currentIndex = navigableList.findIndex(item => item.id === id);
     const prevItem = currentIndex > 0 ? navigableList[currentIndex - 1] : null;
