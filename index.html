@@ -48,7 +48,13 @@
         .character-card { background-color: var(--md-sys-color-surface-container); border-radius: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.25); overflow: hidden; position: relative; opacity: 0; transform: translateY(30px) scale(0.98); animation: card-fade-in 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease; }
         @keyframes card-fade-in { to { opacity: 1; transform: translateY(0) scale(1); } }
         .character-card:hover { box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
-        .character-card-image-wrapper { aspect-ratio: 3 / 4; width: 100%; overflow: hidden; border-radius: 18px; }
+        .character-card-image-wrapper {
+            /* DEĞİŞİKLİK 2: Kartları daha uzun yapmak için en-boy oranı değiştirildi */
+            aspect-ratio: 2 / 3;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 18px;
+        }
         .character-card-image { object-fit: cover; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
         .character-card:hover .character-card-image { transform: scale(1.1); }
         .character-name { color: var(--md-sys-color-on-surface); }
@@ -100,25 +106,31 @@
             <p class="text-lg mt-2 flex items-center justify-center gap-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet<a href="index2.html" rel="noopener noreferrer" class="icon-button" aria-label="Ayarlar" style="background-color: transparent;"><span class="material-symbols-outlined" style="font-size: 1.2rem;">settings</span></a></p>
         </header>
 
+        
         <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
             <div class="flex flex-wrap justify-center items-center gap-2">
                 <button id="open-search-btn" class="chip ripple-effect"><span class="material-symbols-outlined">search</span></button>
                 <div class="relative" id="filter-container">
                     <button id="filter-toggle-btn" class="chip ripple-effect selected"><span id="filter-label">Tümü</span></button>
+      
                     <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
                         <button data-filter="all" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">Tümü</button>
                         <button data-filter="1-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">1 ★</button>
+                        
                         <button data-filter="2-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">2 ★</button>
                         <button data-filter="3-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">3 ★</button>
                         <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">4 ★</button>
+             
                         <button id="dismissed-filter-menu-btn" data-filter="dismissed" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2"><span class="material-symbols-outlined">badge</span><span class="ml-2">Emekliler</span></button>
                         <button id="easter-egg-filter-menu-btn" data-filter="easter-egg" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2 hidden"><span class="material-symbols-outlined text-yellow-500">auto_awesome</span><span class="ml-2">Sırlar</span></button>
                     </div>
+             
                 </div>
                 <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--md-sys-color-outline-variant); background-color: var(--md-sys-color-surface-container-high);">
                     <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült"><span class="material-symbols-outlined flex items-center">zoom_out</span></button>
                     <span id="current-size-label" class="px-3 text-sm font-semibold border-x" style="border-color: var(--md-sys-color-outline-variant);">M</span> 
                     <button id="zoom-in-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Büyüt"><span class="material-symbols-outlined flex items-center">zoom_in</span></button>
+       
                 </div>
                 <button id="fitToScreenToggleBtn" class="chip ripple-effect" aria-label="Daha Fazla Sığdır Modu"><span class="material-symbols-outlined">auto_awesome_mosaic</span></button>
             </div>
@@ -129,16 +141,19 @@
 
     <div id="character-modal" class="fixed inset-0 m3-dialog-backdrop hidden items-center justify-center p-2" onclick="closeCharacterModal()">
         <div class="m3-dialog-container" id="character-modal-content" onclick="event.stopPropagation()">
+          
             <button class="icon-button absolute top-4 right-4 z-10" onclick="closeCharacterModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
             <header class="m3-dialog-header p-4 flex-shrink-0"><h2 id="modal-character-name" class="m3-dialog-title text-3xl font-bold">Karakter Adı</h2></header>
             <div class="m3-dialog-content px-4 py-6 flex-grow flex flex-col items-center justify-between">
                 <div id="modal-evolutions" class="grid gap-4 justify-center w-full"></div>
                 <div id="modal-fusions" class="hidden w-full mt-8">
+         
                     <h3 class="text-xl font-bold mb-4 text-center" style="color: var(--md-sys-color-fusion);">Katıldığı Füzyonlar</h3>
                     <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-center"></div>
                 </div>
             </div>
             <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);">
+         
                 <button id="prev-char-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-char-name" class="modal-nav-text font-semibold">Önceki</span></button>
                 <button id="next-char-btn" class="modal-nav-button ripple-effect"><span id="next-char-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button>
             </footer>
@@ -166,8 +181,10 @@
             <header class="m3-dialog-header p-4 flex-shrink-0"><h2 id="ee-modal-name" class="m3-dialog-title text-3xl font-bold" style="color: var(--md-sys-color-primary);">Gizli Karakter Adı</h2></header>
             <div class="m3-dialog-content px-4 py-6 flex-grow">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-items-center h-full">
+   
                     <div class="flex flex-col items-center text-center h-full"><h3 class="text-xl font-semibold mb-3" style="color: var(--md-sys-color-primary-container);">Sır Hali</h3><img id="ee-modal-new-image" src="" alt="Gizli Karakter Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl max-h-[55vh]" onclick="enlargeImage(this.src)"></div>
                     <div class="flex flex-col items-center text-center h-full"><h3 id="ee-modal-original-label" class="text-xl font-semibold mb-3" style="color: var(--md-sys-color-on-surface-variant);">Orijinal Hali</h3><img id="ee-modal-original-image" src="" alt="Orijinal Karakter Resmi" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-lg max-h-[55vh]" onclick="enlargeImage(this.src)"></div>
+              
                 </div>
             </div>
             <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--md-sys-color-outline-variant);"><button id="prev-ee-btn" class="modal-nav-button ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-ee-name" class="modal-nav-text font-semibold">Önceki</span></button><button id="next-ee-btn" class="modal-nav-button ripple-effect"><span id="next-ee-name" class="modal-nav-text font-semibold">Sonraki</span><span class="material-symbols-outlined">arrow_forward</span></button></footer>
@@ -184,6 +201,7 @@
                     <p id="search-placeholder" class="text-center text-lg mt-8" style="color: var(--md-sys-color-on-surface-variant);">Aramak için yukarıya bir isim veya ID yazın.</p>
                     <div id="search-results-grid"></div>
                 </div>
+       
             </div>
         </div>
     </div>
@@ -224,7 +242,6 @@
             isEasterEggMode: false
         };
         const sizeProfiles = [ { name: 'XS', minCardWidth: '240px' }, { name: 'S', minCardWidth: '270px' }, { name: 'M', minCardWidth: '300px' }, { name: 'L', minCardWidth: '330px' }, { name: 'XL', minCardWidth: '360px' } ];
-        
         const getStarEmojis = (isFusion, isDismissed, starCount, iconName = 'star') => {
             if (!starCount || starCount < 1) starCount = 1;
             if (isDismissed) {
@@ -235,7 +252,8 @@
             const colors = { 1: ONE_STAR_COLOR_CLASS, 2: TWO_STAR_COLOR_CLASS, 3: THREE_STAR_COLOR_CLASS, 4: FUSION_STAR_COLOR_CLASS };
             const starIcon = `<span class="material-symbols-outlined ${colors[colorKey]}" style="font-variation-settings: 'FILL' 1;">${iconName}</span>`;
             const starHtml = Array(starCount).fill(starIcon).join('');
-            return isFusion ? `<div class="flex fusion-stars">${starHtml}</div>` : `<div class="flex">${starHtml}</div>`;
+            return isFusion ?
+                `<div class="flex fusion-stars">${starHtml}</div>` : `<div class="flex">${starHtml}</div>`;
         };
         
         const get3StarImageUrl = (baseCharId) => {
@@ -243,18 +261,16 @@
             const threeStarEvo = baseChar?.evolutions.find(e => e.star === 3);
             return threeStarEvo ? threeStarEvo.imageUrl : (baseChar ? baseChar.imageUrl : '');
         };
-        
         const getCharacterImageUrlByStar = (baseCharId, star) => {
-            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion) || dismissedCharacters.find(c => c.id === baseCharId && !c.isFusion);
+            const baseChar = characters.find(c => c.id === baseCharId && !c.isFusion) ||
+            dismissedCharacters.find(c => c.id === baseCharId && !c.isFusion);
             if (!baseChar) return '';
             if (star === 1) return baseChar.imageUrl;
             const evolution = baseChar.evolutions?.find(e => e.star === star);
             return evolution ? evolution.imageUrl : '';
         };
-        
         // --- GÖRÜNTÜ GÖZLEMCİSİ FONKSİYONLARI (YENİ) ---
         let observer;
-
         function setupImageObserver() {
             const options = {
                 root: null,
@@ -267,16 +283,17 @@
                 // animasyonu başlatma komutunu gönderme.
                 threshold: 0.75 
             };
-
             const handleIntersection = (entries) => {
                 entries.forEach(entry => {
                     const img = entry.target;
                     // Eğer resmin en az %50'si ekrandaysa GIF'i oynat
                     if (entry.isIntersecting) {
+    
                         img.src = img.dataset.gifSrc; 
                     } else {
                         // Değilse duran resmi göster
                         img.src = img.dataset.previewSrc; 
+ 
                     }
                 });
             };
@@ -298,6 +315,7 @@
                 const cardWidthPx = parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth, 10);
                 if (state.isFitToScreenMode) {
                     const gridContainerWidth = dom.characterGrid.offsetWidth;
+   
                     const gapPx = 24;
                     const baseColumnCount = Math.floor((gridContainerWidth + gapPx) / (cardWidthPx + gapPx)) || 1;
                     const moreColumnCount = Math.max(2, Math.ceil(baseColumnCount * 1.5));
@@ -307,10 +325,10 @@
                 }
                 
                 let allDisplayableCharacters = [];
+      
                 let isEasterEggView = state.galleryMode === 'easter-egg';
                 let isDismissedView = state.galleryMode === 'dismissed';
                 const activeCharacters = isDismissedView ? dismissedCharacters : characters;
-                
                 if (isEasterEggView) {
                     allDisplayableCharacters = easterEggs.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 } else if (state.galleryMode === 'fusion') {
@@ -322,6 +340,7 @@
                         allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
                         char.evolutions?.forEach(evo => {
                             allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
+        
                         });
                     });
                     const sortedFusions = activeCharacters.filter(char => char.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr')).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
@@ -344,30 +363,34 @@
                 allDisplayableCharacters.forEach((char, index) => {
                     const card = document.createElement('div');
                     const isFusion = char.isFusion;
+                  
                     const isDismissed = char.isDismissed;
                     const isEasterEgg = char.isEasterEgg;
 
                     let cardClass = 'character-card ripple-effect flex flex-col cursor-pointer';
                     if (isFusion) cardClass += ' fusion-card';
+                    
                     if (isDismissed) cardClass += ' dismissed-card';
 
                     card.className = cardClass;
                     card.dataset.id = char.id;
                     card.style.animationDelay = `${index * 40}ms`;
                     
+       
                     if(isEasterEgg) { card.onclick = () => openEasterEggModal(char.id); } 
                     else if (isDismissed) { card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id, true); } 
                     else { card.onclick = () => isFusion ? openFusionModal(char.id) : openCharacterModal(char.id, false); }
 
                     const nameClass = isFusion || isDismissed ? 'font-fantastical-fusion' : '';
                     const stars = isDismissed ? getStarEmojis(false, true, 1, 'badge') : (isEasterEgg ? getStarEmojis(EASTER_EGG_STAR_IS_FUSION_STYLE, false, EASTER_EGG_STAR_COUNT, EASTER_EGG_STAR_ICON) : getStarEmojis(isFusion, false, char.displayStar || char.star));
-                    
                     let imageHtml = '';
                     if (isFusion && char.imageUrl && char.previewUrl) {
                         imageHtml = `<img src="${char.previewUrl}" 
                                           data-gif-src="${char.imageUrl}" 
+                   
                                           data-preview-src="${char.previewUrl}"
                                           alt="${char.name}" 
+                                  
                                           class="character-card-image">`;
                     } else {
                         const imageUrl = char.displayImageUrl || char.imageUrl;
@@ -412,8 +435,11 @@
             updateFilterSelection();
         }
         
-        function openModal(modalElement, contentElement) { document.body.classList.add('modal-open'); modalElement.classList.remove('hidden'); modalElement.classList.add('flex'); setTimeout(() => contentElement.classList.add('visible'), 20); }
-        function closeModal(modalElement, contentElement) { document.body.classList.remove('modal-open'); contentElement.classList.remove('visible'); setTimeout(() => { modalElement.classList.add('hidden'); modalElement.classList.remove('flex'); }, 300); state.currentModalCharId = null; state.currentModalType = null; }
+        function openModal(modalElement, contentElement) { document.body.classList.add('modal-open');
+        modalElement.classList.remove('hidden'); modalElement.classList.add('flex'); setTimeout(() => contentElement.classList.add('visible'), 20); }
+        function closeModal(modalElement, contentElement) { document.body.classList.remove('modal-open'); contentElement.classList.remove('visible');
+        setTimeout(() => { modalElement.classList.add('hidden'); modalElement.classList.remove('flex'); }, 300); state.currentModalCharId = null; state.currentModalType = null;
+        }
         
         function updateModalNavigation(id, type) {
             state.currentModalCharId = id;
@@ -438,7 +464,6 @@
             const currentIndex = navigableList.findIndex(item => item.id === id);
             const prevItem = currentIndex > 0 ? navigableList[currentIndex - 1] : null;
             const nextItem = currentIndex < navigableList.length - 1 ? navigableList[currentIndex + 1] : null;
-            
             const openNextOrPrev = (item) => {
                 closeCharacterModal();
                 closeFusionModal();
@@ -451,11 +476,13 @@
             };
             
             const setupNavControl = (control, nameSpan, item) => {
-                const action = item ? (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
+                const action = item ?
+                (e) => { e.stopPropagation(); openNextOrPrev(item); } : null;
                 control.disabled = !item;
                 control.onclick = action;
                 if (nameSpan) {
-                    nameSpan.textContent = item ? item.name : (control.id.startsWith('prev') ? 'Başlangıç' : 'Son');
+                    nameSpan.textContent = item ?
+                    item.name : (control.id.startsWith('prev') ? 'Başlangıç' : 'Son');
                     nameSpan.onclick = action;
                     nameSpan.style.cursor = item ? 'pointer' : 'default';
                 }
@@ -489,6 +516,7 @@
                 const p = document.createElement('p');
                 p.className = 'text-lg font-medium flex';
                 p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
+          
                 evoDiv.appendChild(imgWrapper);
                 evoDiv.appendChild(p);
                 modal.evolutions.appendChild(evoDiv);
@@ -505,15 +533,18 @@
                     const nameClass = 'font-fantastical-fusion';
                     fusionCard.innerHTML = `<img src="${fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center ${nameClass}" style="color: var(--md-sys-color-on-fusion-container);">${fusion.name}</p>`;
                     modal.fusionList.appendChild(fusionCard);
+               
                 });
             }
             openModal(modal.element, modal.content);
             updateModalNavigation(characterId, 'character');
         }
-        function closeCharacterModal() { closeModal(dom.characterModal.element, dom.characterModal.content); }
+        function closeCharacterModal() { closeModal(dom.characterModal.element, dom.characterModal.content);
+        }
 
         function openFusionModal(fusionId) {
-            const fusion = characters.find(c => c.id === fusionId && c.isFusion) || dismissedCharacters.find(c => c.id === fusionId && c.isFusion);
+            const fusion = characters.find(c => c.id === fusionId && c.isFusion) ||
+            dismissedCharacters.find(c => c.id === fusionId && c.isFusion);
             if (!fusion) return;
             const modal = dom.fusionModal;
             const mainImageWidth = sizeProfiles[state.imageSizeIndex].minCardWidth;
@@ -542,7 +573,8 @@
             openModal(modal.element, modal.content);
             updateModalNavigation(fusionId, 'fusion');
         }
-        function closeFusionModal() { dom.fusionModal.name.classList.remove('font-fantastical-fusion'); closeModal(dom.fusionModal.element, dom.fusionModal.content); }
+        function closeFusionModal() { dom.fusionModal.name.classList.remove('font-fantastical-fusion'); closeModal(dom.fusionModal.element, dom.fusionModal.content);
+        }
 
         function openEasterEggModal(eeId) {
             const ee = easterEggs.find(e => e.id === eeId);
@@ -566,10 +598,13 @@
             openModal(modal.element, modal.content);
             updateModalNavigation(eeId, 'easter-egg');
         }
-        function closeEasterEggModal() { closeModal(dom.easterEggModal.element, dom.easterEggModal.content); }
+        function closeEasterEggModal() { closeModal(dom.easterEggModal.element, dom.easterEggModal.content);
+        }
 
-        function openSearchModal() { openModal(dom.search.modal, dom.search.content); dom.search.input.value = ''; renderSearchResults(); dom.search.input.focus(); }
-        function closeSearchModal() { closeModal(dom.search.modal, dom.search.content); }
+        function openSearchModal() { openModal(dom.search.modal, dom.search.content); dom.search.input.value = ''; renderSearchResults(); dom.search.input.focus();
+        }
+        function closeSearchModal() { closeModal(dom.search.modal, dom.search.content);
+        }
 
         function createSearchResultCard(item) {
             const card = document.createElement('div');
@@ -593,20 +628,24 @@
                 return;
             }
             const foundItems = [];
-            const allSearchableCharacters = [...characters, ...dismissedCharacters, ...easterEggs];
+            // DEĞİŞİKLİK 1: Arama yapılacak karakter listesinden "easterEggs" kaldırıldı.
+            const allSearchableCharacters = [...characters, ...dismissedCharacters];
             
             allSearchableCharacters.forEach(char => {
                 const nameMatch = char.name.toLowerCase().includes(searchTerm);
                 const idMatch = char.id.toLowerCase().includes(searchTerm);
                 if (nameMatch || idMatch) {
                     if (char.isFusion) {
+            
                         foundItems.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
                     } else if (char.isEasterEgg) {
                         foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: false, isEasterEgg: true });
                     } else {
+  
                         foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: char.isDismissed });
                         char.evolutions?.forEach(evo => {
                             foundItems.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl, isDismissed: char.isDismissed });
+        
                         });
                     }
                 }
@@ -648,6 +687,7 @@
                     ripple.classList.add('ripple');
                     const existingRipple = this.querySelector('.ripple');
                     if (existingRipple) existingRipple.remove();
+      
                     this.appendChild(ripple);
                 });
             });
@@ -666,15 +706,18 @@
                 clearTimeout(clickTimer);
                 clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
                 if (clickCount === 5) {
+            
                     clickCount = 0;
                     if(state.isEasterEggMode) return;
                     const password = prompt("Sırrı fısılda...");
                     if (password === EASTER_EGG_PASSWORD) {
+                     
                         alert("Sırlar açığa çıktı!");
                         state.isEasterEggMode = true;
                         updateUI();
                         renderCharacters();
-                    } else if (password !== null) {
+                    } 
+                    else if (password !== null) {
                         alert("Yanlış fısıltı...");
                     }
                 }
@@ -684,17 +727,20 @@
                 if (confirm("Sırları tekrar gizlemek istiyor musun?")) {
                     state.isEasterEggMode = false;
                     if(state.galleryMode === 'easter-egg') {
+              
                         state.galleryMode = 'all';
                     }
                     updateUI();
                     renderCharacters();
                 }
+            
             });
         }
         
         // === UYGULAMA BAŞLATMA ===
         async function initializeAppLogic() {
-            setupImageObserver(); // GÖZLEMCİYİ BAŞLAT
+            setupImageObserver();
+            // GÖZLEMCİYİ BAŞLAT
             try {
                 console.log("Firebase verileri çekiliyor...");
                 const charactersSnapshot = await db.collection('characters').get();
@@ -709,13 +755,13 @@
                 console.log("Firebase'den karakterler başarıyla çekildi:", characters.length);
                 console.log("Firebase'den dismissed karakterler başarıyla çekildi:", dismissedCharacters.length);
                 console.log("Firebase'den easterEggs başarıyla çekildi:", easterEggs.length);
-                
                 Object.assign(dom, {
                     characterGrid: document.getElementById('character-grid'),
                     characterModal: { element: document.getElementById('character-modal'), content: document.getElementById('character-modal-content'), name: document.getElementById('modal-character-name'), evolutions: document.getElementById('modal-evolutions'), fusionsContainer: document.getElementById('modal-fusions'), fusionList: document.getElementById('fusion-list'), prevBtn: document.getElementById('prev-char-btn'), nextBtn: document.getElementById('next-char-btn'), prevName: document.getElementById('prev-char-name'), nextName: document.getElementById('next-char-name') },
                     fusionModal: { element: document.getElementById('fusion-modal'), content: document.getElementById('fusion-modal-content'), name: document.getElementById('modal-fusion-name'), image: document.getElementById('modal-fusion-image'), imageContainer: document.getElementById('fusion-main-image'), star: document.getElementById('modal-fusion-star'), leftChar: { image: document.getElementById('modal-fusion-left-char-image'), name: document.getElementById('modal-fusion-left-char-name'), starDisplay: document.getElementById('modal-fusion-left-char-star'), container: document.getElementById('fusion-partner-left') }, rightChar: { image: document.getElementById('modal-fusion-right-char-image'), name: document.getElementById('modal-fusion-right-char-name'), starDisplay: document.getElementById('modal-fusion-right-char-star'), container: document.getElementById('fusion-partner-right') }, prevBtn: document.getElementById('prev-fusion-btn'), nextBtn: document.getElementById('next-fusion-btn'), prevName: document.getElementById('prev-fusion-name'), nextName: document.getElementById('next-fusion-name') },
                     easterEggModal: { element: document.getElementById('easter-egg-modal'), content: document.getElementById('easter-egg-modal-content'), name: document.getElementById('ee-modal-name'), newImage: document.getElementById('ee-modal-new-image'), originalImage: document.getElementById('ee-modal-original-image'), originalLabel: document.getElementById('ee-modal-original-label'), prevBtn: document.getElementById('prev-ee-btn'), nextBtn: document.getElementById('next-ee-btn'), prevName: document.getElementById('prev-ee-name'), nextName: document.getElementById('next-ee-name') },
                     enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
+    
                     zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
                     layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
                     filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
@@ -724,12 +770,12 @@
                     easterEggFilterMenuBtn: document.getElementById('easter-egg-filter-menu-btn'),
                     dismissedFilterMenuBtn: document.getElementById('dismissed-filter-menu-btn')
                 });
-                
                 dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
                 dom.filter.buttons.forEach(button => {
                     button.addEventListener('click', () => {
                         state.galleryMode = button.dataset.filter;
                         dom.filter.menu.classList.add('hidden');
+                  
                         updateUI();
                         renderCharacters();
                     });
@@ -753,4 +799,4 @@
         document.addEventListener('DOMContentLoaded', initializeAppLogic);
     </script>
 </body>
-</html>
+    </html>
