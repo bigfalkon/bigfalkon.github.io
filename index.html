@@ -192,6 +192,17 @@
     <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()"><button class="icon-button absolute top-4 right-4 text-white text-4xl z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat"><span class="material-symbols-outlined" style="font-size: 36px;">close</span></button><img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image"></div>
 
     <script>
+                // Service Worker'ı kaydetme kodu
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('Service Worker başarıyla kaydedildi: ', registration.scope);
+                }).catch(error => {
+                    console.log('Service Worker kaydı başarısız: ', error);
+                });
+            });
+        }
+
         const FUSION_STAR_COLOR_CLASS = 'text-fuchsia-400';
         const THREE_STAR_COLOR_CLASS = 'text-amber-400';
         const TWO_STAR_COLOR_CLASS = 'text-slate-400';
