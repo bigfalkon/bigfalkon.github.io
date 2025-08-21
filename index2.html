@@ -87,6 +87,11 @@
         <div id="add-edit-form-container" class="bg-[var(--md-sys-color-surface-container)] rounded-2xl p-6 mb-8">
             <h2 id="form-title" class="text-2xl font-bold mb-4">Yeni Kayıt Ekle</h2>
             <form id="add-edit-form" class="flex flex-col gap-3">
+                <div id="date-edit-container" class="hidden">
+                    <label class="block text-sm font-medium mb-1">Eklenme Tarihi</label>
+                    <input type="date" name="eklenmeTarihi" class="form-input">
+                </div>
+
                 <select id="item-type-select" class="form-input mb-2"><option value="character">Normal Karakter</option><option value="fusion">Füzyon</option><option value="easterEgg">Easter Egg</option></select>
                 <input required type="text" name="id" placeholder="Kayıt ID (benzersiz olmalı)" class="form-input">
                 <input required type="text" name="name" placeholder="İsim" class="form-input">
@@ -154,6 +159,7 @@
             adminEmailInput: document.getElementById('admin-email'),
             adminPasswordInput: document.getElementById('admin-password'),
             loginStatus: document.getElementById('login-status'),
+            dateEditContainer: document.getElementById('date-edit-container'),
         };
 
         const openLoginModal = () => { dom.loginModal.classList.add('visible'); dom.loginModal.classList.remove('hidden'); };
@@ -193,7 +199,8 @@
                     actionButtonsHtml = `<button class="icon-button retire-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" data-action="retire" aria-label="Emekliye Ayır"><span class="material-symbols-outlined">work_history</span></button><button class="icon-button edit-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Düzenle"><span class="material-symbols-outlined">edit</span></button><button class="icon-button delete-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Sil"><span class="material-symbols-outlined">delete</span></button>`;
                 }
                 const retiredBadge = isRetired ? `<p class="text-xs font-bold mt-1" style="color: var(--md-sys-color-warning);">EMEKLİ</p>` : '';
-                card.innerHTML = `${imageBlockHtml}<div class="flex-grow"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${starHtml}</div>${retiredBadge}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionButtonsHtml}</div>`;
+                const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${item.eklenmeTarihi.toDate().toLocaleDateString('tr-TR')}</p>` : '<p class="text-xs text-red-400 mt-1">Tarih Yok</p>';
+                card.innerHTML = `${imageBlockHtml}<div class="flex-grow"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${starHtml}</div>${dateHtml}${retiredBadge}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionButtonsHtml}</div>`;
                 dom.adminGrid.appendChild(card);
             });
             setupActionListeners();
@@ -219,6 +226,7 @@
                 const el = form.querySelector(`[name="${name}"]`);
                 if(el) el.parentElement.style.display = 'block';
             });
+            dom.dateEditContainer.classList.add('hidden');
         }
         
         function updateAuthUI(user) {
@@ -269,7 +277,7 @@
             dom.addEditFormContainer.classList.add('hidden');
         });
 
-        toggleFormFields = function() {
+        const toggleFormFields = function() {
             const selectedType = dom.itemTypeSelect.value;
             dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', selectedType !== 'character');
             dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', selectedType !== 'fusion');
@@ -279,7 +287,7 @@
                 'Easter Egg Resim' : (selectedType === 'fusion' ? 'Ana Füzyon Resmi (GIF)' : 'Ana Resim');
         };
 
-        setupActionListeners = function() {
+        const setupActionListeners = function() {
             dom.adminGrid.querySelectorAll('.edit-button, .delete-button, .retire-button').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const { id, type, action } = e.currentTarget.dataset;
@@ -298,7 +306,7 @@
             });
         };
 
-        loadItemForEdit = function(itemId, itemType) {
+        const loadItemForEdit = function(itemId, itemType) {
             resetForm();
             const allItems = [...characters, ...easterEggs, ...dismissed];
             const itemData = allItems.find(i => i.id === itemId);
@@ -314,6 +322,15 @@
             form.elements['id'].value = itemId;
             form.elements['id'].readOnly = true; 
             form.elements['name'].value = itemData.name || '';
+
+            if (itemData.eklenmeTarihi) {
+                const date = itemData.eklenmeTarihi.toDate();
+                const formattedDate = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+                form.elements['eklenmeTarihi'].value = formattedDate;
+            } else {
+                form.elements['eklenmeTarihi'].value = '';
+            }
+            dom.dateEditContainer.classList.remove('hidden');
             
             ['imageFile', 'evolutions_1_file', 'evolutions_2_file', 'fusion_preview_file'].forEach(name => {
                 if(form.querySelector(`[name="${name}"]`)) form.querySelector(`[name="${name}"]`).parentElement.style.display = 'none';
@@ -354,7 +371,7 @@
             dom.toggleFormIcon.textContent = 'close';
         };
         
-        uploadImageToImgBB = async function(file, apiKey) {
+        const uploadImageToImgBB = async function(file, apiKey) {
             if (!file) return null;
             if (!apiKey) { alert("API anahtarı eksik."); throw new Error("API anahtarı eksik."); }
             const formData = new FormData(); formData.append('image', file);
@@ -366,7 +383,7 @@
             } catch (error) { alert(`Resim yüklenemedi: ${error.message}`); return null; }
         };
 
-        handleFormSubmit = async function(event) {
+        const handleFormSubmit = async function(event) {
             event.preventDefault();
             const form = dom.addEditForm;
             const id = form.elements['id'].value.trim();
@@ -380,6 +397,17 @@
                 const type = dom.itemTypeSelect.value;
                 let data = { name: form.elements['name'].value.trim() };
                 let collectionName = type === 'easterEgg' ? 'easterEggs' : 'characters';
+
+                if (isEditing) {
+                    const dateValue = form.elements['eklenmeTarihi'].value;
+                    if (dateValue) {
+                         const [year, month, day] = dateValue.split('-').map(Number);
+                         const localDate = new Date(year, month - 1, day);
+                         data.eklenmeTarihi = firebase.firestore.Timestamp.fromDate(localDate);
+                    }
+                } else {
+                    data.eklenmeTarihi = firebase.firestore.FieldValue.serverTimestamp();
+                }
 
                 if (type === 'character') {
                     data.isFusion = false;
@@ -453,7 +481,7 @@
             }
         };
 
-        deleteItem = async function(itemId, itemType) {
+        const deleteItem = async function(itemId, itemType) {
             const isRetired = dismissed.some(i => i.id === itemId);
             const collectionName = isRetired ? 'dismissed' : (itemType === 'easterEgg' ? 'easterEggs' : 'characters');
             const item = [...characters, ...easterEggs, ...dismissed].find(i => i.id === itemId);
@@ -466,7 +494,7 @@
             } catch (error) { alert(`Silme hatası: ${error.message}`); }
         };
 
-        retireItem = async function(itemId, itemType) {
+        const retireItem = async function(itemId, itemType) {
             if (!confirm("Bu kaydı emekliye ayırmak istediğinizden emin misiniz? Liste görünümünde kalacak ama düzenlenemeyecektir.")) return;
             if(!firebase.auth().currentUser) return alert("Giriş yapmalısınız.");
             const sourceCollection = itemType === 'easterEgg' ? 'easterEggs' : 'characters';
@@ -482,7 +510,7 @@
             } catch (error) { alert(`Emekliye ayırma hatası: ${error.message}`); }
         };
 
-        unretireItem = async function(itemId, itemType) {
+        const unretireItem = async function(itemId, itemType) {
             if (!confirm("Bu kaydı tekrar aktif hale getirmek istediğinizden emin misiniz?")) return;
             if(!firebase.auth().currentUser) return alert("Giriş yapmalısınız.");
             const dismissedRef = db.collection('dismissed').doc(itemId);
@@ -500,7 +528,7 @@
             } catch (error) { alert(`Geri alma hatası: ${error.message}`); }
         };
         
-        fetchItems = async function() {
+        const fetchItems = async function() {
             try {
                 const [charsSnap, eeSnap, dismissedSnap] = await Promise.all([
                     db.collection('characters').get(), 
@@ -517,10 +545,10 @@
             }
         };
 
-        enlargeImage = function(event, src) { if(event) event.stopPropagation(); if(src) {dom.enlargedImage.src = src; dom.enlargedImageOverlay.classList.remove('hidden');} };
-        closeEnlargedImage = function(event) { if (event) event.stopPropagation(); dom.enlargedImageOverlay.classList.add('hidden'); };
+        const enlargeImage = function(event, src) { if(event) event.stopPropagation(); if(src) {dom.enlargedImage.src = src; dom.enlargedImageOverlay.classList.remove('hidden');} };
+        const closeEnlargedImage = function(event) { if (event) event.stopPropagation(); dom.enlargedImageOverlay.classList.add('hidden'); };
         
-        fetchApiKeys = async function() {
+        const fetchApiKeys = async function() {
             try {
                 const apiKeysDoc = await db.collection('settings').doc('apiKeys').get();
                 if (apiKeysDoc.exists) { apiKeys = apiKeysDoc.data(); return true; }
