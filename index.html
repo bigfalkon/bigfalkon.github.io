@@ -48,22 +48,25 @@
         .character-card { background-color: var(--md-sys-color-surface-container); border-radius: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.25); overflow: hidden; position: relative; opacity: 0; transform: translateY(30px) scale(0.98); animation: card-fade-in 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease; }
         @keyframes card-fade-in { to { opacity: 1; transform: translateY(0) scale(1); } }
         .character-card:hover { box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
-        /* DEĞİŞİKLİK 1: Kartları uzatmak için en-boy oranı değiştirildi */
         .character-card-image-wrapper { aspect-ratio: 2 / 3; width: 100%; overflow: hidden; border-radius: 18px; }
         .character-card-image { object-fit: cover; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
         .character-card:hover .character-card-image { transform: scale(1.1); }
         .character-name { color: var(--md-sys-color-on-surface); }
         .fusion-card .character-name { color: var(--md-sys-color-on-fusion-container); }
-        .fusion-stars .material-symbols-outlined { animation: star-glow-pulse 1.5s infinite alternate; }
-        @keyframes star-glow-pulse { from { text-shadow: 0 0 4px #fff, 0 0 8px var(--md-sys-color-fusion), 0 0 12px var(--md-sys-color-fusion); transform: scale(1); } to { text-shadow: 0 0 8px #fff, 0 0 16px var(--md-sys-color-fusion), 0 0 24px var(--md-sys-color-fusion); transform: scale(1.1); } }
         .font-fantastical-fusion { font-family: 'Metamorphous', serif; }
         .dismissed-card .character-name { color: var(--md-sys-color-on-dismissed-container); }
-        .dismissed-stars .material-symbols-outlined { animation: star-glow-pulse 1.5s infinite alternate; }
-        .dismissed-stars .material-symbols-outlined { color: var(--md-sys-color-dismissed-container); }
+        .menu-item { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; padding: 6px 12px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; }
+        .menu-item:hover { background-color: rgba(255,255,255,0.08); }
+        .menu-item > div { display: flex; align-items: center; gap: 0.75rem; }
+        .menu-item .material-symbols-outlined { font-size: 20px; }
+        .menu-item .check-icon { visibility: hidden; color: var(--md-sys-color-primary); }
+        .menu-item.active .check-icon { visibility: visible; }
+        .menu-divider { border-top: 1px solid var(--md-sys-color-outline-variant); margin: 6px 0; }
         .m3-dialog-backdrop { z-index: 1000; }
         .m3-dialog-container { background-color: rgba(32, 31, 37, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(146, 143, 153, 0.2); border-radius: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); height: 100%; max-height: 90vh; max-width: 95vw; width: 1200px; display: flex; flex-direction: column; opacity: 0; transform: scale(0.95) translateY(10px); transition: opacity 0.3s ease, transform 0.3s ease; position: relative; }
         .m3-dialog-content { overflow-y: auto; min-height: 0; }
         .m3-dialog-container.visible { opacity: 1; transform: scale(1) translateY(0); }
+        #fitToScreenToggleBtn.active { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
         .m3-dialog-footer { display:flex; justify-content: space-between; align-items: center; }
         .modal-nav-button { display: flex; align-items: center; gap: 8px; color: var(--md-sys-color-on-surface-variant); border-radius: 99px; padding: 4px; }
         .fusion-modal-background { position: relative; overflow: hidden; }
@@ -79,7 +82,6 @@
         @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
         #character-grid.grid-fade-out { opacity: 0; transition: opacity 0.2s ease-out; }
         .modal-transform-paused { transform: none !important; }
-        #fitToScreenToggleBtn.active { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
         #fitToScreenToggleBtn.active:hover { background-color: var(--md-sys-color-primary); }
         .search-result-card { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-radius: 12px; background-color: var(--md-sys-color-surface-container); transition: all 0.2s ease-in-out; cursor: pointer; }
         .search-result-card:hover { background-color: var(--md-sys-color-surface-container-high); transform: translateY(-2px); box-shadow: 4px 8px 16px rgba(0,0,0,0.3); }
@@ -100,22 +102,30 @@
             <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi<span id="easter-egg-indicator" class="material-symbols-outlined text-yellow-400 hidden ml-2 align-middle cursor-pointer" style="font-size: 2.5rem;">auto_awesome</span></h1>
             <p class="text-lg mt-2 flex items-center justify-center gap-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet<a href="index2.html" rel="noopener noreferrer" class="icon-button" aria-label="Ayarlar" style="background-color: transparent;"><span class="material-symbols-outlined" style="font-size: 1.2rem;">settings</span></a></p>
         </header>
-
+        
         <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
-            <div class="flex flex-wrap justify-center items-center gap-2">
+            <div class="flex flex-wrap justify-center items-center gap-4">
                 <button id="open-search-btn" class="chip ripple-effect"><span class="material-symbols-outlined">search</span></button>
+                
                 <div class="relative" id="filter-container">
-                    <button id="filter-toggle-btn" class="chip ripple-effect selected"><span id="filter-label">Tümü</span></button>
-                    <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
-                        <button data-filter="all" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">Tümü</button>
-                        <button data-filter="1-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">1 ★</button>
-                        <button data-filter="2-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">2 ★</button>
-                        <button data-filter="3-star" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">3 ★</button>
-                        <button data-filter="fusion" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2">4 ★</button>
-                        <button id="dismissed-filter-menu-btn" data-filter="dismissed" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2"><span class="material-symbols-outlined">badge</span><span class="ml-2">Emekliler</span></button>
-                        <button id="easter-egg-filter-menu-btn" data-filter="easter-egg" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 flex items-center gap-2 hidden"><span class="material-symbols-outlined text-yellow-500">auto_awesome</span><span class="ml-2">Sırlar</span></button>
+                    <button id="filter-toggle-btn" class="chip ripple-effect"><span id="filter-label-icon" class="material-symbols-outlined">apps</span><span id="filter-label-text">Tümü</span></button>
+                    <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
+                        <button class="menu-item" data-filter="all" title="Tüm Karakterler"><div><span class="material-symbols-outlined">apps</span><span>Tümü</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="1-star" title="1 Yıldız"><div><span class="material-symbols-outlined text-orange-400">star</span><span>1 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="2-star" title="2 Yıldız"><div><span class="material-symbols-outlined text-slate-400">star</span><span>2 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="3-star" title="3 Yıldız"><div><span class="material-symbols-outlined text-amber-400">star</span><span>3 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="fusion" title="4 Yıldız (Füzyon)"><div><span class="material-symbols-outlined text-fuchsia-400">star</span><span>4 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" id="dismissed-filter-menu-btn" data-filter="dismissed" title="Emekliler"><div><span class="material-symbols-outlined">badge</span><span>Emekliler</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item hidden" id="easter-egg-filter-menu-btn" data-filter="easter-egg" title="Sırlar"><div><span class="material-symbols-outlined text-yellow-500">auto_awesome</span><span>Sırlar</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        
+                        <hr class="menu-divider">
+                        
+                        <button class="menu-item" data-sort="name" title="İsme Göre Sırala (A-Z)"><div><span class="material-symbols-outlined">sort_by_alpha</span><span>İsme Göre</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-sort="date_desc" title="Tarihe Göre (En Yeni)"><div><span class="material-symbols-outlined">arrow_downward</span><span>En Yeni</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-sort="date_asc" title="Tarihe Göre (En Eski)"><div><span class="material-symbols-outlined">arrow_upward</span><span>En Eski</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     </div>
                 </div>
+
                 <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--md-sys-color-outline-variant); background-color: var(--md-sys-color-surface-container-high);">
                     <button id="zoom-out-btn" class="p-2 ripple-effect transition-colors duration-200 hover:bg-white/10" aria-label="Galeri Kartlarını Küçült"><span class="material-symbols-outlined flex items-center">zoom_out</span></button>
                     <span id="current-size-label" class="px-3 text-sm font-semibold border-x" style="border-color: var(--md-sys-color-outline-variant);">M</span> 
@@ -192,7 +202,6 @@
     <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()"><button class="icon-button absolute top-4 right-4 text-white text-4xl z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat"><span class="material-symbols-outlined" style="font-size: 36px;">close</span></button><img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image"></div>
 
     <script>
-                // Service Worker'ı kaydetme kodu
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js').then(registration => {
@@ -227,13 +236,15 @@
         let dismissedCharacters = [];
         let easterEggs = [];
         const dom = {};
+        
         const state = { 
             galleryMode: 'all', 
             imageSizeIndex: 2, 
             isFitToScreenMode: true, 
             currentModalCharId: null, 
             currentModalType: null, 
-            isEasterEggMode: false
+            isEasterEggMode: false,
+            sortBy: 'name' // 'name', 'date_desc', 'date_asc'
         };
         const sizeProfiles = [ { name: 'XS', minCardWidth: '240px' }, { name: 'S', minCardWidth: '270px' }, { name: 'M', minCardWidth: '300px' }, { name: 'L', minCardWidth: '330px' }, { name: 'XL', minCardWidth: '360px' } ];
         
@@ -264,32 +275,15 @@
             return evolution ? evolution.imageUrl : '';
         };
         
-        // --- GÖRÜNTÜ GÖZLEMCİSİ FONKSİYONLARI (YENİ) ---
         let observer;
 
         function setupImageObserver() {
-            const options = {
-                root: null,
-                
-                // Önceki "tampon bölgeyi" sıfırlıyoruz.
-                rootMargin: '0px', 
-                
-                // --- YENİ VE DOĞRU MANTIK BURADA ---
-                // Bir resmin %50'si (yani yarısı) görünür hale gelmeden
-                // animasyonu başlatma komutunu gönderme.
-                threshold: 0.75 
-            };
-
+            const options = { root: null, rootMargin: '0px', threshold: 0.75 };
             const handleIntersection = (entries) => {
                 entries.forEach(entry => {
                     const img = entry.target;
-                    // Eğer resmin en az %50'si ekrandaysa GIF'i oynat
-                    if (entry.isIntersecting) {
-                        img.src = img.dataset.gifSrc; 
-                    } else {
-                        // Değilse duran resmi göster
-                        img.src = img.dataset.previewSrc; 
-                    }
+                    if (entry.isIntersecting) { img.src = img.dataset.gifSrc; } 
+                    else { img.src = img.dataset.previewSrc; }
                 });
             };
             observer = new IntersectionObserver(handleIntersection, options);
@@ -301,7 +295,6 @@
             imagesToObserve.forEach(img => observer.observe(img));
         }
 
-        // --- RENDER FONKSİYONU (GÜNCELLENDİ) ---
         function renderCharacters() {
             dom.characterGrid.classList.add('grid-fade-out');
             setTimeout(() => {
@@ -318,34 +311,79 @@
                     dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
                 }
                 
+                const sortFunction = (a, b) => {
+                    if (state.sortBy === 'date_desc') {
+                        return (b.eklenmeTarihi?.toDate() || 0) - (a.eklenmeTarihi?.toDate() || 0);
+                    }
+                    if (state.sortBy === 'date_asc') {
+                        return (a.eklenmeTarihi?.toDate() || 0) - (b.eklenmeTarihi?.toDate() || 0);
+                    }
+                    return a.name.localeCompare(b.name, 'tr');
+                };
+
                 let allDisplayableCharacters = [];
-                let isEasterEggView = state.galleryMode === 'easter-egg';
-                let isDismissedView = state.galleryMode === 'dismissed';
-                const activeCharacters = isDismissedView ? dismissedCharacters : characters;
-                
-                if (isEasterEggView) {
-                    allDisplayableCharacters = easterEggs.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-                } else if (state.galleryMode === 'fusion') {
-                    allDisplayableCharacters = activeCharacters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
-                    allDisplayableCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-                } else if (state.galleryMode === 'all' || isDismissedView) {
-                    const nonFusions = activeCharacters.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
-                    nonFusions.forEach(char => {
-                        allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
-                        char.evolutions?.forEach(evo => {
-                            allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
+                const activeCharacters = state.galleryMode === 'dismissed' ? dismissedCharacters : characters;
+
+                if (state.sortBy.startsWith('date')) {
+                    let itemsToProcess = [];
+                    if (state.galleryMode === 'easter-egg') {
+                        itemsToProcess = [...easterEggs];
+                    } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
+                        itemsToProcess = [...activeCharacters];
+                    } else if (state.galleryMode === 'fusion') {
+                        itemsToProcess = activeCharacters.filter(char => char.isFusion);
+                    } else {
+                        const starFilter = parseInt(state.galleryMode.split('-')[0]);
+                        itemsToProcess = activeCharacters.filter(char => {
+                            if (char.isFusion) return false;
+                            if (starFilter === 1) return true;
+                            return char.evolutions?.some(e => e.star === starFilter);
                         });
+                    }
+
+                    itemsToProcess.forEach(char => {
+                        if (char.isFusion) {
+                            allDisplayableCharacters.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+                        } else if (char.isEasterEgg) {
+                            allDisplayableCharacters.push({ ...char, displayStar: 1 });
+                        } else {
+                            allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+                            char.evolutions?.forEach(evo => {
+                                allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
+                            });
+                        }
                     });
-                    const sortedFusions = activeCharacters.filter(char => char.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr')).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
-                    allDisplayableCharacters.push(...sortedFusions);
-                } else {
-                    const starFilter = parseInt(state.galleryMode.split('-')[0]);
-                    allDisplayableCharacters = activeCharacters.filter(char => !char.isFusion).flatMap(char => {
-                        if (starFilter === 1) return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
-                        const evo = char.evolutions?.find(e => e.star === starFilter);
-                        return evo ? [{ ...char, displayStar: starFilter, displayImageUrl: evo.imageUrl }] : [];
-                    });
-                    allDisplayableCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+                    if (state.galleryMode.includes('-star')) {
+                        const starFilter = parseInt(state.galleryMode.split('-')[0]);
+                        allDisplayableCharacters = allDisplayableCharacters.filter(c => c.displayStar === starFilter);
+                    }
+                    
+                    allDisplayableCharacters.sort(sortFunction);
+
+                } else { // İSME GÖRE SIRALAMA (GRUPLU)
+                    if (state.galleryMode === 'easter-egg') {
+                        allDisplayableCharacters = easterEggs.sort(sortFunction);
+                    } else if (state.galleryMode === 'fusion') {
+                         allDisplayableCharacters = activeCharacters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})).sort(sortFunction);
+                    } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
+                        const nonFusions = activeCharacters.filter(c => !c.isFusion).sort(sortFunction);
+                        nonFusions.forEach(char => {
+                            allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+                            char.evolutions?.forEach(evo => {
+                                allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
+                            });
+                        });
+                        const sortedFusions = activeCharacters.filter(char => char.isFusion).sort(sortFunction).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
+                        allDisplayableCharacters.push(...sortedFusions);
+                    } else {
+                        const starFilter = parseInt(state.galleryMode.split('-')[0]);
+                        allDisplayableCharacters = activeCharacters.filter(char => !char.isFusion).flatMap(char => {
+                            if (starFilter === 1) return [{ ...char, displayStar: 1, displayImageUrl: char.imageUrl }];
+                            const evo = char.evolutions?.find(e => e.star === starFilter);
+                            return evo ? [{ ...char, displayStar: starFilter, displayImageUrl: evo.imageUrl }] : [];
+                        }).sort(sortFunction);
+                    }
                 }
                 
                 if (allDisplayableCharacters.length === 0) {
@@ -376,11 +414,7 @@
                     
                     let imageHtml = '';
                     if (isFusion && char.imageUrl && char.previewUrl) {
-                        imageHtml = `<img src="${char.previewUrl}" 
-                                          data-gif-src="${char.imageUrl}" 
-                                          data-preview-src="${char.previewUrl}"
-                                          alt="${char.name}" 
-                                          class="character-card-image">`;
+                        imageHtml = `<img src="${char.previewUrl}" data-gif-src="${char.imageUrl}" data-preview-src="${char.previewUrl}" alt="${char.name}" class="character-card-image">`;
                     } else {
                         const imageUrl = char.displayImageUrl || char.imageUrl;
                         imageHtml = `<img src="${imageUrl || ''}" alt="${char.name}" class="character-card-image" loading="lazy">`;
@@ -395,21 +429,25 @@
             }, 200);
         }
 
-        function updateFilterSelection() {
-            dom.filter.buttons.forEach(btn => btn.classList.remove('selected', 'dismissed-selected'));
-            if (state.galleryMode === 'dismissed') {
-                dom.filter.label.textContent = 'Emekliler';
-                dom.dismissedFilterMenuBtn.classList.add('dismissed-selected');
-            } else if (state.galleryMode === 'easter-egg') {
-                dom.filter.label.textContent = 'Sırlar';
-                dom.easterEggFilterMenuBtn.classList.add('selected');
-            } else {
-                const selectedButton = document.querySelector(`#filter-menu button[data-filter="${state.galleryMode}"]`);
-                if (selectedButton) {
-                    dom.filter.label.textContent = selectedButton.textContent;
-                    selectedButton.classList.add('selected');
+        function updateMenuSelection() {
+            document.querySelectorAll('#filter-menu .menu-item').forEach(btn => {
+                const isFilterActive = btn.dataset.filter === state.galleryMode;
+                const isSortActive = btn.dataset.sort === state.sortBy;
+                btn.classList.toggle('active', isFilterActive || isSortActive);
+            });
+
+            const activeFilterButton = document.querySelector(`#filter-menu button[data-filter="${state.galleryMode}"]`);
+            if (activeFilterButton) {
+                const icon = activeFilterButton.querySelector('div > .material-symbols-outlined').textContent;
+                const text = activeFilterButton.querySelector('div > span:last-child').textContent;
+                dom.filter.labelIcon.textContent = icon;
+                dom.filter.labelText.textContent = text;
+
+                dom.filter.toggleBtn.classList.toggle('dismissed-selected', state.galleryMode === 'dismissed');
+                if (state.galleryMode !== 'dismissed') {
+                    dom.filter.toggleBtn.classList.add('selected');
                 } else {
-                    dom.filter.label.textContent = 'Tümü';
+                    dom.filter.toggleBtn.classList.remove('selected');
                 }
             }
         }
@@ -421,7 +459,7 @@
             dom.layout.toggleBtn.classList.toggle('active', state.isFitToScreenMode);
             dom.easterEggIndicator.classList.toggle('hidden', !state.isEasterEggMode);
             dom.easterEggFilterMenuBtn.classList.toggle('hidden', !state.isEasterEggMode);
-            updateFilterSelection();
+            updateMenuSelection();
         }
         
         function openModal(modalElement, contentElement) { document.body.classList.add('modal-open'); modalElement.classList.remove('hidden'); modalElement.classList.add('flex'); setTimeout(() => contentElement.classList.add('visible'), 20); }
@@ -704,9 +742,8 @@
             });
         }
         
-        // === UYGULAMA BAŞLATMA ===
         async function initializeAppLogic() {
-            setupImageObserver(); // GÖZLEMCİYİ BAŞLAT
+            setupImageObserver(); 
             try {
                 console.log("Firebase verileri çekiliyor...");
                 const charactersSnapshot = await db.collection('characters').get();
@@ -719,8 +756,6 @@
                 easterEggs = easterEggsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isEasterEgg: true }));
 
                 console.log("Firebase'den karakterler başarıyla çekildi:", characters.length);
-                console.log("Firebase'den dismissed karakterler başarıyla çekildi:", dismissedCharacters.length);
-                console.log("Firebase'den easterEggs başarıyla çekildi:", easterEggs.length);
                 
                 Object.assign(dom, {
                     characterGrid: document.getElementById('character-grid'),
@@ -730,7 +765,7 @@
                     enlargedImage: { overlay: document.getElementById('enlarged-image-overlay'), image: document.getElementById('enlarged-image') },
                     zoom: { outBtn: document.getElementById('zoom-out-btn'), inBtn: document.getElementById('zoom-in-btn'), label: document.getElementById('current-size-label') },
                     layout: { toggleBtn: document.getElementById('fitToScreenToggleBtn') },
-                    filter: { toggleBtn: document.getElementById('filter-toggle-btn'), label: document.getElementById('filter-label'), menu: document.getElementById('filter-menu'), buttons: document.querySelectorAll('#filter-menu button') },
+                    filter: { toggleBtn: document.getElementById('filter-toggle-btn'), labelIcon: document.getElementById('filter-label-icon'), labelText: document.getElementById('filter-label-text'), menu: document.getElementById('filter-menu') },
                     search: { openBtn: document.getElementById('open-search-btn'), modal: document.getElementById('search-modal'), content: document.getElementById('search-modal-content'), input: document.getElementById('search-input'), resultsGrid: document.getElementById('search-results-grid'), placeholder: document.getElementById('search-placeholder') },
                     easterEggIndicator: document.getElementById('easter-egg-indicator'),
                     easterEggFilterMenuBtn: document.getElementById('easter-egg-filter-menu-btn'),
@@ -738,14 +773,19 @@
                 });
                 
                 dom.filter.toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); dom.filter.menu.classList.toggle('hidden'); });
-                dom.filter.buttons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        state.galleryMode = button.dataset.filter;
-                        dom.filter.menu.classList.add('hidden');
-                        updateUI();
-                        renderCharacters();
-                    });
+                
+                dom.filter.menu.addEventListener('click', (e) => {
+                    const button = e.target.closest('.menu-item');
+                    if (!button) return;
+                    const filter = button.dataset.filter;
+                    const sort = button.dataset.sort;
+                    if (filter) state.galleryMode = filter;
+                    if (sort) state.sortBy = sort;
+                    dom.filter.menu.classList.add('hidden');
+                    updateUI();
+                    renderCharacters();
                 });
+
                 dom.search.openBtn.addEventListener('click', openSearchModal);
                 dom.search.input.addEventListener('input', renderSearchResults);
                 window.addEventListener('click', (e) => { if (!dom.filter.menu.classList.contains('hidden') && !e.target.closest('#filter-container')) { dom.filter.menu.classList.add('hidden'); } });
