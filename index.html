@@ -103,18 +103,23 @@
             <p class="text-lg mt-2 flex items-center justify-center gap-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet<a href="index2.html" rel="noopener noreferrer" class="icon-button" aria-label="Ayarlar" style="background-color: transparent;"><span class="material-symbols-outlined" style="font-size: 1.2rem;">settings</span></a></p>
         </header>
         
-        <div class="control-panel sticky top-4 z-50 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
+        <div class="control-panel sticky top-4 z-50 flex flex-col md:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
             <div class="flex flex-wrap justify-center items-center gap-4">
-                <button id="open-search-btn" class="chip ripple-effect"><span class="material-symbols-outlined">search</span></button>
+                <button id="open-search-btn" class="chip ripple-effect">
+                    <span class="material-symbols-outlined">search</span>
+                </button>
                 
                 <div class="relative" id="filter-container">
-                    <button id="filter-toggle-btn" class="chip ripple-effect"><span id="filter-label-icon" class="material-symbols-outlined">apps</span><span id="filter-label-text">Tümü</span></button>
+                    <button id="filter-toggle-btn" class="chip ripple-effect">
+                        <span id="filter-label-icon" class="material-symbols-outlined">apps</span>
+                        <span id="filter-label-text" class="hidden sm:inline">Tümü</span>
+                    </button>
                     <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
                         <button class="menu-item" data-filter="all" title="Tüm Karakterler"><div><span class="material-symbols-outlined">apps</span><span>Tümü</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="1-star" title="1 Yıldız"><div><span class="material-symbols-outlined text-orange-400">star</span><span>1 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="2-star" title="2 Yıldız"><div><span class="material-symbols-outlined text-slate-400">star</span><span>2 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="3-star" title="3 Yıldız"><div><span class="material-symbols-outlined text-amber-400">star</span><span>3 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="fusion" title="4 Yıldız (Füzyon)"><div><span class="material-symbols-outlined text-fuchsia-400">star</span><span>4 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="1-star" title="1 Yıldız"><div><span class="material-symbols-outlined text-orange-400">filter_1</span><span>1 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="2-star" title="2 Yıldız"><div><span class="material-symbols-outlined text-slate-400">filter_2</span><span>2 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="3-star" title="3 Yıldız"><div><span class="material-symbols-outlined text-amber-400">filter_3</span><span>3 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="fusion" title="4 Yıldız (Füzyon)"><div><span class="material-symbols-outlined text-fuchsia-400">filter_4</span><span>4 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                         <button class="menu-item" id="dismissed-filter-menu-btn" data-filter="dismissed" title="Emekliler"><div><span class="material-symbols-outlined">badge</span><span>Emekliler</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                         <button class="menu-item hidden" id="easter-egg-filter-menu-btn" data-filter="easter-egg" title="Sırlar"><div><span class="material-symbols-outlined text-yellow-500">auto_awesome</span><span>Sırlar</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                         
