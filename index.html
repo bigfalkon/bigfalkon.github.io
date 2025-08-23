@@ -100,8 +100,16 @@
     <div id="app" class="max-w-screen-2xl mx-auto">
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi<span id="easter-egg-indicator" class="material-symbols-outlined text-yellow-400 hidden ml-2 align-middle cursor-pointer" style="font-size: 2.5rem;">auto_awesome</span></h1>
-            <p class="text-lg mt-2 flex items-center justify-center gap-2" style="color: var(--md-sys-color-on-surface-variant);">Evrenin Kahramanlarını Keşfet<a href="index2.html" rel="noopener noreferrer" class="icon-button" aria-label="Ayarlar" style="background-color: transparent;"><span class="material-symbols-outlined" style="font-size: 1.2rem;">settings</span></a></p>
-        </header>
+            <p class="text-lg mt-2 flex items-center justify-center gap-2" style="color: var(--md-sys-color-on-surface-variant);">
+                Evrenin Kahramanlarını Keşfet
+                <a href="index2.html" rel="noopener noreferrer" class="relative group p-1 rounded-full transition-colors duration-200 hover:bg-white/10" aria-label="Yönetim Paneli">
+                    <span class="material-symbols-outlined transition-colors duration-200 group-hover:text-white" style="font-size: 1.2rem; vertical-align: middle;">settings</span>
+                    <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block whitespace-nowrap bg-gray-900 text-white text-xs font-semibold rounded-md px-2 py-1 shadow-lg z-10">
+                        Yönetim Paneli
+                    </span>
+                </a>
+            </p>
+            </header>
         
         <div class="control-panel sticky top-4 z-50 flex flex-col md:flex-row items-center justify-center gap-4 mb-8 p-3 rounded-2xl shadow-lg">
             <div class="flex flex-wrap justify-center items-center gap-4">
@@ -316,6 +324,14 @@
                     dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
                 }
                 
+                const visibleDismissedCharacters = state.isEasterEggMode
+                    ? dismissedCharacters
+                    : dismissedCharacters.filter(char => char.type !== 'easterEgg');
+
+                const allEasterEggs = state.isEasterEggMode
+                    ? [...easterEggs, ...dismissedCharacters.filter(char => char.type === 'easterEgg')]
+                    : [];
+
                 const sortFunction = (a, b) => {
                     if (state.sortBy === 'date_desc') {
                         return (b.eklenmeTarihi?.toDate() || 0) - (a.eklenmeTarihi?.toDate() || 0);
@@ -327,12 +343,12 @@
                 };
 
                 let allDisplayableCharacters = [];
-                const activeCharacters = state.galleryMode === 'dismissed' ? dismissedCharacters : characters;
+                const activeCharacters = state.galleryMode === 'dismissed' ? visibleDismissedCharacters : characters;
 
                 if (state.sortBy.startsWith('date')) {
                     let itemsToProcess = [];
                     if (state.galleryMode === 'easter-egg') {
-                        itemsToProcess = [...easterEggs];
+                        itemsToProcess = [...allEasterEggs];
                     } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
                         itemsToProcess = [...activeCharacters];
                     } else if (state.galleryMode === 'fusion') {
@@ -349,8 +365,8 @@
                     itemsToProcess.forEach(char => {
                         if (char.isFusion) {
                             allDisplayableCharacters.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
-                        } else if (char.isEasterEgg) {
-                            allDisplayableCharacters.push({ ...char, displayStar: 1 });
+                        } else if (char.isEasterEgg || char.type === 'easterEgg') {
+                            allDisplayableCharacters.push({ ...char, displayStar: 1, isEasterEgg: true });
                         } else {
                             allDisplayableCharacters.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
                             char.evolutions?.forEach(evo => {
@@ -366,9 +382,9 @@
                     
                     allDisplayableCharacters.sort(sortFunction);
 
-                } else { // İSME GÖRE SIRALAMA (GRUPLU)
+                } else {
                     if (state.galleryMode === 'easter-egg') {
-                        allDisplayableCharacters = easterEggs.sort(sortFunction);
+                        allDisplayableCharacters = allEasterEggs.sort(sortFunction);
                     } else if (state.galleryMode === 'fusion') {
                          allDisplayableCharacters = activeCharacters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})).sort(sortFunction);
                     } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
@@ -400,7 +416,7 @@
                     const card = document.createElement('div');
                     const isFusion = char.isFusion;
                     const isDismissed = char.isDismissed;
-                    const isEasterEgg = char.isEasterEgg;
+                    const isEasterEgg = char.isEasterEgg || char.type === 'easterEgg';
 
                     let cardClass = 'character-card ripple-effect flex flex-col cursor-pointer';
                     if (isFusion) cardClass += ' fusion-card';
@@ -475,13 +491,15 @@
             state.currentModalType = type;
 
             let navigableList;
-            const isEasterEgg = easterEggs.some(e => e.id === id);
+            const isEasterEgg = easterEggs.some(e => e.id === id) || (dismissedCharacters.find(c => c.id === id)?.type === 'easterEgg');
             const isDismissed = dismissedCharacters.some(c => c.id === id);
 
             if (isEasterEgg) {
-                navigableList = [...easterEggs].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+                const activeEEs = easterEggs;
+                const retiredEEs = dismissedCharacters.filter(c => c.type === 'easterEgg');
+                navigableList = [...activeEEs, ...retiredEEs].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
             } else if (isDismissed) {
-                const sortedNormals = dismissedCharacters.filter(c => !c.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+                const sortedNormals = dismissedCharacters.filter(c => !c.isFusion && c.type !== 'easterEgg').sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 const sortedFusions = dismissedCharacters.filter(c => c.isFusion).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 navigableList = [...sortedNormals, ...sortedFusions];
             } else {
@@ -500,7 +518,7 @@
                 closeEasterEggModal();
                 setTimeout(() => {
                     if (item.isFusion) { openFusionModal(item.id); } 
-                    else if (item.isEasterEgg) { openEasterEggModal(item.id); } 
+                    else if (item.isEasterEgg || item.type === 'easterEgg') { openEasterEggModal(item.id); } 
                     else { openCharacterModal(item.id, item.isDismissed); }
                 }, 310);
             };
@@ -600,9 +618,9 @@
         function closeFusionModal() { dom.fusionModal.name.classList.remove('font-fantastical-fusion'); closeModal(dom.fusionModal.element, dom.fusionModal.content); }
 
         function openEasterEggModal(eeId) {
-            const ee = easterEggs.find(e => e.id === eeId);
+            const ee = easterEggs.find(e => e.id === eeId) || dismissedCharacters.find(c => c.id === eeId && c.type === 'easterEgg');
             if (!ee) return;
-            const originalChar = characters.find(c => c.id === ee.originalCharacterId);
+            const originalChar = characters.find(c => c.id === ee.originalCharacterId) || dismissedCharacters.find(c => c.id === ee.originalCharacterId);
             if (!originalChar) return;
             const modal = dom.easterEggModal;
             modal.name.textContent = ee.name;
@@ -629,7 +647,18 @@
         function createSearchResultCard(item) {
             const card = document.createElement('div');
             card.className = 'search-result-card';
-            const action = item.isFusion ? `closeSearchModal(); setTimeout(() => openFusionModal('${item.id}'), 310);` : `closeSearchModal(); setTimeout(() => openCharacterModal('${item.id}', ${item.isDismissed}), 310);`;
+            
+            // ================== BAŞLANGIÇ: ARAMA KARTI TIKLAMA GÜNCELLEMESİ ==================
+            let action;
+            if (item.isEasterEgg) {
+                action = `closeSearchModal(); setTimeout(() => openEasterEggModal('${item.id}'), 310);`;
+            } else if (item.isFusion) {
+                action = `closeSearchModal(); setTimeout(() => openFusionModal('${item.id}'), 310);`;
+            } else {
+                action = `closeSearchModal(); setTimeout(() => openCharacterModal('${item.id}', ${item.isDismissed}), 310);`;
+            }
+            // ================== BİTİŞ: ARAMA KARTI TIKLAMA GÜNCELLEMESİ ==================
+
             card.setAttribute('onclick', action);
             const nameClass = item.isFusion || item.isDismissed ? 'font-fantastical-fusion' : '';
             const stars = getStarEmojis(item.isFusion, item.isDismissed, item.displayStar);
@@ -647,17 +676,28 @@
                 placeholder.classList.remove('hidden');
                 return;
             }
-            const foundItems = [];
-            const allSearchableCharacters = [...characters, ...dismissedCharacters, ...easterEggs];
+
+            // ================== BAŞLANGIÇ: ARAMA LİSTESİ GÜNCELLEMESİ ==================
+            let allSearchableCharacters;
+            if (state.isEasterEggMode) {
+                // Sırlar modu açıksa, her şeyi ara.
+                allSearchableCharacters = [...characters, ...dismissedCharacters, ...easterEggs];
+            } else {
+                // Sırlar modu kapalıysa, emekli EE'leri hariç tutarak ara.
+                const nonEEDismissed = dismissedCharacters.filter(char => char.type !== 'easterEgg');
+                allSearchableCharacters = [...characters, ...nonEEDismissed];
+            }
+            // ================== BİTİŞ: ARAMA LİSTESİ GÜNCELLEMESİ ==================
             
+            const foundItems = [];
             allSearchableCharacters.forEach(char => {
                 const nameMatch = char.name.toLowerCase().includes(searchTerm);
                 const idMatch = char.id.toLowerCase().includes(searchTerm);
                 if (nameMatch || idMatch) {
                     if (char.isFusion) {
                         foundItems.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
-                    } else if (char.isEasterEgg) {
-                        foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: false, isEasterEgg: true });
+                    } else if (char.isEasterEgg || char.type === 'easterEgg') {
+                        foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: char.isDismissed, isEasterEgg: true });
                     } else {
                         foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: char.isDismissed });
                         char.evolutions?.forEach(evo => {
@@ -666,6 +706,7 @@
                     }
                 }
             });
+
             if (foundItems.length === 0) {
                 placeholder.textContent = `"${dom.search.input.value}" için sonuç bulunamadı.`;
                 placeholder.classList.remove('hidden');
