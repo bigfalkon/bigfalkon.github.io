@@ -37,8 +37,8 @@
             --md-sys-color-warning: rgb(var(--md-sys-color-warning-rgb));
         }
         body { font-family: 'Manrope', sans-serif; background-color: var(--md-sys-color-background); color: var(--md-sys-color-on-background); }
-        .form-input { background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant); color: var(--md-sys-color-on-surface); border-radius: 8px; padding: 12px; width: 100%; transition: all 0.2s ease; }
-        .form-input:focus { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 3px rgba(var(--md-sys-color-primary-rgb), 0.2); outline: none; }
+        .form-input, .form-select { background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant); color: var(--md-sys-color-on-surface); border-radius: 8px; padding: 12px; width: 100%; transition: all 0.2s ease; }
+        .form-input:focus, .form-select:focus { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 3px rgba(var(--md-sys-color-primary-rgb), 0.2); outline: none; }
         .item-card { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 16px; background-color: var(--md-sys-color-surface-container); transition: all 0.2s ease-in-out; border: 1px solid var(--md-sys-color-outline-variant); }
         .item-card:hover { transform: translateY(-4px); background-color: var(--md-sys-color-surface-container-high); box-shadow: 0 8px 20px rgba(0,0,0,0.25); }
         .item-card.retired { opacity: 0.7; border-left: 4px solid var(--md-sys-color-warning); }
@@ -59,6 +59,8 @@
         .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
         .modal-content { background-color: var(--md-sys-color-surface-container); border-radius: 24px; padding: 2rem; width: 100%; max-width: 400px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s ease; }
         .modal-backdrop.visible .modal-content { transform: scale(1); }
+        .report-modal-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-bottom: 0.5rem; }
+        .report-modal-content p { margin-bottom: 0.5rem; }
         .enlarged-image-container { z-index: 1100; position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
         .enlarged-image { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; }
         .character-selector-item { display: flex; align-items: center; gap: 1rem; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
@@ -78,15 +80,28 @@
             </div>
         </header>
         
-        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center">
-            <input type="text" id="search-input" placeholder="Kayıtlar içinde ara..." class="form-input flex-grow">
-            <div class="flex gap-2 w-full sm:w-auto">
+        <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
+            <input type="text" id="search-input" placeholder="Kayıtlar içinde ara..." class="form-input md:col-span-2">
+            
+            <select id="view-filter" class="form-select">
+                <option value="all">Tüm Kayıtlar</option>
+                <option value="available">Boştaki Karakterler</option>
+                <option value="preview-report">Füzyon Önizleme Raporu</option>
+            </select>
+
+            <select id="sort-by" class="form-select">
+                <option value="name_asc">İsme Göre (A-Z)</option>
+                <option value="date_desc">Eklenme Tarihi (Yeni)</option>
+                <option value="date_asc">Eklenme Tarihi (Eski)</option>
+            </select>
+
+            <div class="col-span-full md:col-span-4 mt-4 flex flex-col sm:flex-row gap-4">
                 <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span id="toggle-form-text">Yeni Kayıt</span></button>
-                <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary"><span class="material-symbols-outlined">visibility</span><span>Galeriye Git</span></a>
+                <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">visibility</span><span>Galeriye Git</span></a>
             </div>
         </div>
         
-        <div id="add-edit-form-container" class="bg-[var(--md-sys-color-surface-container)] rounded-2xl p-6 mb-8">
+        <div id="add-edit-form-container" class="bg-[var(--md-sys-color-surface-container)] rounded-2xl p-6 mb-8 hidden">
             <h2 id="form-title" class="text-2xl font-bold mb-4">Yeni Kayıt Ekle</h2>
             <form id="add-edit-form" class="flex flex-col gap-3">
                 <div id="date-edit-container" class="hidden">
@@ -94,7 +109,7 @@
                     <input type="date" name="eklenmeTarihi" class="form-input">
                 </div>
 
-                <select id="item-type-select" class="form-input mb-2"><option value="character">Normal Karakter</option><option value="fusion">Füzyon</option><option value="easterEgg">Easter Egg</option></select>
+                <select id="item-type-select" class="form-select mb-2"><option value="character">Normal Karakter</option><option value="fusion">Füzyon</option><option value="easterEgg">Easter Egg</option></select>
                 <input required type="text" name="id" placeholder="Kayıt ID (benzersiz olmalı)" class="form-input">
                 <input required type="text" name="name" placeholder="İsim" class="form-input">
                 <div id="main-image-upload-container"><label class="block text-sm font-medium mb-1">Ana Resim</label><input type="file" name="imageFile" class="form-input"></div>
@@ -123,7 +138,7 @@
                     </div>
                 </div>
                 
-                <div class="flex gap-4 mt-4"><button type="button" id="cancel-button" class="btn btn-secondary flex-grow">İptal</button><button type="submit" id="save-button" class="btn btn-primary flex-grow">Kaydet</button></div>
+                <div class="flex gap-4 mt-4"><button type="button" id="cancel-button" class="btn btn-secondary flex-grow hidden">İptal</button><button type="submit" id="save-button" class="btn btn-primary flex-grow">Kaydet</button></div>
             </form>
         </div>
 
@@ -146,6 +161,15 @@
             </div>
         </div>
     </div>
+    
+    <div id="report-modal" class="modal-backdrop hidden" onclick="closeReportModal()">
+        <div class="modal-content !max-w-screen-md report-modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-2 right-2" onclick="closeReportModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <h2 id="report-title" class="text-2xl font-bold mb-4 text-center" style="color: var(--md-sys-color-primary);">Rapor</h2>
+            <div id="report-content" class="max-h-[70vh] overflow-y-auto pr-2"></div>
+        </div>
+    </div>
+
 
     <script>
         const firebaseConfig = {
@@ -161,6 +185,11 @@
         let apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null };
         let characters = [], easterEggs = [], dismissed = [], editingItemId = null, editingItemType = null;
         let selectorTargetInput = null;
+
+        const viewState = {
+            filter: 'all',
+            sortBy: 'name_asc',
+        };
 
         const dom = {};
         Object.assign(dom, {
@@ -191,10 +220,26 @@
             characterSelectorModal: document.getElementById('character-selector-modal'),
             selectorSearchInput: document.getElementById('selector-search-input'),
             selectorGrid: document.getElementById('selector-grid'),
+            viewFilter: document.getElementById('view-filter'),
+            sortBy: document.getElementById('sort-by'),
+            reportModal: document.getElementById('report-modal'),
+            reportTitle: document.getElementById('report-title'),
+            reportContent: document.getElementById('report-content'),
         });
         
         const openLoginModal = () => { dom.loginModal.classList.add('visible'); dom.loginModal.classList.remove('hidden'); };
         const closeLoginModal = () => { dom.loginModal.classList.remove('visible'); dom.loginModal.classList.add('hidden'); };
+        const openReportModal = () => { dom.reportModal.classList.add('visible'); dom.reportModal.classList.remove('hidden'); };
+        
+        // DÜZELTME: Rapor penceresi kapatıldığında hem görünümü hem de hafızadaki modu sıfırlar.
+        const closeReportModal = () => {
+            dom.reportModal.classList.remove('visible');
+            dom.reportModal.classList.add('hidden');
+            // Görsel menüyü sıfırla
+            dom.viewFilter.value = 'all';
+            // Hafızadaki modu (state) sıfırla
+            viewState.filter = 'all';
+        };
         
         const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
             const colors = { 1: 'text-orange-400', 2: 'text-slate-400', 3: 'text-amber-400', 4: 'text-fuchsia-400' };
@@ -255,11 +300,48 @@
         }
         
         function renderAdminPanel() {
+            if (viewState.filter === 'preview-report') {
+                const allFusions = characters.filter(c => c.isFusion);
+                const hasPreview = [];
+                const missingPreview = [];
+                allFusions.forEach(fusion => {
+                    (fusion.previewUrl && fusion.previewUrl.trim() !== '') ? hasPreview.push(fusion) : missingPreview.push(fusion);
+                });
+                dom.reportTitle.textContent = 'Füzyon Önizleme Raporu';
+                dom.reportContent.innerHTML = `
+                    <p class="mb-6 text-gray-400">Bu rapor, aktif 4 yıldızlı füzyon karakterlerinin ana galerideki önizleme resimlerinin durumunu gösterir.</p>
+                    <h3><span class="text-green-400">✅ Önizleme Resmi Mevcut (${hasPreview.length} Füzyon)</span></h3>
+                    ${hasPreview.length > 0 ? hasPreview.map(f => `<p>- ${f.name}</p>`).join('') : '<p class="text-gray-400">Aktif füzyonların hiçbirinin önizleme resmi yok.</p>'}
+                    <h3><span class="text-red-400">⚠️ Önizleme Resmi EKSİK (${missingPreview.length} Füzyon)</span></h3>
+                    ${missingPreview.length > 0 ? missingPreview.map(f => `<p class="font-semibold">- ${f.name}</p>`).join('') : '<p class="text-gray-400">Önizleme resmi eksik olan aktif füzyon bulunmuyor. Harika!</p>'}
+                `;
+                openReportModal();
+                return;
+            }
+
             dom.adminGrid.innerHTML = '';
             const query = dom.searchInput.value.toLowerCase().trim();
-            const allItems = [...characters, ...easterEggs, ...dismissed].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+            let allItems = [...characters, ...easterEggs, ...dismissed];
+            
+            // FİLTRELEME
+            if (viewState.filter === 'available') {
+                const fusionPartnerIds = new Set(characters.filter(c => c.isFusion).flatMap(f => f.fusionPartners));
+                allItems = characters.filter(c => !c.isFusion && !fusionPartnerIds.has(c.id));
+            }
+
+            // SIRALAMA
+            const getDate = (item) => item.eklenmeTarihi ? item.eklenmeTarihi.toDate() : new Date(0);
+            allItems.sort((a, b) => {
+                switch (viewState.sortBy) {
+                    case 'date_desc': return getDate(b) - getDate(a);
+                    case 'date_asc': return getDate(a) - getDate(b);
+                    case 'name_asc': default: return a.name.localeCompare(b.name, 'tr');
+                }
+            });
+
             const filteredItems = allItems.filter(item => item.name.toLowerCase().includes(query) || item.id.toLowerCase().includes(query));
             dom.noResults.classList.toggle('hidden', filteredItems.length > 0);
+            
             filteredItems.forEach(item => {
                 const card = document.createElement('div');
                 const isRetired = item.isRetired || false;
@@ -282,7 +364,7 @@
                     actionButtonsHtml = `<button class="icon-button retire-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" data-action="retire" aria-label="Emekliye Ayır"><span class="material-symbols-outlined">work_history</span></button><button class="icon-button edit-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Düzenle"><span class="material-symbols-outlined">edit</span></button><button class="icon-button delete-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Sil"><span class="material-symbols-outlined">delete</span></button>`;
                 }
                 const retiredBadge = isRetired ? `<p class="text-xs font-bold mt-1" style="color: var(--md-sys-color-warning);">EMEKLİ</p>` : '';
-                const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${item.eklenmeTarihi.toDate().toLocaleDateString('tr-TR')}</p>` : '<p class="text-xs text-red-400 mt-1">Tarih Yok</p>';
+                const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${getDate(item).toLocaleDateString('tr-TR')}</p>` : '<p class="text-xs text-red-400 mt-1">Tarih Yok</p>';
                 card.innerHTML = `${imageBlockHtml}<div class="flex-grow"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${starHtml}</div>${dateHtml}${retiredBadge}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionButtonsHtml}</div>`;
                 dom.adminGrid.appendChild(card);
             });
@@ -322,7 +404,7 @@
         }
         
         function updateAuthUI(user) {
-            const contentToLock = [dom.appContainer.querySelector('main'), dom.toggleFormBtn.closest('.flex.sm\\:flex-row'), dom.addEditFormContainer];
+            const contentToLock = [dom.appContainer.querySelector('main'), dom.toggleFormBtn.closest('.flex.sm\\:flex-row'), dom.addEditFormContainer, dom.viewFilter, dom.sortBy, dom.searchInput];
             if (user) {
                 dom.authActionText.textContent = 'Çıkış Yap';
                 dom.authActionIcon.textContent = 'logout';
@@ -359,14 +441,24 @@
                 dom.addEditFormContainer.classList.add('hidden');
                 dom.toggleFormText.textContent = 'Yeni Kayıt'; dom.toggleFormIcon.textContent = 'add';
             });
+            
             dom.searchInput.addEventListener('input', renderAdminPanel);
+            dom.viewFilter.addEventListener('change', (e) => {
+                viewState.filter = e.target.value;
+                renderAdminPanel();
+            });
+            dom.sortBy.addEventListener('change', (e) => {
+                viewState.sortBy = e.target.value;
+                renderAdminPanel();
+            });
+
             dom.toggleFormBtn.addEventListener('click', () => {
                 const isHidden = dom.addEditFormContainer.classList.toggle('hidden');
                 dom.toggleFormText.textContent = isHidden ? 'Yeni Kayıt' : 'Formu Kapat';
                 dom.toggleFormIcon.textContent = isHidden ? 'add' : 'close';
                 if(isHidden) resetForm();
             });
-            dom.addEditFormContainer.classList.add('hidden');
+            
             dom.selectorSearchInput.addEventListener('input', () => renderCharacterSelector(dom.selectorSearchInput.value));
         });
 
@@ -473,6 +565,7 @@
             dom.addEditFormContainer.classList.remove('hidden');
             dom.toggleFormText.textContent = 'Formu Kapat';
             dom.toggleFormIcon.textContent = 'close';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
         
         const uploadImageToImgBB = async function(file, apiKey) {
