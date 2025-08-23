@@ -231,13 +231,10 @@
         const closeLoginModal = () => { dom.loginModal.classList.remove('visible'); dom.loginModal.classList.add('hidden'); };
         const openReportModal = () => { dom.reportModal.classList.add('visible'); dom.reportModal.classList.remove('hidden'); };
         
-        // DÜZELTME: Rapor penceresi kapatıldığında hem görünümü hem de hafızadaki modu sıfırlar.
         const closeReportModal = () => {
             dom.reportModal.classList.remove('visible');
             dom.reportModal.classList.add('hidden');
-            // Görsel menüyü sıfırla
             dom.viewFilter.value = 'all';
-            // Hafızadaki modu (state) sıfırla
             viewState.filter = 'all';
         };
         
@@ -264,7 +261,11 @@
 
         function renderCharacterSelector(query = '') {
             dom.selectorGrid.innerHTML = '';
-            const searchableChars = characters.filter(c => !c.isFusion);
+            // ================== BAŞLANGIÇ: FİLTRE GÜNCELLEMESİ ==================
+            // Karakter seçme listesinden füzyonları hariç tutan filtre kaldırıldı.
+            // Artık hem normal karakterler hem de füzyonlar seçilebilir.
+            const searchableChars = characters; 
+            // ================== BİTİŞ: FİLTRE GÜNCELLEMESİ ==================
             const filtered = searchableChars.filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
             
             if (filtered.length === 0) {
@@ -323,13 +324,11 @@
             const query = dom.searchInput.value.toLowerCase().trim();
             let allItems = [...characters, ...easterEggs, ...dismissed];
             
-            // FİLTRELEME
             if (viewState.filter === 'available') {
                 const fusionPartnerIds = new Set(characters.filter(c => c.isFusion).flatMap(f => f.fusionPartners));
                 allItems = characters.filter(c => !c.isFusion && !fusionPartnerIds.has(c.id));
             }
 
-            // SIRALAMA
             const getDate = (item) => item.eklenmeTarihi ? item.eklenmeTarihi.toDate() : new Date(0);
             allItems.sort((a, b) => {
                 switch (viewState.sortBy) {
