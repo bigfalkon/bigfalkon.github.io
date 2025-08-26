@@ -66,7 +66,7 @@
         .icon-button:hover.retire-button { background-color: rgba(var(--md-sys-color-warning-rgb), 0.1); color: var(--md-sys-color-warning); }
         .modal-backdrop { z-index: 1000; position: fixed; inset: 0; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
         .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
-        .modal-content { background-color: var(--md-sys-color-surface-container); border-radius: 24px; padding: 2rem; width: 100%; max-width: 400px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-content { background-color: var(--md-sys-color-surface-container); border-radius: 24px; padding: 1.5rem; width: 100%; max-width: 550px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s ease; max-height: 90vh; overflow-y: auto; }
         .modal-backdrop.visible .modal-content { transform: scale(1); }
         .report-modal-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-bottom: 0.5rem; }
         .report-modal-content p, .report-modal-content li { margin-bottom: 0.5rem; }
@@ -74,7 +74,8 @@
         .enlarged-image { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; }
         .character-selector-item { display: flex; align-items: center; gap: 1rem; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
         .character-selector-item:hover { background-color: var(--md-sys-color-surface-container-high); }
-        .image-input-container .url-input-wrapper { display: none; }
+        .image-input-container .url-input-wrapper, .edit-image-uploader { display: none; }
+        .upload-service-chooser { display: none; }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -92,19 +93,16 @@
         
         <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
             <input type="text" id="search-input" placeholder="Kayıtlar içinde ara..." class="form-input md:col-span-2">
-            
             <select id="view-filter" class="form-select">
                 <option value="all">Tüm Kayıtlar</option>
                 <option value="available">Boştaki Karakterler</option>
                 <option value="preview-report">Füzyon Önizleme Raporu</option>
             </select>
-
             <select id="sort-by" class="form-select">
                 <option value="name_asc">İsme Göre (A-Z)</option>
                 <option value="date_desc">Eklenme Tarihi (Yeni)</option>
                 <option value="date_asc">Eklenme Tarihi (Eski)</option>
             </select>
-
             <div class="col-span-full md:col-span-4 mt-4 flex flex-col sm:flex-row gap-4">
                 <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span id="toggle-form-text">Yeni Kayıt</span></button>
                 <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">visibility</span><span>Galeriye Git</span></a>
@@ -113,14 +111,9 @@
         </div>
         
         <div id="add-edit-form-container" class="bg-[var(--md-sys-color-surface-container)] rounded-2xl p-6 mb-8 hidden">
-            <h2 id="form-title" class="text-2xl font-bold mb-4">Yeni Kayıt Ekle</h2>
-            <form id="add-edit-form" class="flex flex-col gap-4">
-                <div id="date-edit-container" class="hidden">
-                    <label class="block text-sm font-medium mb-1">Eklenme Tarihi</label>
-                    <input type="date" name="eklenmeTarihi" class="form-input">
-                </div>
-
-                <select id="item-type-select" class="form-select"><option value="character">Normal Karakter</option><option value="fusion">Füzyon</option><option value="easterEgg">Easter Egg</option></select>
+            <h2 class="text-2xl font-bold mb-4">Yeni Kayıt Ekle</h2>
+            <form id="add-form" class="flex flex-col gap-4">
+                <select id="add-item-type-select" name="itemType" class="form-select"><option value="character">Normal Karakter</option><option value="fusion">Füzyon</option><option value="easterEgg">Easter Egg</option></select>
                 <input required type="text" name="id" placeholder="Kayıt ID (benzersiz olmalı)" class="form-input">
                 <input required type="text" name="name" placeholder="İsim" class="form-input">
                 
@@ -134,7 +127,7 @@
                     <div class="url-input-wrapper"><input type="text" name="imageUrl" placeholder="Resim linkini buraya yapıştırın..." class="form-input"></div>
                 </div>
                 
-                <div id="character-fields" class="flex flex-col gap-4">
+                <div id="add-character-fields" class="flex flex-col gap-4">
                     <div class="image-input-container border-t border-[var(--md-sys-color-outline-variant)] pt-4">
                         <label class="block text-sm font-medium mb-2">2★ Resim</label>
                          <div class="flex items-center gap-4 mb-2">
@@ -155,17 +148,17 @@
                     </div>
                 </div>
                 
-                <div id="fusion-fields" class="hidden flex flex-col gap-3">
+                <div id="add-fusion-fields" class="hidden flex flex-col gap-3">
                     <div class="character-selector-wrapper">
                         <label class="block text-sm font-medium mb-1">Partner 1</label>
-                        <div class="flex items-center gap-2"><div id="fusionPartners_0_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('fusionPartners_0')">Seç</button><input type="hidden" name="fusionPartners_0"></div>
+                        <div class="flex items-center gap-2"><div id="add_fusionPartners_0_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('add_fusionPartners_0')">Seç</button><input type="hidden" name="fusionPartners_0"></div>
                     </div>
                      <div class="character-selector-wrapper">
                         <label class="block text-sm font-medium mb-1">Partner 2</label>
-                        <div class="flex items-center gap-2"><div id="fusionPartners_1_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('fusionPartners_1')">Seç</button><input type="hidden" name="fusionPartners_1"></div>
+                        <div class="flex items-center gap-2"><div id="add_fusionPartners_1_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('add_fusionPartners_1')">Seç</button><input type="hidden" name="fusionPartners_1"></div>
                     </div>
                 </div>
-                <div id="fusion-preview-image-field" class="hidden image-input-container border-t border-[var(--md-sys-color-outline-variant)] pt-4">
+                <div id="add-fusion-preview-image-field" class="hidden image-input-container border-t border-[var(--md-sys-color-outline-variant)] pt-4">
                     <label class="block text-sm font-medium mb-2">Füzyon Önizleme Resmi (PNG/JPG)</label>
                     <div class="flex items-center gap-4 mb-2">
                         <label class="flex items-center gap-2"><input type="radio" name="imageSource_3" value="file" checked class="form-radio image-source-toggle"> Dosya Yükle</label>
@@ -175,22 +168,22 @@
                     <div class="url-input-wrapper"><input type="text" name="fusion_preview_url" placeholder="Resim linkini buraya yapıştırın..." class="form-input"></div>
                 </div>
 
-                <div id="easter-egg-fields" class="hidden flex flex-col gap-3">
+                <div id="add-easter-egg-fields" class="hidden flex flex-col gap-3">
                      <div class="character-selector-wrapper">
                         <label class="block text-sm font-medium mb-1">Orijinal Karakter</label>
-                        <div class="flex items-center gap-2"><div id="originalCharacterId_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('originalCharacterId')">Seç</button><input type="hidden" name="originalCharacterId"></div>
+                        <div class="flex items-center gap-2"><div id="add_originalCharacterId_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('add_originalCharacterId')">Seç</button><input type="hidden" name="originalCharacterId"></div>
                     </div>
                 </div>
                 
-                <div class="border-t border-[var(--md-sys-color-outline-variant)] pt-4 mt-2" id="upload-service-chooser">
-                    <label class="block text-sm font-medium mb-2">Dosya Yükleme Servisi (Sadece "Dosya Yükle" seçiliyse geçerlidir)</label>
+                <div class="border-t border-[var(--md-sys-color-outline-variant)] pt-4 mt-2 upload-service-chooser">
+                    <label class="block text-sm font-medium mb-2">Dosya Yükleme Servisi</label>
                     <div class="flex items-center gap-6">
                         <label class="flex items-center gap-2"><input type="radio" name="uploadService" value="imgbb" checked class="form-radio"> ImgBB</label>
                         <label class="flex items-center gap-2"><input type="radio" name="uploadService" value="vgyme" class="form-radio"> VGY.ME</label>
                     </div>
                 </div>
 
-                <div class="flex gap-4 mt-4"><button type="button" id="cancel-button" class="btn btn-secondary flex-grow hidden">İptal</button><button type="submit" id="save-button" class="btn btn-primary flex-grow">Kaydet</button></div>
+                <div class="flex gap-4 mt-4"><button type="button" id="cancel-add-button" class="btn btn-secondary flex-grow">İptal</button><button type="submit" class="btn btn-primary flex-grow">Kaydet</button></div>
             </form>
         </div>
 
@@ -201,10 +194,52 @@
         </main>
     </div>
 
-    <div id="login-modal" class="modal-backdrop hidden" onclick="closeLoginModal()"><div class="modal-content" onclick="event.stopPropagation()"><button class="icon-button absolute top-2 right-2" onclick="closeLoginModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button><h2 class="text-2xl font-bold mb-4 text-center">Yönetici Girişi</h2><div class="flex flex-col gap-3"><input type="email" id="admin-email" placeholder="E-posta" class="form-input"><input type="password" id="admin-password" placeholder="Şifre" class="form-input"><button id="login-submit-btn" class="btn btn-success w-full mt-2">Giriş Yap</button><p id="login-status" class="mt-2 text-center text-red-400 h-5"></p></div></div></div>
+    <div id="login-modal" class="modal-backdrop hidden" onclick="closeLoginModal()"><div class="modal-content !max-w-sm" onclick="event.stopPropagation()"><button class="icon-button absolute top-2 right-2" onclick="closeLoginModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button><h2 class="text-2xl font-bold mb-4 text-center">Yönetici Girişi</h2><div class="flex flex-col gap-3"><input type="email" id="admin-email" placeholder="E-posta" class="form-input"><input type="password" id="admin-password" placeholder="Şifre" class="form-input"><button id="login-submit-btn" class="btn btn-success w-full mt-2">Giriş Yap</button><p id="login-status" class="mt-2 text-center text-red-400 h-5"></p></div></div></div>
     <div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()"><button class="icon-button absolute top-4 right-4 text-white text-4xl z-10" onclick="closeEnlargedImage(event)" aria-label="Resmi Kapat"><span class="material-symbols-outlined" style="font-size: 36px;">close</span></button><img id="enlarged-image" src="" alt="Büyük Resim" class="enlarged-image"></div>
     <div id="character-selector-modal" class="modal-backdrop hidden" onclick="closeCharacterSelector()"><div class="modal-content !max-w-screen-sm" onclick="event.stopPropagation()"><button class="icon-button absolute top-2 right-2" onclick="closeCharacterSelector()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button><h2 class="text-2xl font-bold mb-4">Karakter Seç</h2><input type="text" id="selector-search-input" placeholder="Karakter ara..." class="form-input mb-4"><div id="selector-grid" class="max-h-96 overflow-y-auto pr-2 flex flex-col gap-2"></div></div></div>
     <div id="report-modal" class="modal-backdrop hidden" onclick="closeReportModal()"><div class="modal-content !max-w-screen-md report-modal-content" onclick="event.stopPropagation()"><button class="icon-button absolute top-2 right-2" onclick="closeReportModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button><h2 id="report-title" class="text-2xl font-bold mb-4 text-center" style="color: var(--md-sys-color-primary);">Rapor</h2><div id="report-content" class="max-h-[70vh] overflow-y-auto pr-2"></div></div></div>
+    
+    <div id="edit-modal" class="modal-backdrop hidden">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-2 right-2" onclick="closeEditModal()" aria-label="Kapat"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-2xl font-bold mb-4">Kaydı Düzenle</h2>
+            <form id="edit-form" class="flex flex-col gap-4">
+                <input type="hidden" name="itemType">
+                <input type="hidden" name="id">
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">İsim</label>
+                    <input required type="text" name="name" placeholder="İsim" class="form-input">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium mb-1">Eklenme Tarihi</label>
+                    <input type="date" name="eklenmeTarihi" class="form-input">
+                </div>
+                
+                <div id="edit-image-fields" class="flex flex-col gap-4"></div>
+
+                <div id="edit-fusion-fields" class="hidden flex flex-col gap-3">
+                    <div class="character-selector-wrapper">
+                        <label class="block text-sm font-medium mb-1">Partner 1</label>
+                        <div class="flex items-center gap-2"><div id="edit_fusionPartners_0_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('edit_fusionPartners_0')">Seç</button><input type="hidden" name="fusionPartners_0"></div>
+                    </div>
+                     <div class="character-selector-wrapper">
+                        <label class="block text-sm font-medium mb-1">Partner 2</label>
+                        <div class="flex items-center gap-2"><div id="edit_fusionPartners_1_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('edit_fusionPartners_1')">Seç</button><input type="hidden" name="fusionPartners_1"></div>
+                    </div>
+                </div>
+                <div id="edit-easter-egg-fields" class="hidden flex flex-col gap-3">
+                     <div class="character-selector-wrapper">
+                        <label class="block text-sm font-medium mb-1">Orijinal Karakter</label>
+                        <div class="flex items-center gap-2"><div id="edit_originalCharacterId_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('edit_originalCharacterId')">Seç</button><input type="hidden" name="originalCharacterId"></div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 mt-4"><button type="button" class="btn btn-secondary flex-grow" onclick="closeEditModal()">İptal</button><button type="submit" class="btn btn-primary flex-grow">Güncelle</button></div>
+            </form>
+        </div>
+    </div>
+
 
     <script>
         const firebaseConfig = {
@@ -218,7 +253,8 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         let apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null, vgyme_user_key: null };
-        let characters = [], easterEggs = [], dismissed = [], editingItemId = null, editingItemType = null;
+        let characters = [], easterEggs = [], dismissed = [];
+        let editingItemData = null; 
         let selectorTargetInput = null;
 
         const viewState = { filter: 'all', sortBy: 'name_asc' };
@@ -228,13 +264,15 @@
         const closeLoginModal = () => { dom.loginModal.classList.add('hidden'); dom.loginModal.classList.remove('visible'); };
         const openReportModal = () => { dom.reportModal.classList.remove('hidden'); dom.reportModal.classList.add('visible'); };
         const closeReportModal = () => {
-            dom.reportModal.classList.remove('visible');
             dom.reportModal.classList.add('hidden');
+            dom.reportModal.classList.remove('visible');
             if (dom.viewFilter.value === 'preview-report') {
                 dom.viewFilter.value = 'all';
                 viewState.filter = 'all';
             }
         };
+        const openEditModal = () => { dom.editModal.classList.remove('hidden'); dom.editModal.classList.add('visible'); };
+        const closeEditModal = () => { dom.editModal.classList.add('hidden'); dom.editModal.classList.remove('visible'); editingItemData = null; };
         
         const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
             const colors = { 1: 'text-orange-400', 2: 'text-slate-400', 3: 'text-amber-400', 4: 'text-fuchsia-400' };
@@ -285,7 +323,7 @@
         function selectCharacter(char) {
             if (!selectorTargetInput) return;
             const displayEl = document.getElementById(`${selectorTargetInput}_display`);
-            const hiddenInput = document.querySelector(`[name="${selectorTargetInput}"]`);
+            const hiddenInput = document.querySelector(`[name="${selectorTargetInput.split('_')[1]}"]`);
             
             displayEl.textContent = char.name;
             displayEl.classList.remove('italic', 'text-gray-400');
@@ -345,34 +383,25 @@
             setupActionListeners();
         }
         
-        function resetForm() {
-            dom.addEditForm.reset(); editingItemId = null; editingItemType = null;
-            dom.formTitle.textContent = "Yeni Kayıt Ekle"; dom.itemTypeSelect.disabled = false;
-            dom.addEditForm.elements['id'].readOnly = false; dom.saveButton.textContent = "Kaydet";
-            dom.cancelButton.classList.add('hidden'); dom.saveButton.disabled = false;
-            
-            document.querySelectorAll('.image-input-container').forEach(c => c.style.display = 'block');
-            document.getElementById('upload-service-chooser').style.display = 'block';
-            document.getElementById('temp-url-container')?.remove();
-            
-            toggleFormFields(); 
-
-            document.querySelectorAll('.image-input-container').forEach(container => {
+        function resetAddForm() {
+            dom.addForm.reset();
+            dom.addForm.querySelector('#add-item-type-select').value = 'character';
+            toggleAddFormFields();
+            document.querySelectorAll('#add-form .image-input-container').forEach(container => {
                 container.querySelector('.file-input-wrapper').style.display = 'block';
                 container.querySelector('.url-input-wrapper').style.display = 'none';
                 container.querySelectorAll('.image-source-toggle').forEach(radio => {
                     if (radio.value === 'file') radio.checked = true;
                 });
             });
-
-            dom.dateEditContainer.classList.add('hidden');
-            ['fusionPartners_0', 'fusionPartners_1', 'originalCharacterId'].forEach(id => {
-                const display = document.getElementById(`${id}_display`); const input = document.querySelector(`[name="${id}"]`);
-                if (display) { display.textContent = 'Seçilmedi'; display.classList.add('italic', 'text-gray-400'); }
-                if (input) input.value = '';
+            ['add_fusionPartners_0', 'add_fusionPartners_1', 'add_originalCharacterId'].forEach(id => {
+                const display = document.getElementById(`${id}_display`);
+                if (display) {
+                    display.textContent = 'Seçilmedi';
+                    display.classList.add('italic', 'text-gray-400');
+                }
             });
-
-            updateUploadServiceVisibility();
+            updateUploadServiceVisibility(dom.addForm);
         }
         
         function updateAuthUI(user) {
@@ -392,13 +421,13 @@
             }
         }
         
-        const toggleFormFields = function() {
-            const selectedType = dom.itemTypeSelect.value;
-            dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', selectedType !== 'character');
-            dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', selectedType !== 'fusion');
-            dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', selectedType !== 'fusion');
-            dom.addEditForm.querySelector('#easter-egg-fields').classList.toggle('hidden', selectedType !== 'easterEgg');
-            const mainImageLabel = dom.addEditForm.querySelector('.image-input-container [data-label-text]');
+        const toggleAddFormFields = function() {
+            const selectedType = dom.addForm.elements.itemType.value;
+            dom.addForm.querySelector('#add-character-fields').classList.toggle('hidden', selectedType !== 'character');
+            dom.addForm.querySelector('#add-fusion-fields').classList.toggle('hidden', selectedType !== 'fusion');
+            dom.addForm.querySelector('#add-fusion-preview-image-field').classList.toggle('hidden', selectedType !== 'fusion');
+            dom.addForm.querySelector('#add-easter-egg-fields').classList.toggle('hidden', selectedType !== 'easterEgg');
+            const mainImageLabel = dom.addForm.querySelector('.image-input-container [data-label-text]');
             mainImageLabel.textContent = selectedType === 'easterEgg' ? 'Easter Egg Resim' : (selectedType === 'fusion' ? 'Ana Füzyon Resmi (GIF)' : 'Ana Resim');
         };
 
@@ -406,64 +435,13 @@
             dom.adminGrid.querySelectorAll('.edit-button, .delete-button, .retire-button').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const { id, type, action } = e.currentTarget.dataset;
-                    if (button.classList.contains('edit-button')) { loadItemForEdit(id, type); }
+                    if (button.classList.contains('edit-button')) { openItemForEdit(id, type); }
                     else if (button.classList.contains('delete-button')) { deleteItem(id, type); }
                     else if (button.classList.contains('retire-button')) {
                         if (action === 'retire') { retireItem(id, type); } else if (action === 'unretire') { unretireItem(id, type); }
                     }
                 });
             });
-        };
-
-        const loadItemForEdit = function(itemId, itemType) {
-            resetForm(); const allItems = [...characters, ...easterEggs, ...dismissed];
-            const itemData = allItems.find(i => i.id === itemId); if (!itemData) return alert("Kayıt bulunamadı.");
-            editingItemId = itemId; editingItemType = itemType;
-            dom.formTitle.textContent = "Kaydı Düzenle"; dom.itemTypeSelect.value = itemType; dom.itemTypeSelect.disabled = true;
-            const form = dom.addEditForm; form.elements['id'].value = itemId; form.elements['id'].readOnly = true; 
-            form.elements['name'].value = itemData.name || '';
-
-            if (itemData.eklenmeTarihi) {
-                const date = itemData.eklenmeTarihi.toDate();
-                const formattedDate = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
-                form.elements['eklenmeTarihi'].value = formattedDate;
-            } else { form.elements['eklenmeTarihi'].value = ''; }
-            dom.dateEditContainer.classList.remove('hidden');
-
-            document.querySelectorAll('.image-input-container').forEach(container => container.style.display = 'none');
-            document.getElementById('upload-service-chooser').style.display = 'none';
-            
-            const urlContainer = document.createElement('div'); urlContainer.id = 'temp-url-container';
-            urlContainer.className = 'flex flex-col gap-3';
-            const createUrlInput = (name, placeholder, value) => `<div><label class="block text-sm font-medium mb-1">${placeholder}</label><input type="text" name="${name}" placeholder="${placeholder} URL" class="form-input" value="${value || ''}"></div>`;
-            
-            let inputsHtml = createUrlInput('imageUrl', 'Ana Resim', itemData.imageUrl);
-            if (itemType === 'character') {
-                inputsHtml += createUrlInput('evolutions_1', '2★ Resim', itemData.evolutions?.find(e=>e.star===2)?.imageUrl);
-                inputsHtml += createUrlInput('evolutions_2', '3★ Resim', itemData.evolutions?.find(e=>e.star===3)?.imageUrl);
-            }
-            if (itemType === 'fusion') { inputsHtml += createUrlInput('previewUrl', 'Önizleme Resmi', itemData.previewUrl); }
-
-            urlContainer.innerHTML = inputsHtml;
-            form.insertBefore(urlContainer, form.querySelector('#character-fields'));
-
-            const updateSelectorDisplay = (inputId, charId) => {
-                const character = [...characters, ...dismissed].find(c => c.id === charId);
-                const display = document.getElementById(`${inputId}_display`); const input = document.querySelector(`[name="${inputId}"]`);
-                if (character && display && input) {
-                    display.textContent = character.name; display.classList.remove('italic', 'text-gray-400'); input.value = character.id;
-                }
-            };
-            if (itemType === 'fusion') {
-                updateSelectorDisplay('fusionPartners_0', itemData.fusionPartners?.[0]);
-                updateSelectorDisplay('fusionPartners_1', itemData.fusionPartners?.[1]);
-            } else if (itemType === 'easterEgg') {
-                updateSelectorDisplay('originalCharacterId', itemData.originalCharacterId);
-            }
-            dom.saveButton.textContent = "Güncelle"; dom.cancelButton.classList.remove('hidden');
-            toggleFormFields(); dom.addEditFormContainer.classList.remove('hidden');
-            dom.toggleFormText.textContent = 'Formu Kapat'; dom.toggleFormIcon.textContent = 'close';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
         
         const uploadImageToImgBB = async function(file, apiKey) {
@@ -491,115 +469,99 @@
             } catch (error) { alert(`VGY.ME'ye resim yüklenemedi: ${error.message}`); return null; }
         };
 
-        async function processImageInput(sourceName, fileInputName, urlInputName) {
-            const form = dom.addEditForm;
-            const source = form.elements[sourceName].value;
-
+        async function processImageInput(form, sourceName, fileInputName, urlInputName, currentUrl = null) {
+            const sourceRadio = form.elements[sourceName];
+            if (!sourceRadio || !sourceRadio[0].checked && !sourceRadio[1].checked) return currentUrl; 
+            
+            const source = sourceRadio.value;
+            
             if (source === 'url') {
                 const url = form.elements[urlInputName].value.trim();
-                return url || null;
+                return url || currentUrl; 
             } 
             
-            const file = form.elements[fileInputName]?.files[0];
-            if (!file) return null;
+            if (source === 'file') {
+                const file = form.elements[fileInputName]?.files[0];
+                if (!file) return currentUrl;
 
-            const selectedService = form.elements['uploadService'].value;
-            
-            if (selectedService === 'vgyme') {
-                if (!apiKeys.vgyme_user_key) throw new Error("Firestore'da VGY.ME kullanıcı anahtarı bulunamadı.");
-                return await uploadImageToVgyme(file, apiKeys.vgyme_user_key);
-            } else { // Default to ImgBB
-                const apiKey = (fileInputName === 'imageFile' && dom.itemTypeSelect.value === 'easterEgg') ? apiKeys.imgbb_easteregg_key : apiKeys.imgbb_main_key;
-                if (!apiKey) throw new Error("Firestore'da ImgBB API anahtarı bulunamadı.");
-                return await uploadImageToImgBB(file, apiKey);
+                const selectedService = form.elements['uploadService'].value;
+                
+                if (selectedService === 'vgyme') {
+                    if (!apiKeys.vgyme_user_key) throw new Error("Firestore'da VGY.ME kullanıcı anahtarı bulunamadı.");
+                    return await uploadImageToVgyme(file, apiKeys.vgyme_user_key);
+                } else { 
+                    const isEasterEggUpload = editingItemData ? editingItemData.originalCharacterId !== undefined : form.elements.itemType.value === 'easterEgg';
+                    const apiKey = (fileInputName.startsWith('imageFile') && isEasterEggUpload) ? apiKeys.imgbb_easteregg_key : apiKeys.imgbb_main_key;
+                    if (!apiKey) throw new Error("Firestore'da ImgBB API anahtarı bulunamadı.");
+                    return await uploadImageToImgBB(file, apiKey);
+                }
             }
+            return currentUrl;
         }
 
-        const handleFormSubmit = async function(event) {
+        const handleAddFormSubmit = async function(event) {
             event.preventDefault(); 
-            const form = dom.addEditForm; 
+            const form = dom.addForm; 
             const id = form.elements['id'].value.trim();
             if (!id || !firebase.auth().currentUser) {
                 return alert(!id ? "ID boş olamaz." : "Giriş yapmalısınız.");
             }
             
-            const isEditing = !!editingItemId; 
-            dom.saveButton.textContent = 'Yükleniyor...'; 
-            dom.saveButton.disabled = true;
+            const saveButton = form.querySelector('button[type="submit"]');
+            saveButton.textContent = 'Yükleniyor...'; 
+            saveButton.disabled = true;
 
             try {
-                const type = dom.itemTypeSelect.value;
-                let data = { name: form.elements['name'].value.trim() };
+                const type = form.elements.itemType.value;
+                let data = { 
+                    name: form.elements['name'].value.trim(),
+                    eklenmeTarihi: firebase.firestore.FieldValue.serverTimestamp()
+                };
                 let collectionName = type === 'easterEgg' ? 'easterEggs' : 'characters';
 
-                if (isEditing) {
-                    const dateValue = form.elements['eklenmeTarihi'].value;
-                    if (dateValue) {
-                        const [year, month, day] = dateValue.split('-').map(Number);
-                        data.eklenmeTarihi = firebase.firestore.Timestamp.fromDate(new Date(Date.UTC(year, month - 1, day)));
-                    }
-                    data.imageUrl = form.elements['imageUrl'].value.trim();
-                    if (type === 'character') {
-                        const evo1Url = form.elements['evolutions_1']?.value.trim();
-                        const evo2Url = form.elements['evolutions_2']?.value.trim();
-                        data.evolutions = [];
+                switch (type) {
+                    case 'character':
+                        data.isFusion = false; data.star = 1;
+                        const [mainUrl, evo1Url, evo2Url] = await Promise.all([
+                            processImageInput(form, 'imageSource_0', 'imageFile', 'imageUrl'),
+                            processImageInput(form, 'imageSource_1', 'evolutions_1_file', 'evolutions_1_url'),
+                            processImageInput(form, 'imageSource_2', 'evolutions_2_file', 'evolutions_2_url')
+                        ]);
+                        if (!mainUrl) throw new Error("Ana resim linki veya dosyası zorunludur.");
+                        data.imageUrl = mainUrl; data.evolutions = [];
                         if (evo1Url) data.evolutions.push({ star: 2, imageUrl: evo1Url });
                         if (evo2Url) data.evolutions.push({ star: 3, imageUrl: evo2Url });
-                    }
-                    if (type === 'fusion') { 
-                        data.previewUrl = form.elements['previewUrl']?.value.trim() || null; 
-                    }
-                } else {
-                    data.eklenmeTarihi = firebase.firestore.FieldValue.serverTimestamp();
-                    switch (type) {
-                        case 'character':
-                            data.isFusion = false; data.star = 1;
-                            const [mainUrl, evo1Url, evo2Url] = await Promise.all([
-                                processImageInput('imageSource_0', 'imageFile', 'imageUrl'),
-                                processImageInput('imageSource_1', 'evolutions_1_file', 'evolutions_1_url'),
-                                processImageInput('imageSource_2', 'evolutions_2_file', 'evolutions_2_url')
-                            ]);
-                            if (!mainUrl) throw new Error("Ana resim linki veya dosyası zorunludur.");
-                            data.imageUrl = mainUrl; data.evolutions = [];
-                            if (evo1Url) data.evolutions.push({ star: 2, imageUrl: evo1Url });
-                            if (evo2Url) data.evolutions.push({ star: 3, imageUrl: evo2Url });
-                            break;
-                        case 'fusion':
-                            data.isFusion = true; data.star = 4;
-                            const [fusionMainUrl, previewUrl] = await Promise.all([
-                                processImageInput('imageSource_0', 'imageFile', 'imageUrl'),
-                                processImageInput('imageSource_3', 'fusion_preview_file', 'fusion_preview_url')
-                            ]);
-                            if (!fusionMainUrl) throw new Error("Ana füzyon resmi linki veya dosyası zorunludur.");
-                            data.imageUrl = fusionMainUrl; data.previewUrl = previewUrl;
-                            data.fusionPartners = [form.elements['fusionPartners_0'].value.trim(), form.elements['fusionPartners_1'].value.trim()].filter(Boolean);
-                            break;
-                        case 'easterEgg':
-                            const eeMainUrl = await processImageInput('imageSource_0', 'imageFile', 'imageUrl');
-                            if (!eeMainUrl) throw new Error("Easter Egg resmi linki veya dosyası zorunludur.");
-                            data.imageUrl = eeMainUrl;
-                            data.originalCharacterId = form.elements['originalCharacterId'].value.trim();
-                            break;
-                    }
+                        break;
+                    case 'fusion':
+                        data.isFusion = true; data.star = 4;
+                        const [fusionMainUrl, previewUrl] = await Promise.all([
+                            processImageInput(form, 'imageSource_0', 'imageFile', 'imageUrl'),
+                            processImageInput(form, 'imageSource_3', 'fusion_preview_file', 'fusion_preview_url')
+                        ]);
+                        if (!fusionMainUrl) throw new Error("Ana füzyon resmi linki veya dosyası zorunludur.");
+                        data.imageUrl = fusionMainUrl; data.previewUrl = previewUrl;
+                        data.fusionPartners = [form.elements['fusionPartners_0'].value.trim(), form.elements['fusionPartners_1'].value.trim()].filter(Boolean);
+                        break;
+                    case 'easterEgg':
+                        const eeMainUrl = await processImageInput(form, 'imageSource_0', 'imageFile', 'imageUrl');
+                        if (!eeMainUrl) throw new Error("Easter Egg resmi linki veya dosyası zorunludur.");
+                        data.imageUrl = eeMainUrl;
+                        data.originalCharacterId = form.elements['originalCharacterId'].value.trim();
+                        break;
                 }
                 
-                if (isEditing) {
-                    if (type === 'fusion') { data.fusionPartners = [form.elements['fusionPartners_0'].value.trim(), form.elements['fusionPartners_1'].value.trim()].filter(Boolean); }
-                    else if (type === 'easterEgg') { data.originalCharacterId = form.elements['originalCharacterId'].value.trim(); }
-                }
-
                 await db.collection(collectionName).doc(id).set(data, { merge: true });
-                alert(`Kayıt başarıyla ${isEditing ? 'güncellendi' : 'kaydedildi'}!`);
+                alert(`Kayıt başarıyla kaydedildi!`);
                 await fetchItems(); 
                 dom.addEditFormContainer.classList.add('hidden');
                 dom.toggleFormText.textContent = 'Yeni Kayıt'; 
                 dom.toggleFormIcon.textContent = 'add'; 
-                resetForm();
+                resetAddForm();
             } catch (error) { 
                 alert(`Hata: ${error.message}`); 
             } finally {
-                dom.saveButton.textContent = isEditing ? 'Güncelle' : 'Kaydet';
-                dom.saveButton.disabled = false;
+                saveButton.textContent = 'Kaydet';
+                saveButton.disabled = false;
             }
         };
 
@@ -708,12 +670,12 @@
             return html;
         }
 
-        function updateUploadServiceVisibility() {
-            const uploadServiceChooser = document.getElementById('upload-service-chooser');
+        function updateUploadServiceVisibility(form) {
+            const uploadServiceChooser = form.querySelector('.upload-service-chooser');
             if (!uploadServiceChooser) return;
             let anyFileSelected = false;
-            document.querySelectorAll('.image-source-toggle[value="file"]:checked').forEach(radio => {
-                const container = radio.closest('.image-input-container');
+            form.querySelectorAll('.image-source-toggle[value="file"]:checked').forEach(radio => {
+                const container = radio.closest('.image-input-container, .image-edit-container');
                 if (container && container.style.display !== 'none' && !container.classList.contains('hidden')) {
                     anyFileSelected = true;
                 }
@@ -721,27 +683,179 @@
             uploadServiceChooser.style.display = anyFileSelected ? 'block' : 'none';
         }
 
+        function createImageEditField(label, currentUrl, fieldName) {
+            const hasUrl = currentUrl && currentUrl.trim() !== '';
+            return `
+                <div class="image-edit-container border-t border-[var(--md-sys-color-outline-variant)] pt-4">
+                    <label class="block text-sm font-medium mb-2">${label}</label>
+                    <div class="flex items-center gap-4">
+                        <img src="${hasUrl ? currentUrl : 'https://via.placeholder.com/96x96.png?text=Yok'}" class="w-24 h-24 object-cover rounded-md bg-gray-700">
+                        <div class="flex-grow">
+                            <p class="text-xs break-all text-gray-400">${hasUrl ? currentUrl : 'Resim Yok'}</p>
+                            <button type="button" class="btn btn-secondary btn-sm mt-2" onclick="toggleEditUploader(this)">Değiştir</button>
+                        </div>
+                    </div>
+                    <div class="edit-image-uploader mt-3">
+                        <input type="hidden" name="${fieldName}_current" value="${currentUrl || ''}">
+                        <div class="flex items-center gap-4 mb-2">
+                            <label class="flex items-center gap-2"><input type="radio" name="${fieldName}_source" value="file" checked class="form-radio image-source-toggle"> Dosya Yükle</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="${fieldName}_source" value="url" class="form-radio image-source-toggle"> Link Ver</label>
+                        </div>
+                        <div class="file-input-wrapper"><input type="file" name="${fieldName}_file" class="form-input"></div>
+                        <div class="url-input-wrapper"><input type="text" name="${fieldName}_url" placeholder="Yeni resim linkini buraya yapıştırın..." class="form-input"></div>
+                         <div class="upload-service-chooser mt-2">
+                            <label class="block text-sm font-medium mb-2">Yükleme Servisi</label>
+                            <div class="flex items-center gap-6">
+                                <label class="flex items-center gap-2"><input type="radio" name="uploadService" value="imgbb" checked class="form-radio"> ImgBB</label>
+                                <label class="flex items-center gap-2"><input type="radio" name="uploadService" value="vgyme" class="form-radio"> VGY.ME</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleEditUploader(button) {
+            const uploader = button.closest('.image-edit-container').querySelector('.edit-image-uploader');
+            uploader.style.display = uploader.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function openItemForEdit(itemId, itemType) {
+            const allItems = [...characters, ...easterEggs, ...dismissed];
+            const itemData = allItems.find(i => i.id === itemId);
+            if (!itemData) return alert("Kayıt bulunamadı.");
+            editingItemData = itemData;
+
+            const form = dom.editForm;
+            form.reset();
+            form.elements.id.value = itemData.id;
+            form.elements.itemType.value = itemType;
+            form.elements.name.value = itemData.name || '';
+            if (itemData.eklenmeTarihi) {
+                const date = itemData.eklenmeTarihi.toDate();
+                form.elements.eklenmeTarihi.value = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+            } else {
+                form.elements.eklenmeTarihi.value = '';
+            }
+            
+            const imageFieldsContainer = dom.editForm.querySelector('#edit-image-fields');
+            imageFieldsContainer.innerHTML = '';
+
+            let imageFieldsHtml = createImageEditField('Ana Resim (1★)', itemData.imageUrl, 'imageUrl');
+            
+            if (itemType === 'character') {
+                const evo1 = itemData.evolutions?.find(e => e.star === 2) || {};
+                const evo2 = itemData.evolutions?.find(e => e.star === 3) || {};
+                imageFieldsHtml += createImageEditField('2★ Resim', evo1.imageUrl, 'evolutions_1');
+                imageFieldsHtml += createImageEditField('3★ Resim', evo2.imageUrl, 'evolutions_2');
+            } else if (itemType === 'fusion') {
+                imageFieldsHtml += createImageEditField('Önizleme Resmi', itemData.previewUrl, 'previewUrl');
+            }
+            imageFieldsContainer.innerHTML = imageFieldsHtml;
+
+            dom.editForm.querySelector('#edit-fusion-fields').classList.toggle('hidden', itemType !== 'fusion');
+            dom.editForm.querySelector('#edit-easter-egg-fields').classList.toggle('hidden', itemType !== 'easterEgg');
+
+            const updateSelectorDisplay = (prefix, inputId, charId) => {
+                const character = characters.find(c => c.id === charId);
+                const display = document.getElementById(`${prefix}_${inputId}_display`);
+                const input = form.elements[inputId];
+                if (character && display && input) {
+                    display.textContent = character.name;
+                    display.classList.remove('italic', 'text-gray-400');
+                    input.value = character.id;
+                }
+            };
+            if (itemType === 'fusion') {
+                updateSelectorDisplay('edit', 'fusionPartners_0', itemData.fusionPartners?.[0]);
+                updateSelectorDisplay('edit', 'fusionPartners_1', itemData.fusionPartners?.[1]);
+            } else if (itemType === 'easterEgg') {
+                updateSelectorDisplay('edit', 'originalCharacterId', itemData.originalCharacterId);
+            }
+            
+            openEditModal();
+        }
+
+        async function handleEditFormSubmit(event) {
+            event.preventDefault();
+            const form = dom.editForm;
+            const saveButton = form.querySelector('button[type="submit"]');
+            saveButton.textContent = 'Güncelleniyor...';
+            saveButton.disabled = true;
+
+            try {
+                const id = form.elements.id.value;
+                const type = form.elements.itemType.value;
+                let data = {
+                    name: form.elements.name.value.trim(),
+                    eklenmeTarihi: firebase.firestore.Timestamp.fromDate(new Date(form.elements.eklenmeTarihi.value))
+                };
+                let collectionName = type === 'easterEgg' ? 'easterEggs' : 'characters';
+
+                if (type === 'character') {
+                    const [mainUrl, evo1Url, evo2Url] = await Promise.all([
+                        processImageInput(form, 'imageUrl_source', 'imageUrl_file', 'imageUrl_url', form.elements.imageUrl_current.value),
+                        processImageInput(form, 'evolutions_1_source', 'evolutions_1_file', 'evolutions_1_url', form.elements.evolutions_1_current.value),
+                        processImageInput(form, 'evolutions_2_source', 'evolutions_2_file', 'evolutions_2_url', form.elements.evolutions_2_current.value)
+                    ]);
+                    if (!mainUrl) throw new Error("Ana resim boş bırakılamaz.");
+                    data.imageUrl = mainUrl;
+                    data.evolutions = [];
+                    if (evo1Url) data.evolutions.push({ star: 2, imageUrl: evo1Url });
+                    if (evo2Url) data.evolutions.push({ star: 3, imageUrl: evo2Url });
+
+                } else if (type === 'fusion') {
+                    const [mainUrl, previewUrl] = await Promise.all([
+                        processImageInput(form, 'imageUrl_source', 'imageUrl_file', 'imageUrl_url', form.elements.imageUrl_current.value),
+                        processImageInput(form, 'previewUrl_source', 'previewUrl_file', 'previewUrl_url', form.elements.previewUrl_current.value)
+                    ]);
+                    if (!mainUrl) throw new Error("Ana resim boş bırakılamaz.");
+                    data.imageUrl = mainUrl;
+                    data.previewUrl = previewUrl;
+                    data.fusionPartners = [form.elements.fusionPartners_0.value, form.elements.fusionPartners_1.value].filter(Boolean);
+
+                } else if (type === 'easterEgg') {
+                    const mainUrl = await processImageInput(form, 'imageUrl_source', 'imageUrl_file', 'imageUrl_url', form.elements.imageUrl_current.value);
+                    if (!mainUrl) throw new Error("Ana resim boş bırakılamaz.");
+                    data.imageUrl = mainUrl;
+                    data.originalCharacterId = form.elements.originalCharacterId.value;
+                }
+                
+                await db.collection(collectionName).doc(id).set(data, { merge: true });
+                alert('Kayıt başarıyla güncellendi!');
+                await fetchItems();
+                closeEditModal();
+
+            } catch (error) {
+                alert(`Hata: ${error.message}`);
+            } finally {
+                saveButton.textContent = 'Güncelle';
+                saveButton.disabled = false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             Object.assign(dom, {
                 appContainer: document.getElementById('app'), addEditFormContainer: document.getElementById('add-edit-form-container'),
                 toggleFormBtn: document.getElementById('toggle-form-btn'), toggleFormText: document.getElementById('toggle-form-text'),
-                toggleFormIcon: document.getElementById('toggle-form-icon'), addEditForm: document.getElementById('add-edit-form'),
-                itemTypeSelect: document.getElementById('item-type-select'), formTitle: document.getElementById('form-title'),
-                saveButton: document.getElementById('save-button'), cancelButton: document.getElementById('cancel-button'),
+                toggleFormIcon: document.getElementById('toggle-form-icon'), addForm: document.getElementById('add-form'),
                 adminGrid: document.getElementById('admin-grid'), searchInput: document.getElementById('search-input'),
                 noResults: document.getElementById('no-results'), enlargedImageOverlay: document.getElementById('enlarged-image-overlay'),
                 enlargedImage: document.getElementById('enlarged-image'), authActionBtn: document.getElementById('auth-action-btn'),
                 authActionText: document.getElementById('auth-action-text'), authActionIcon: document.getElementById('auth-action-icon'),
                 loginModal: document.getElementById('login-modal'), loginSubmitBtn: document.getElementById('login-submit-btn'),
                 adminEmailInput: document.getElementById('admin-email'), adminPasswordInput: document.getElementById('admin-password'),
-                loginStatus: document.getElementById('login-status'), dateEditContainer: document.getElementById('date-edit-container'),
+                loginStatus: document.getElementById('login-status'), 
                 characterSelectorModal: document.getElementById('character-selector-modal'), selectorSearchInput: document.getElementById('selector-search-input'),
                 selectorGrid: document.getElementById('selector-grid'), viewFilter: document.getElementById('view-filter'), sortBy: document.getElementById('sort-by'),
                 reportModal: document.getElementById('report-modal'), reportTitle: document.getElementById('report-title'), reportContent: document.getElementById('report-content'),
-                fusionReportBtn: document.getElementById('fusion-report-btn')
+                fusionReportBtn: document.getElementById('fusion-report-btn'),
+                editModal: document.getElementById('edit-modal'),
+                editForm: document.getElementById('edit-form')
             });
 
             fetchItems();
+            
             dom.loginSubmitBtn.addEventListener('click', async () => {
                 const email = dom.adminEmailInput.value; const password = dom.adminPasswordInput.value;
                 dom.loginStatus.textContent = '';
@@ -751,26 +865,35 @@
                 } catch (error) { dom.loginStatus.textContent = `Hata: ${error.code}`;
                 } finally { dom.loginSubmitBtn.disabled = false; dom.loginSubmitBtn.textContent = 'Giriş Yap'; }
             });
+            
             firebase.auth().onAuthStateChanged(updateAuthUI);
-            dom.itemTypeSelect.addEventListener('change', toggleFormFields);
-            dom.addEditForm.addEventListener('submit', handleFormSubmit);
-            dom.cancelButton.addEventListener('click', () => {
-                resetForm(); dom.addEditFormContainer.classList.add('hidden');
+            
+            dom.addForm.elements.itemType.addEventListener('change', toggleAddFormFields);
+            dom.addForm.addEventListener('submit', handleAddFormSubmit);
+            dom.editForm.addEventListener('submit', handleEditFormSubmit);
+
+            dom.addForm.querySelector('#cancel-add-button').addEventListener('click', () => {
+                dom.addEditFormContainer.classList.add('hidden');
                 dom.toggleFormText.textContent = 'Yeni Kayıt'; dom.toggleFormIcon.textContent = 'add';
+                resetAddForm();
             });
+
             dom.searchInput.addEventListener('input', renderAdminPanel);
             dom.viewFilter.addEventListener('change', (e) => { viewState.filter = e.target.value; renderAdminPanel(); });
             dom.sortBy.addEventListener('change', (e) => { viewState.sortBy = e.target.value; renderAdminPanel(); });
+            
             dom.toggleFormBtn.addEventListener('click', () => {
                 const isHidden = dom.addEditFormContainer.classList.toggle('hidden');
                 dom.toggleFormText.textContent = isHidden ? 'Yeni Kayıt' : 'Formu Kapat';
                 dom.toggleFormIcon.textContent = isHidden ? 'add' : 'close'; 
                 if(isHidden) {
-                    resetForm();
+                    resetAddForm();
                 } else {
-                    updateUploadServiceVisibility();
+                    toggleAddFormFields();
+                    updateUploadServiceVisibility(dom.addForm);
                 }
             });
+
             dom.selectorSearchInput.addEventListener('input', () => renderCharacterSelector(dom.selectorSearchInput.value));
             
             dom.fusionReportBtn.addEventListener('click', () => {
@@ -780,21 +903,22 @@
                 openReportModal();
             });
 
-            document.querySelectorAll('.image-source-toggle').forEach(radio => {
-                radio.addEventListener('change', (event) => {
-                    const container = event.target.closest('.image-input-container');
+            document.addEventListener('change', (event) => {
+                if (event.target.classList.contains('image-source-toggle')) {
+                    const form = event.target.closest('form');
+                    const container = event.target.closest('.image-input-container, .image-edit-container');
                     const fileWrapper = container.querySelector('.file-input-wrapper');
                     const urlWrapper = container.querySelector('.url-input-wrapper');
                     
                     if (event.target.value === 'url') {
-                        fileWrapper.style.display = 'none';
-                        urlWrapper.style.display = 'block';
+                        if(fileWrapper) fileWrapper.style.display = 'none';
+                        if(urlWrapper) urlWrapper.style.display = 'block';
                     } else {
-                        fileWrapper.style.display = 'block';
-                        urlWrapper.style.display = 'none';
+                        if(fileWrapper) fileWrapper.style.display = 'block';
+                        if(urlWrapper) urlWrapper.style.display = 'none';
                     }
-                    updateUploadServiceVisibility();
-                });
+                    updateUploadServiceVisibility(form);
+                }
             });
         });
     </script>
