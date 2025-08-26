@@ -1,0 +1,21 @@
+{
+  "name": "Karakter Evreni",
+  "short_name": "Karakterler",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#131318",
+  "theme_color": "#443a74",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
