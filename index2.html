@@ -96,6 +96,7 @@
                 <option value="all">Tüm Kayıtlar</option>
                 <option value="available">Boştaki Karakterler</option>
                 <option value="preview-report">Füzyon Önizleme Raporu</option>
+                <option value="character-report">Karakter Raporu</option>
             </select>
 
             <select id="sort-by" class="form-select">
@@ -127,6 +128,7 @@
                     <div class="flex flex-col sm:flex-row gap-2">
                         <select class="form-select sm:w-1/3 image-upload-method">
                             <option value="imgbb">ImgBB Yükle</option>
+                            <option value="vgy">VGY.ME Yükle</option>
                             <option value="link">Direkt Link</option>
                         </select>
                         <input type="file" name="imageFile" class="form-input flex-grow image-upload-file">
@@ -138,7 +140,7 @@
                     <div id="evo1-image-container">
                         <label class="block text-sm font-medium mb-1">2★ Resim</label>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Yükle</option><option value="link">Direkt Link</option></select>
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Yükle</option><option value="vgy">VGY.ME Yükle</option><option value="link">Direkt Link</option></select>
                             <input type="file" name="evolutions_1_file" class="form-input flex-grow image-upload-file">
                             <input type="text" name="evolutions_1_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
@@ -146,7 +148,7 @@
                     <div id="evo2-image-container">
                         <label class="block text-sm font-medium mb-1">3★ Resim</label>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Yükle</option><option value="link">Direkt Link</option></select>
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Yükle</option><option value="vgy">VGY.ME Yükle</option><option value="link">Direkt Link</option></select>
                             <input type="file" name="evolutions_2_file" class="form-input flex-grow image-upload-file">
                             <input type="text" name="evolutions_2_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
@@ -167,7 +169,7 @@
                     <div id="preview-image-container">
                         <label class="block text-sm font-medium mb-1">Füzyon Önizleme Resmi (PNG/JPG)</label>
                         <div class="flex flex-col sm:flex-row gap-2">
-                             <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Yükle</option><option value="link">Direkt Link</option></select>
+                             <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Yükle</option><option value="vgy">VGY.ME Yükle</option><option value="link">Direkt Link</option></select>
                              <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file">
                              <input type="text" name="previewUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
@@ -224,7 +226,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null };
+        let apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null, vgy_user_key: null };
         let characters = [], easterEggs = [], dismissed = [], editingItemId = null, editingItemType = null;
         let selectorTargetInput = null;
 
@@ -338,7 +340,9 @@
             closeCharacterSelector();
         }
         
+        // DEĞİŞİKLİK 2: Raporlama ve ana panel gösterim mantığı güncellendi
         function renderAdminPanel() {
+            // Füzyon Önizleme Raporu
             if (viewState.filter === 'preview-report') {
                 const allFusions = characters.filter(c => c.isFusion);
                 const hasPreview = [];
@@ -357,7 +361,55 @@
                 openReportModal();
                 return;
             }
+            
+            // Yeni Karakter Raporu
+            if (viewState.filter === 'character-report') {
+                const normalCharacters = characters.filter(c => !c.isFusion);
+                const fusionCharacters = characters.filter(c => c.isFusion);
+                const characterNameMap = new Map(characters.map(c => [c.id, c.name]));
+                const fusionCounts = new Map(normalCharacters.map(c => [c.id, 0]));
 
+                fusionCharacters.forEach(fusion => {
+                    (fusion.fusionPartners || []).forEach(partnerId => {
+                        if (fusionCounts.has(partnerId)) {
+                            fusionCounts.set(partnerId, fusionCounts.get(partnerId) + 1);
+                        }
+                    });
+                });
+
+                let reportHtml = '<h3>Karakterler ve Füzyon Kullanımları</h3>';
+                if (normalCharacters.length > 0) {
+                    const sortedChars = [...normalCharacters].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+                    reportHtml += sortedChars.map(char => {
+                        const count = fusionCounts.get(char.id);
+                        const usageText = count > 0 ? `${count} kez füzyona girdi` : 'Hiç kullanılmadı';
+                        return `<p><b>${char.name}</b> - <span style="color: ${count > 0 ? 'var(--md-sys-color-primary)' : 'inherit'}">${usageText}</span></p>`;
+                    }).join('');
+                } else {
+                    reportHtml += '<p class="text-gray-400">Hiç normal karakter bulunamadı.</p>';
+                }
+
+                reportHtml += '<h3>Füzyonlar ve Partnerleri</h3>';
+                if (fusionCharacters.length > 0) {
+                    const sortedFusions = [...fusionCharacters].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+                    reportHtml += sortedFusions.map(fusion => {
+                        const p1_id = fusion.fusionPartners?.[0];
+                        const p2_id = fusion.fusionPartners?.[1];
+                        const p1_name = characterNameMap.get(p1_id) || '<span class="text-red-400">Bilinmiyor</span>';
+                        const p2_name = characterNameMap.get(p2_id) || '<span class="text-red-400">Bilinmiyor</span>';
+                        return `<p><b>${fusion.name}</b> = ${p1_name} + ${p2_name}</p>`;
+                    }).join('');
+                } else {
+                    reportHtml += '<p class="text-gray-400">Hiç füzyon karakteri bulunamadı.</p>';
+                }
+
+                dom.reportTitle.textContent = 'Karakter ve Füzyon Raporu';
+                dom.reportContent.innerHTML = reportHtml;
+                openReportModal();
+                return;
+            }
+
+            // Ana Panel Görüntüsü
             dom.adminGrid.innerHTML = '';
             const query = dom.searchInput.value.toLowerCase().trim();
             let allItems = [...characters, ...easterEggs, ...dismissed];
@@ -454,7 +506,7 @@
                 dom.authActionText.textContent = 'Giriş Yap';
                 dom.authActionIcon.textContent = 'login';
                 dom.authActionBtn.onclick = openLoginModal;
-                apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null };
+                apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null, vgy_user_key: null };
                 contentToLock.forEach(el => { if(el) { el.style.opacity = '0.5'; el.style.pointerEvents = 'none'; }});
                 dom.addEditFormContainer.classList.add('hidden');
                 dom.toggleFormText.textContent = 'Yeni Kayıt'; dom.toggleFormIcon.textContent = 'add';
@@ -471,7 +523,7 @@
                     if (e.target.value === 'link') {
                         fileInput.classList.add('hidden');
                         linkInput.classList.remove('hidden');
-                    } else {
+                    } else { // 'imgbb' or 'vgy'
                         fileInput.classList.remove('hidden');
                         linkInput.classList.add('hidden');
                     }
@@ -579,13 +631,12 @@
 
             const setupImageFieldForEdit = (containerId, url) => {
                 const container = document.getElementById(containerId);
-                if (!container) return;
+                if (!container || !url) return;
                 const select = container.querySelector('.image-upload-method');
                 const fileInput = container.querySelector('.image-upload-file');
                 const linkInput = container.querySelector('.image-upload-link');
                 
                 select.value = 'link';
-                select.disabled = true;
                 fileInput.classList.add('hidden');
                 linkInput.classList.remove('hidden');
                 linkInput.value = url || '';
@@ -628,7 +679,6 @@
         };
         
         const uploadImageToImgBB = async function(file, apiKey) {
-            if (!file) return null;
             if (!apiKey) { alert("ImgBB API anahtarı eksik."); throw new Error("API anahtarı eksik."); }
             const formData = new FormData(); formData.append('image', file);
             try {
@@ -637,6 +687,19 @@
                 const result = await res.json();
                 if (result.success) return result.data.url; else throw new Error(result.error.message);
             } catch (error) { alert(`Resim ImgBB'ye yüklenemedi: ${error.message}`); return null; }
+        };
+        
+        const uploadImageToVGY = async function(file, userKey) {
+            if (!userKey) { alert("VGY.ME User Key eksik."); throw new Error("API anahtarı eksik."); }
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userkey', userKey);
+            try {
+                const res = await fetch(`https://vgy.me/upload`, { method: 'POST', body: formData });
+                if (!res.ok) throw new Error(`Yükleme hatası: ${res.statusText}`);
+                const result = await res.json();
+                if (!result.error) return result.image; else throw new Error(result.message);
+            } catch (error) { alert(`Resim VGY.ME'ye yüklenemedi: ${error.message}`); return null; }
         };
 
         const processImageInput = async function(containerId) {
@@ -656,11 +719,13 @@
                  if(editingItemId) return linkInput.value.trim() || null;
                  return null;
             }
-
+            
             if (method === 'imgbb') {
                 const type = dom.itemTypeSelect.value;
                 const apiKey = type === 'easterEgg' ? apiKeys.imgbb_easteregg_key : apiKeys.imgbb_main_key;
                 return await uploadImageToImgBB(file, apiKey);
+            } else if (method === 'vgy') {
+                return await uploadImageToVGY(file, apiKeys.vgy_user_key);
             }
             return null;
         };
@@ -810,6 +875,7 @@
                     const keysData = apiKeysDoc.data();
                     apiKeys.imgbb_main_key = keysData.imgbb_main_key || null;
                     apiKeys.imgbb_easteregg_key = keysData.imgbb_easteregg_key || null;
+                    apiKeys.vgy_user_key = keysData.vgy_user_key || null;
                     return true; 
                 }
                 else { alert("Yönetici API anahtarları bulunamadı."); return false; }
