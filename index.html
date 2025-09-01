@@ -100,7 +100,6 @@
         #fitToScreenToggleBtn.active:hover { background-color: var(--md-sys-color-primary); }
         .search-result-card { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-radius: 12px; background-color: var(--md-sys-color-surface-container); transition: all 0.2s ease-in-out; cursor: pointer; }
         .search-result-card:hover { background-color: var(--md-sys-color-surface-container-high); transform: translateY(-2px); box-shadow: 4px 8px 16px rgba(0,0,0,0.3); }
-        #search-results-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
         #search-input:focus { border-color: var(--md-sys-color-primary); }
         .m3-dialog-content::-webkit-scrollbar, #search-results-container::-webkit-scrollbar { width: 8px; }
         .m3-dialog-content::-webkit-scrollbar-track, #search-results-container::-webkit-scrollbar-track { background: transparent; }
@@ -115,9 +114,8 @@
     <div id="app" class="max-w-screen-2xl mx-auto">
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi<span id="easter-egg-indicator" class="material-symbols-outlined text-yellow-400 hidden ml-2 align-middle cursor-pointer" style="font-size: 2.5rem;">auto_awesome</span></h1>
-            <p class="text-lg mt-2 flex items-center justify-center gap-2" style="color: var(--md-sys-color-on-surface-variant);">
+            <p id="description-menu-trigger" class="text-lg mt-2 inline-block cursor-pointer transition-colors duration-200 hover:text-white p-1" style="color: var(--md-sys-color-on-surface-variant);">
                 Evrenin Kahramanlarını Keşfet
-                <button id="settings-menu-toggle" class="p-1 rounded-full transition-colors duration-200 hover:bg-white/10" aria-label="Ayarlar Menüsü"><span class="material-symbols-outlined transition-colors duration-200" style="font-size: 1.2rem; vertical-align: middle;">more_vert</span></button>
             </p>
         </header>
         
@@ -759,12 +757,13 @@
             }
         }
         
+        // DEĞİŞİKLİK 2: Sayfa yüklendiğinde çalışan olay dinleyicisi güncellendi
         document.addEventListener('DOMContentLoaded', () => {
-            const settingsMenuToggle = document.getElementById('settings-menu-toggle');
+            const descriptionMenuTrigger = document.getElementById('description-menu-trigger');
             const settingsMenu = document.getElementById('settings-menu');
 
-            if (settingsMenuToggle) {
-                settingsMenuToggle.addEventListener('click', (event) => {
+            if (descriptionMenuTrigger) {
+                descriptionMenuTrigger.addEventListener('click', (event) => {
                     event.stopPropagation();
                     
                     if (!settingsMenu.classList.contains('hidden')) {
@@ -778,21 +777,29 @@
                     settingsMenu.classList.add('hidden');
                     settingsMenu.style.visibility = 'visible';
                     
-                    const buttonRect = settingsMenuToggle.getBoundingClientRect();
+                    const triggerRect = descriptionMenuTrigger.getBoundingClientRect();
                     
-                    settingsMenu.style.top = `${buttonRect.bottom + 8}px`; 
-                    settingsMenu.style.left = `${buttonRect.right - menuRect.width}px`;
+                    settingsMenu.style.top = `${triggerRect.bottom + 8}px`; 
+                    
+                    // Menüyü tetikleyiciye göre ortala
+                    let newLeft = triggerRect.left + (triggerRect.width / 2) - (menuRect.width / 2);
 
-                    if ((buttonRect.right - menuRect.width) < 8) {
-                       settingsMenu.style.left = '8px';
+                    // Ekranın sol kenarından taşmasını engelle
+                    if (newLeft < 8) {
+                       newLeft = 8;
                     }
+                    // Ekranın sağ kenarından taşmasını engelle
+                    if ((newLeft + menuRect.width) > window.innerWidth - 8) {
+                        newLeft = window.innerWidth - menuRect.width - 8;
+                    }
+                    settingsMenu.style.left = `${newLeft}px`;
 
                     settingsMenu.classList.remove('hidden');
                 });
             }
 
             window.addEventListener('click', (event) => {
-                if (settingsMenu && !settingsMenu.classList.contains('hidden') && !settingsMenu.contains(event.target) && event.target.closest('#settings-menu-toggle') === null) {
+                if (settingsMenu && !settingsMenu.classList.contains('hidden') && !settingsMenu.contains(event.target) && event.target.closest('#description-menu-trigger') === null) {
                     settingsMenu.classList.add('hidden');
                 }
             });
