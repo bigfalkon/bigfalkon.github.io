@@ -66,16 +66,30 @@
                 <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Karşılaştırması</h1>
                 <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">En İyiyi Sen Seç</p>
             </div>
-            <div class="flex items-center justify-center sm:justify-end gap-2 sm:gap-4 mt-4 sm:mt-0">
-                <button id="leaderboard-btn" class="btn btn-secondary"><span class="material-symbols-outlined">leaderboard</span>Liderlik</button>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 mt-4 sm:mt-0">
+                <a href="index.html" class="btn btn-secondary">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span class="hidden sm:inline">Galeriye Dön</span>
+                </a>
+                <button id="leaderboard-btn" class="btn btn-secondary">
+                    <span class="material-symbols-outlined">leaderboard</span>
+                    <span class="hidden sm:inline">Liderlik</span>
+                </button>
+                <button id="manage-categories-btn" class="btn btn-secondary hidden">
+                    <span class="material-symbols-outlined">category</span>
+                    <span class="hidden sm:inline">Kategorileri Yönet</span>
+                </button>
                 <div id="auth-button-container">
-                    <button id="auth-action-btn" class="btn btn-secondary"><span id="auth-action-icon" class="material-symbols-outlined">login</span><span id="auth-action-text">Giriş Yap</span></button>
+                    <button id="auth-action-btn" class="btn btn-secondary">
+                        <span id="auth-action-icon" class="material-symbols-outlined">login</span>
+                        <span id="auth-action-text">Giriş Yap</span>
+                    </button>
                 </div>
             </div>
         </header>
 
         <main id="setup-screen" class="screen">
-            <div class="w-full max-w-lg p-8 rounded-2xl bg-[var(--md-sys-color-surface-container)] shadow-2xl">
+            <div id="setup-container" class="w-full max-w-lg p-8 rounded-2xl bg-[var(--md-sys-color-surface-container)] shadow-2xl">
                 <h2 class="text-2xl font-bold mb-6 text-center">Turnuva Ayarları</h2>
                 <form id="setup-form" class="flex flex-col gap-6">
                     <div>
@@ -97,15 +111,17 @@
                     </div>
                     <div>
                         <label class="font-semibold mb-2 block">Turnuva Kategorisi</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-[var(--md-sys-color-surface-container-high)]"><input type="radio" name="category" value="seksilik" checked> Seksiliği</label>
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-[var(--md-sys-color-surface-container-high)]"><input type="radio" name="category" value="guc"> Güç Hissi</label>
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-[var(--md-sys-color-surface-container-high)]"><input type="radio" name="category" value="tema"> Tema</label>
-                            <label class="flex items-center gap-3 p-3 rounded-lg bg-[var(--md-sys-color-surface-container-high)]"><input type="radio" name="category" value="poz"> Poz</label>
-                        </div>
+                        <div id="category-container" class="grid grid-cols-2 gap-3">
+                            </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-full mt-4 text-lg">Turnuvayı Başlat</button>
                 </form>
+            </div>
+            
+            <div id="login-prompt" class="hidden text-center p-8 rounded-2xl bg-[var(--md-sys-color-surface-container)] shadow-2xl">
+                <span class="material-symbols-outlined text-5xl mb-4" style="color: var(--md-sys-color-primary);">lock</span>
+                <h2 class="text-2xl font-bold mb-2">Turnuvayı Görüntülemek İçin Giriş Yapın</h2>
+                <p style="color: var(--md-sys-color-on-surface-variant);">Lütfen devam etmek için yukarıdaki "Giriş Yap" butonunu kullanın.</p>
             </div>
         </main>
 
@@ -168,6 +184,27 @@
         </div>
     </div>
 
+    <div id="category-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center" onclick="closeCategoryModal()">
+        <div class="bg-[var(--md-sys-color-surface-container-high)] rounded-2xl p-8 w-full max-w-md" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Kategori Yönetimi</h2>
+                <button onclick="closeCategoryModal()" class="btn btn-secondary !rounded-full !p-2"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="mb-4">
+                <h3 class="font-semibold mb-2">Yeni Kategori Ekle</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="new-category-input" placeholder="Yeni kategori adı..." class="form-input flex-grow">
+                    <button id="add-category-btn" class="btn btn-primary">Ekle</button>
+                </div>
+            </div>
+            <div>
+                <h3 class="font-semibold mb-2">Mevcut Kategoriler</h3>
+                <div id="category-list" class="max-h-60 overflow-y-auto flex flex-col gap-2">
+                    </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
@@ -191,25 +228,129 @@
             document.getElementById(`${screenId}-screen`).classList.remove('hidden');
         }
         
+        // DEĞİŞİKLİK 2: Fonksiyon giriş yapan/yapmayan kullanıcıya göre arayüzü tamamen değiştiriyor
         function updateAuthUI(user) {
             if (user) {
+                // Giriş yapmış kullanıcı
                 dom.authActionText.textContent = 'Çıkış Yap';
                 dom.authActionIcon.textContent = 'logout';
                 dom.authActionBtn.onclick = () => auth.signOut();
                 dom.loginToSaveInfo.classList.add('hidden');
                 dom.resetWinsBtn.disabled = false;
+                dom.manageCategoriesBtn.classList.remove('hidden');
+
+                // Ayar ekranını göster, giriş uyarısını gizle
+                dom.setupContainer.style.display = 'block';
+                dom.loginPrompt.style.display = 'none';
+
             } else {
+                // Giriş yapmamış kullanıcı
                 dom.authActionText.textContent = 'Giriş Yap';
                 dom.authActionIcon.textContent = 'login';
                 dom.authActionBtn.onclick = openLoginModal;
                 dom.loginToSaveInfo.classList.remove('hidden');
                 dom.resetWinsBtn.disabled = true;
+                dom.manageCategoriesBtn.classList.add('hidden');
+
+                // Ayar ekranını gizle, giriş uyarısını göster
+                dom.setupContainer.style.display = 'none';
+                dom.loginPrompt.style.display = 'block';
             }
         }
 
         function openLoginModal() { dom.loginModal.classList.add('flex'); dom.loginModal.classList.remove('hidden'); }
         function closeLoginModal() { dom.loginModal.classList.add('hidden'); dom.loginModal.classList.remove('flex'); }
         
+        function openCategoryModal() {
+            dom.categoryModal.classList.add('flex');
+            dom.categoryModal.classList.remove('hidden');
+            loadCategoriesForManagement();
+        }
+
+        function closeCategoryModal() {
+            dom.categoryModal.classList.add('hidden');
+            dom.categoryModal.classList.remove('flex');
+        }
+
+        async function loadCategoriesFromFirestore() {
+            try {
+                const snapshot = await db.collection('categories').orderBy('name').get();
+                const categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                dom.categoryContainer.innerHTML = '';
+                if (categories.length > 0) {
+                    categories.forEach((cat, index) => {
+                        const label = document.createElement('label');
+                        label.className = "flex items-center gap-3 p-3 rounded-lg bg-[var(--md-sys-color-surface-container-high)]";
+                        const input = document.createElement('input');
+                        input.type = 'radio';
+                        input.name = 'category';
+                        input.value = cat.name;
+                        if (index === 0) input.checked = true;
+                        label.appendChild(input);
+                        label.append(` ${cat.name}`);
+                        dom.categoryContainer.appendChild(label);
+                    });
+                } else {
+                    dom.categoryContainer.innerHTML = '<p>Henüz kategori eklenmemiş.</p>';
+                }
+
+                dom.leaderboardCategorySelect.innerHTML = categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+
+            } catch (error) {
+                console.error("Kategoriler yüklenemedi:", error);
+                dom.categoryContainer.innerHTML = '<p class="text-red-500">Kategoriler yüklenirken bir hata oluştu.</p>';
+            }
+        }
+
+        async function loadCategoriesForManagement() {
+            const list = dom.categoryList;
+            list.innerHTML = '<p>Yükleniyor...</p>';
+            const snapshot = await db.collection('categories').orderBy('name').get();
+            const categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            list.innerHTML = '';
+            categories.forEach(cat => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-2 bg-[var(--md-sys-color-surface-container)] rounded';
+                item.innerHTML = `<span>${cat.name}</span>`;
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger !p-2 !rounded-full';
+                deleteBtn.innerHTML = `<span class="material-symbols-outlined">delete</span>`;
+                deleteBtn.onclick = () => deleteCategory(cat.id, cat.name);
+                
+                item.appendChild(deleteBtn);
+                list.appendChild(item);
+            });
+        }
+
+        async function addCategory() {
+            const name = dom.newCategoryInput.value.trim();
+            if (!name) return;
+            
+            try {
+                await db.collection('categories').add({ name: name });
+                dom.newCategoryInput.value = '';
+                await loadCategoriesFromFirestore();
+                await loadCategoriesForManagement();
+            } catch (error) {
+                console.error("Kategori eklenemedi: ", error);
+            }
+        }
+
+        async function deleteCategory(id, name) {
+            if (!confirm(`'${name}' kategorisini silmek istediğinizden emin misiniz?`)) return;
+            
+            try {
+                await db.collection('categories').doc(id).delete();
+                await loadCategoriesFromFirestore();
+                await loadCategoriesForManagement();
+            } catch (error) {
+                console.error("Kategori silinemedi: ", error);
+            }
+        }
+
         function prepareContestants(settings) {
             let contestants = [];
             const addContestant = (char, star) => {
@@ -222,8 +363,7 @@
                 contestants.push({ id: `${char.id}_${star}`, name: `${char.name} (${star}★)`, imageUrl: imageUrl });
             };
             const addFusionContestant = (char) => {
-                const imageUrl = char.previewUrl && char.previewUrl.trim() !== '' ? char.previewUrl : char.imageUrl;
-                contestants.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: imageUrl });
+                contestants.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: char.imageUrl });
             };
 
             const sourceList = allCharacters.filter(c => !c.isDismissed && !c.isEasterEgg);
@@ -245,7 +385,7 @@
                 case 'random':
                     let allPossible = [];
                      sourceList.forEach(char => {
-                        if (char.isFusion) allPossible.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: char.previewUrl || char.imageUrl });
+                        if (char.isFusion) allPossible.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: char.imageUrl });
                         else { 
                             [1, 2, 3].forEach(star => {
                                 const evo = star > 1 ? char.evolutions?.find(e => e.star === star) : true;
@@ -314,8 +454,15 @@
             let roundName = totalMatches === 1 ? "FİNAL" : totalMatches === 2 ? "Yarı Final" : totalMatches === 4 ? "Çeyrek Final" : `Tur ${round}`;
             dom.roundTitle.textContent = gameState.settings.mode === 'absolute_war' ? `${gameState.currentStageName} - ${roundName}` : roundName;
             dom.matchInfo.textContent = `Karşılaşma ${match + 1} / ${totalMatches}`;
-            const categoryText = dom.setupForm.querySelector(`input[name="category"]:checked`).parentElement.textContent.trim();
-            dom.categoryInfo.textContent = `Kategori: ${categoryText}`;
+            
+            const checkedCategoryRadio = dom.setupForm.querySelector(`input[name="category"]:checked`);
+            if (checkedCategoryRadio) {
+                 const categoryText = checkedCategoryRadio.parentElement.textContent.trim();
+                 dom.categoryInfo.textContent = `Kategori: ${categoryText}`;
+            } else {
+                 dom.categoryInfo.textContent = `Kategori: Seçilmedi`;
+            }
+           
             showPairing();
         }
 
@@ -384,14 +531,20 @@
             dom.winnerImg.src = winner.imageUrl;
             dom.winnerName.textContent = winner.name;
             dom.resultTitle.textContent = gameState.settings.mode === 'absolute_war' ? "MUTLAK SAVAŞ ŞAMPİYONU!" : "Turnuva Şampiyonu!";
-            const categoryText = dom.setupForm.querySelector(`input[name="category"]:checked`).parentElement.textContent.trim();
-            dom.winnerCategory.textContent = `${categoryText} Kategorisi`;
+            const checkedCategoryRadio = dom.setupForm.querySelector(`input[name="category"]:checked`);
+            if(checkedCategoryRadio) {
+                const categoryText = checkedCategoryRadio.parentElement.textContent.trim();
+                dom.winnerCategory.textContent = `${categoryText} Kategorisi`;
+            }
             showScreen('results');
         }
 
         async function fetchAndDisplayWinLeaderboard() {
             const category = dom.leaderboardCategorySelect.value;
-            if (!category) return;
+            if (!category) {
+                 dom.leaderboardContent.innerHTML = '<p>Lütfen bir kategori seçin.</p>';
+                return;
+            }
             dom.leaderboardContent.innerHTML = '<p>Galibiyetler hesaplanıyor...</p>';
 
             try {
@@ -446,6 +599,9 @@
         document.addEventListener('DOMContentLoaded', async () => {
             Object.assign(dom, {
                 setupForm: document.getElementById('setup-form'),
+                // DEĞİŞİKLİK 2: Yeni DOM elemanları eklendi
+                setupContainer: document.getElementById('setup-container'),
+                loginPrompt: document.getElementById('login-prompt'),
                 randomCountContainer: document.getElementById('random-count-container'),
                 roundTitle: document.getElementById('round-title'),
                 matchInfo: document.getElementById('match-info'),
@@ -457,8 +613,16 @@
                 loginModal: document.getElementById('login-modal'), loginSubmitBtn: document.getElementById('login-submit-btn'), authActionBtn: document.getElementById('auth-action-btn'), authActionText: document.getElementById('auth-action-text'), authActionIcon: document.getElementById('auth-action-icon'),
                 loginToSaveInfo: document.getElementById('login-to-save-info'),
                 leaderboardBtn: document.getElementById('leaderboard-btn'), backToSetupBtn: document.getElementById('back-to-setup-btn'), leaderboardContent: document.getElementById('leaderboard-content'), leaderboardCategorySelect: document.getElementById('leaderboard-category-select'), resetWinsBtn: document.getElementById('reset-wins-btn'),
+                manageCategoriesBtn: document.getElementById('manage-categories-btn'),
+                categoryContainer: document.getElementById('category-container'),
+                categoryModal: document.getElementById('category-modal'),
+                addCategoryBtn: document.getElementById('add-category-btn'),
+                newCategoryInput: document.getElementById('new-category-input'),
+                categoryList: document.getElementById('category-list'),
             });
             
+            await loadCategoriesFromFirestore();
+
             try {
                 const [charsSnap, dismissedSnap, eeSnap] = await Promise.all([db.collection('characters').get(), db.collection('dismissed').get(), db.collection('easterEggs').get()]);
                 allCharacters = [...charsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })), ...dismissedSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), isDismissed: true })), ...eeSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), isEasterEgg: true }))];
@@ -482,14 +646,15 @@
             dom.playAgainBtn.addEventListener('click', () => showScreen('setup'));
             dom.backToSetupBtn.addEventListener('click', () => showScreen('setup'));
             dom.leaderboardBtn.addEventListener('click', () => {
-                const categories = Array.from(dom.setupForm.elements['category']).map(cb => ({val: cb.value, name: cb.parentElement.textContent.trim()}));
-                dom.leaderboardCategorySelect.innerHTML = categories.map(cat => `<option value="${cat.val}">${cat.name}</option>`).join('');
                 fetchAndDisplayWinLeaderboard();
                 showScreen('leaderboard');
             });
             dom.leaderboardCategorySelect.addEventListener('change', fetchAndDisplayWinLeaderboard);
             dom.resetWinsBtn.addEventListener('click', resetWins);
             
+            dom.manageCategoriesBtn.addEventListener('click', openCategoryModal);
+            dom.addCategoryBtn.addEventListener('click', addCategory);
+
             showScreen('setup');
         });
     </script>
