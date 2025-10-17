@@ -340,9 +340,7 @@
             closeCharacterSelector();
         }
         
-        // DEĞİŞİKLİK 2: Raporlama ve ana panel gösterim mantığı güncellendi
         function renderAdminPanel() {
-            // Füzyon Önizleme Raporu
             if (viewState.filter === 'preview-report') {
                 const allFusions = characters.filter(c => c.isFusion);
                 const hasPreview = [];
@@ -362,7 +360,6 @@
                 return;
             }
             
-            // Yeni Karakter Raporu
             if (viewState.filter === 'character-report') {
                 const normalCharacters = characters.filter(c => !c.isFusion);
                 const fusionCharacters = characters.filter(c => c.isFusion);
@@ -409,7 +406,6 @@
                 return;
             }
 
-            // Ana Panel Görüntüsü
             dom.adminGrid.innerHTML = '';
             const query = dom.searchInput.value.toLowerCase().trim();
             let allItems = [...characters, ...easterEggs, ...dismissed];
@@ -438,7 +434,8 @@
                 const isFusion = item.isFusion, isEasterEgg = item.originalCharacterId, nameClass = isFusion || isEasterEgg ? 'font-fantastical-fusion' : '';
                 let imageBlockHtml;
                 if(isFusion || isEasterEgg) {
-                    imageBlockHtml = `<div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event, '${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover"></div>`;
+                    const imageUrl = (isFusion ? item.previewUrl : item.imageUrl) || 'https://via.placeholder.com/96';
+                    imageBlockHtml = `<div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event, '${imageUrl}')"><img src="${imageUrl}" alt="${item.name}" class="w-full h-full object-cover"></div>`;
                 } else {
                     const evo2 = item.evolutions?.find(e => e.star === 2), evo3 = item.evolutions?.find(e => e.star === 3);
                     const thumbClass = "w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-black/20 border border-white/10 flex items-center justify-center", placeholderClass = "text-sm font-bold text-gray-500", imgClass = "w-full h-full object-cover cursor-zoom-in";
@@ -581,7 +578,7 @@
             dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', selectedType !== 'fusion');
             dom.addEditForm.querySelector('#easter-egg-fields').classList.toggle('hidden', selectedType !== 'easterEgg');
             dom.addEditForm.querySelector('#main-image-container > label').textContent = selectedType === 'easterEgg' ?
-                'Easter Egg Resim' : (selectedType === 'fusion' ? 'Ana Füzyon Resmi (GIF)' : 'Ana Resim');
+                'Easter Egg Resim' : (selectedType === 'fusion' ? 'Ana Füzyon Resmi (GIF - İsteğe Bağlı)' : 'Ana Resim');
         };
 
         const setupActionListeners = function() {
@@ -777,8 +774,8 @@
                         processImageInput('main-image-container'),
                         processImageInput('preview-image-container')
                     ]);
-                    if (!mainUrl && !isEditing) throw new Error("Ana Füzyon Resmi (GIF) seçmek veya link girmek zorunludur.");
-                    data.imageUrl = mainUrl;
+                    if (!previewUrl && !isEditing) throw new Error("Füzyon Önizleme Resmi seçmek veya link girmek zorunludur.");
+                    data.imageUrl = mainUrl || null;
                     data.previewUrl = previewUrl || null;
                 } else if (type === 'easterEgg') {
                     data.originalCharacterId = form.elements['originalCharacterId'].value.trim();
