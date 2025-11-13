@@ -285,6 +285,26 @@
             const evolution = baseChar.evolutions?.find(e => e.star === star);
             return evolution ? evolution.imageUrl : '';
         };
+        
+        let observer;
+
+        function setupImageObserver() {
+            const options = { root: null, rootMargin: '0px', threshold: 0.75 };
+            const handleIntersection = (entries) => {
+                entries.forEach(entry => {
+                    const img = entry.target;
+                    if (entry.isIntersecting) { img.src = img.dataset.gifSrc; } 
+                    else { img.src = img.dataset.previewSrc; }
+                });
+            };
+            observer = new IntersectionObserver(handleIntersection, options);
+        }
+
+        function observeImages() {
+            if (observer) observer.disconnect();
+            const imagesToObserve = document.querySelectorAll('img[data-gif-src]');
+            imagesToObserve.forEach(img => observer.observe(img));
+        }
 
         function renderCharacters() {
             dom.characterGrid.classList.add('grid-fade-out');
@@ -342,7 +362,7 @@
 
                     itemsToProcess.forEach(char => {
                         if (char.isFusion) {
-                            allDisplayableCharacters.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl || char.imageUrl });
+                            allDisplayableCharacters.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
                         } else if (char.isEasterEgg || char.type === 'easterEgg') {
                             allDisplayableCharacters.push({ ...char, displayStar: 1, isEasterEgg: true });
                         } else {
@@ -364,7 +384,7 @@
                     if (state.galleryMode === 'easter-egg') {
                         allDisplayableCharacters = allEasterEggs.sort(sortFunction);
                     } else if (state.galleryMode === 'fusion') {
-                         allDisplayableCharacters = activeCharacters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.previewUrl || char.imageUrl})).sort(sortFunction);
+                         allDisplayableCharacters = activeCharacters.filter(char => char.isFusion).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl})).sort(sortFunction);
                     } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
                         const nonFusions = activeCharacters.filter(c => !c.isFusion).sort(sortFunction);
                         nonFusions.forEach(char => {
@@ -373,7 +393,7 @@
                                 allDisplayableCharacters.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
                             });
                         });
-                        const sortedFusions = activeCharacters.filter(char => char.isFusion).sort(sortFunction).map(char => ({...char, displayStar: 4, displayImageUrl: char.previewUrl || char.imageUrl}));
+                        const sortedFusions = activeCharacters.filter(char => char.isFusion).sort(sortFunction).map(char => ({...char, displayStar: 4, displayImageUrl: char.imageUrl}));
                         allDisplayableCharacters.push(...sortedFusions);
                     } else {
                         const starFilter = parseInt(state.galleryMode.split('-')[0]);
@@ -411,14 +431,20 @@
                     const nameClass = isFusion || isDismissed ? 'font-fantastical-fusion' : '';
                     const stars = isDismissed ? getStarEmojis(false, true, 1, 'badge') : (isEasterEgg ? getStarEmojis(true, false, 1, 'auto_awesome favorite auto_awesome') : getStarEmojis(isFusion, false, char.displayStar || char.star));
                     
-                    const imageUrl = char.displayImageUrl || char.imageUrl;
-                    const imageHtml = `<img src="${imageUrl || ''}" alt="${char.name}" class="character-card-image" loading="lazy">`;
+                    let imageHtml = '';
+                    if (isFusion && char.imageUrl && char.previewUrl) {
+                        imageHtml = `<img src="${char.previewUrl}" data-gif-src="${char.imageUrl}" data-preview-src="${char.previewUrl}" alt="${char.name}" class="character-card-image">`;
+                    } else {
+                        const imageUrl = char.displayImageUrl || char.imageUrl;
+                        imageHtml = `<img src="${imageUrl || ''}" alt="${char.name}" class="character-card-image" loading="lazy">`;
+                    }
 
                     card.innerHTML = `<div class="character-card-image-wrapper">${imageHtml}</div><div class="p-4 flex-grow flex flex-col justify-end"><h3 class="character-name text-lg font-bold truncate ${nameClass}">${char.name}</h3><div class="flex mt-1">${stars}</div></div>`;
                     dom.characterGrid.appendChild(card);
                 });
                 
                 addInteractiveEffects();
+                observeImages(); 
             }, 200);
         }
 
@@ -542,7 +568,7 @@
                     fusionCard.className = `rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105`;
                     fusionCard.style.backgroundColor = 'var(--md-sys-color-fusion-container)';
                     fusionCard.onclick = (e) => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
-                    fusionCard.innerHTML = `<img src="${fusion.previewUrl || fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center font-fantastical-fusion" style="color: var(--md-sys-color-on-fusion-container);">${fusion.name}</p>`;
+                    fusionCard.innerHTML = `<img src="${fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center font-fantastical-fusion" style="color: var(--md-sys-color-on-fusion-container);">${fusion.name}</p>`;
                     modal.fusionList.appendChild(fusionCard);
                 });
             }
@@ -558,11 +584,8 @@
             const mainImageWidth = sizeProfiles[state.imageSizeIndex].minCardWidth;
             modal.name.textContent = fusion.name;
             modal.name.classList.add('font-fantastical-fusion');
-            
-            const displayUrl = fusion.previewUrl || fusion.imageUrl;
-            modal.image.src = displayUrl;
-            modal.image.setAttribute('onclick', `enlargeImage('${displayUrl}')`);
-
+            modal.image.src = fusion.imageUrl;
+            modal.image.setAttribute('onclick', `enlargeImage('${fusion.imageUrl}')`);
             const [p1, p2] = fusion.fusionPartners.map(id => characters.find(c => c.id === id) || dismissedCharacters.find(c => c.id === id));
             if (p1) {
                 modal.leftChar.image.src = get3StarImageUrl(p1.id);
@@ -623,7 +646,7 @@
             const foundItems = [];
             allSearchableCharacters.forEach(char => {
                 if (char.name.toLowerCase().includes(searchTerm) || char.id.toLowerCase().includes(searchTerm)) {
-                    if (char.isFusion) { foundItems.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl || char.imageUrl }); }
+                    if (char.isFusion) { foundItems.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl }); }
                     else if (char.isEasterEgg || char.type === 'easterEgg') { foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: char.isDismissed, isEasterEgg: true }); }
                     else {
                         foundItems.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl, isDismissed: char.isDismissed });
@@ -688,6 +711,7 @@
         }
         
         async function initializeAppLogic() {
+            setupImageObserver(); 
             try {
                 const [charsSnap, dismissedSnap, eeSnap] = await Promise.all([db.collection('characters').get(), db.collection('dismissed').get(), db.collection('easterEggs').get()]);
                 characters = charsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -733,6 +757,7 @@
             }
         }
         
+        // DEĞİŞİKLİK 2: Sayfa yüklendiğinde çalışan olay dinleyicisi güncellendi
         document.addEventListener('DOMContentLoaded', () => {
             const descriptionMenuTrigger = document.getElementById('description-menu-trigger');
             const settingsMenu = document.getElementById('settings-menu');
@@ -756,11 +781,14 @@
                     
                     settingsMenu.style.top = `${triggerRect.bottom + 8}px`; 
                     
+                    // Menüyü tetikleyiciye göre ortala
                     let newLeft = triggerRect.left + (triggerRect.width / 2) - (menuRect.width / 2);
 
+                    // Ekranın sol kenarından taşmasını engelle
                     if (newLeft < 8) {
                        newLeft = 8;
                     }
+                    // Ekranın sağ kenarından taşmasını engelle
                     if ((newLeft + menuRect.width) > window.innerWidth - 8) {
                         newLeft = window.innerWidth - menuRect.width - 8;
                     }
