@@ -63,10 +63,12 @@
     <div id="app" class="max-w-screen-xl mx-auto">
         <header class="flex flex-col sm:flex-row sm:justify-between sm:items-center text-center sm:text-left mb-8 pb-4 border-b" style="border-color: var(--md-sys-color-outline-variant);">
             <div class="text-center sm:text-left">
-                <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Karşılaştırması</h1>
+                <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">
+                    <a href="oyun.html" class="hover:opacity-80 transition-opacity">Karakter Karşılaştırması</a>
+                </h1>
                 <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">En İyiyi Sen Seç</p>
             </div>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 mt-4 sm:mt-0">
+            <div class="flex flex-row flex-wrap sm:flex-nowrap items-center justify-center gap-2 mt-4 sm:mt-0">
                 <a href="index.html" class="btn btn-secondary">
                     <span class="material-symbols-outlined">arrow_back</span>
                     <span class="hidden sm:inline">Galeriye Dön</span>
@@ -106,8 +108,8 @@
                         </select>
                     </div>
                     <div id="random-count-container">
-                        <label for="char-count" class="font-semibold mb-2 block">Rastgele Karakter Sayısı (En yakın 2'nin katı)</label>
-                        <input type="number" name="count" value="16" min="4" max="128" step="2" class="form-select w-full">
+                        <label for="char-count" class="font-semibold mb-2 block">Rastgele Karakter Sayısı</label>
+                        <input type="number" name="count" value="16" min="4" max="128" step="1" class="form-select w-full">
                     </div>
                     <div>
                         <label class="font-semibold mb-2 block">Turnuva Kategorisi</label>
@@ -228,31 +230,23 @@
             document.getElementById(`${screenId}-screen`).classList.remove('hidden');
         }
         
-        // DEĞİŞİKLİK 2: Fonksiyon giriş yapan/yapmayan kullanıcıya göre arayüzü tamamen değiştiriyor
         function updateAuthUI(user) {
             if (user) {
-                // Giriş yapmış kullanıcı
                 dom.authActionText.textContent = 'Çıkış Yap';
                 dom.authActionIcon.textContent = 'logout';
                 dom.authActionBtn.onclick = () => auth.signOut();
                 dom.loginToSaveInfo.classList.add('hidden');
                 dom.resetWinsBtn.disabled = false;
                 dom.manageCategoriesBtn.classList.remove('hidden');
-
-                // Ayar ekranını göster, giriş uyarısını gizle
                 dom.setupContainer.style.display = 'block';
                 dom.loginPrompt.style.display = 'none';
-
             } else {
-                // Giriş yapmamış kullanıcı
                 dom.authActionText.textContent = 'Giriş Yap';
                 dom.authActionIcon.textContent = 'login';
                 dom.authActionBtn.onclick = openLoginModal;
                 dom.loginToSaveInfo.classList.remove('hidden');
                 dom.resetWinsBtn.disabled = true;
                 dom.manageCategoriesBtn.classList.add('hidden');
-
-                // Ayar ekranını gizle, giriş uyarısını göster
                 dom.setupContainer.style.display = 'none';
                 dom.loginPrompt.style.display = 'block';
             }
@@ -363,7 +357,9 @@
                 contestants.push({ id: `${char.id}_${star}`, name: `${char.name} (${star}★)`, imageUrl: imageUrl });
             };
             const addFusionContestant = (char) => {
-                contestants.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: char.imageUrl });
+                // ***DÜZELTME: GIF'i (imageUrl) öncelikli al***
+                const imageUrl = char.imageUrl || char.previewUrl;
+                contestants.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: imageUrl });
             };
 
             const sourceList = allCharacters.filter(c => !c.isDismissed && !c.isEasterEgg);
@@ -385,7 +381,10 @@
                 case 'random':
                     let allPossible = [];
                      sourceList.forEach(char => {
-                        if (char.isFusion) allPossible.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: char.imageUrl });
+                        if (char.isFusion) {
+                            const imageUrl = char.imageUrl || char.previewUrl; // Düzeltme burada da
+                            allPossible.push({ id: char.id, name: `${char.name} (4★)`, imageUrl: imageUrl });
+                        }
                         else { 
                             [1, 2, 3].forEach(star => {
                                 const evo = star > 1 ? char.evolutions?.find(e => e.star === star) : true;
@@ -401,12 +400,14 @@
                     sourceList.filter(c => !c.isFusion).forEach(char => addContestant(char, star));
                     break;
             }
-            const powerOfTwo = Math.pow(2, Math.floor(Math.log2(contestants.length)));
-            return contestants.slice(0, powerOfTwo);
+            
+            return contestants;
         }
         
         function startGame(settings) {
             gameState.settings = settings;
+            gameState.currentRoundByeWinner = null; 
+            
             if (settings.mode === 'absolute_war') {
                 gameState.absoluteWar = { stage: 1, winners: [] };
                 startAbsoluteWarStage();
@@ -450,8 +451,8 @@
         
         function startRound() {
             const { round, match, contestants } = gameState;
-            const totalMatches = contestants.length / 2;
-            let roundName = totalMatches === 1 ? "FİNAL" : totalMatches === 2 ? "Yarı Final" : totalMatches === 4 ? "Çeyrek Final" : `Tur ${round}`;
+            const totalMatches = Math.floor(contestants.length / 2); 
+            let roundName = (totalMatches === 1 && contestants.length <= 3) ? "FİNAL" : (totalMatches === 2 && contestants.length <= 5) ? "Yarı Final" : (totalMatches === 4 && contestants.length <= 9) ? "Çeyrek Final" : `Tur ${round}`;
             dom.roundTitle.textContent = gameState.settings.mode === 'absolute_war' ? `${gameState.currentStageName} - ${roundName}` : roundName;
             dom.matchInfo.textContent = `Karşılaşma ${match + 1} / ${totalMatches}`;
             
@@ -495,16 +496,30 @@
                 if (gameState.match * 2 < gameState.contestants.length) {
                     startRound();
                 } else {
-                    if (gameState.winners.length === 1) {
+                    let newContestants = gameState.winners;
+
+                    if (gameState.currentRoundByeWinner) {
+                        newContestants.push(gameState.currentRoundByeWinner);
+                        gameState.currentRoundByeWinner = null;
+                    }
+
+                    if (newContestants.length === 1) {
                         if (gameState.settings.mode === 'absolute_war' && gameState.absoluteWar.stage < 5) {
-                            gameState.absoluteWar.winners.push(gameState.winners[0]);
+                            gameState.absoluteWar.winners.push(newContestants[0]);
                             gameState.absoluteWar.stage++;
                             startAbsoluteWarStage();
                         } else {
-                            showWinner(gameState.winners[0]);
+                            showWinner(newContestants[0]);
                         }
                     } else {
-                        gameState.contestants = gameState.winners;
+                        if (newContestants.length % 2 !== 0) {
+                            const byeWinner = newContestants.pop(); 
+                            gameState.currentRoundByeWinner = byeWinner; 
+                        } else {
+                            gameState.currentRoundByeWinner = null;
+                        }
+                        
+                        gameState.contestants = newContestants;
                         gameState.winners = [];
                         gameState.round++;
                         gameState.match = 0;
@@ -599,7 +614,6 @@
         document.addEventListener('DOMContentLoaded', async () => {
             Object.assign(dom, {
                 setupForm: document.getElementById('setup-form'),
-                // DEĞİŞİKLİK 2: Yeni DOM elemanları eklendi
                 setupContainer: document.getElementById('setup-container'),
                 loginPrompt: document.getElementById('login-prompt'),
                 randomCountContainer: document.getElementById('random-count-container'),
