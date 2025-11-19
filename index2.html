@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yönetim Paneli - Gelişmiş Görünüm</title>
-  <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#443a74"/>
     <script>
         if('serviceWorker' in navigator) {
@@ -64,6 +64,7 @@
         .icon-button:hover.edit-button { background-color: rgba(var(--md-sys-color-primary-rgb), 0.1); color: var(--md-sys-color-primary); }
         .icon-button:hover.delete-button { background-color: rgba(var(--md-sys-color-danger-rgb), 0.1); color: var(--md-sys-color-danger); }
         .icon-button:hover.retire-button { background-color: rgba(var(--md-sys-color-warning-rgb), 0.1); color: var(--md-sys-color-warning); }
+        .icon-button:hover.view-prompt-button { background-color: rgba(var(--md-sys-color-primary-rgb), 0.1); color: var(--md-sys-color-primary); }
         .modal-backdrop { z-index: 1000; position: fixed; inset: 0; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
         .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
         .modal-content { background-color: var(--md-sys-color-surface-container); border-radius: 24px; padding: 2rem; width: 100%; max-width: 400px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s ease; }
@@ -74,6 +75,13 @@
         .enlarged-image { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; }
         .character-selector-item { display: flex; align-items: center; gap: 1rem; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
         .character-selector-item:hover { background-color: var(--md-sys-color-surface-container-high); }
+        
+        /* Prompt Bölümü Stilleri */
+        .prompt-section-header { border-top: 1px solid var(--md-sys-color-outline-variant); padding-top: 1.5rem; margin-top: 1.5rem; margin-bottom: 1rem; color: var(--md-sys-color-primary); font-weight: 700; font-size: 1.25rem; }
+        .prompt-block { background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--md-sys-color-outline-variant); margin-bottom: 1rem; }
+        .prompt-label { display: flex; justify-content: space-between; color: var(--md-sys-color-on-surface-variant); font-size: 0.875rem; margin-bottom: 0.5rem; font-weight: 600; }
+        .saved-indicator { color: var(--md-sys-color-success); font-size: 0.75rem; display: none; align-items: center; gap: 4px; }
+        .saved-indicator.active { display: flex; }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -82,8 +90,9 @@
         <header class="flex justify-between items-center mb-8 pb-4 border-b" style="border-color: var(--md-sys-color-outline-variant);">
             <div>
                 <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Yönetim Paneli</h1>
-                <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Karakterleri, Füzyonları ve Gizli Sırları Yönet</p>
+                <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Karakterleri, Füzyonları ve Promptları Yönet</p>
             </div>
+
             <div id="auth-button-container">
                 <button id="auth-action-btn" class="btn btn-secondary"><span id="auth-action-icon" class="material-symbols-outlined">login</span><span id="auth-action-text">Giriş Yap</span></button>
             </div>
@@ -106,8 +115,10 @@
             </select>
 
             <div class="col-span-full md:col-span-4 mt-4 flex flex-col sm:flex-row gap-4">
-                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span id="toggle-form-text">Yeni Kayıt</span></button>
-                <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">visibility</span><span>Galeriye Git</span></a>
+                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span></button>
+                <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">gallery_thumbnail</span></a>
+                <a href="secici.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">casino</span></a>
+                <a href="links.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">link</span></a>
             </div>
         </div>
         
@@ -181,6 +192,60 @@
                         <div class="flex items-center gap-2"><div id="originalCharacterId_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Seçilmedi</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('originalCharacterId')">Seç</button><input type="hidden" name="originalCharacterId"></div>
                     </div>
                 </div>
+
+                <div id="prompt-management-section" class="hidden">
+                    <h3 class="prompt-section-header">Prompt Yönetimi</h3>
+                    
+                    <div id="prompt-block-1" class="prompt-block hidden" data-level="1">
+                        <div class="prompt-label">
+                            <span>1. Seviye Prompt (Varsayılan)</span>
+                            <span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Kayıtlı</span>
+                        </div>
+                        <input type="text" id="prompt-title-1" class="form-input mb-2 text-sm" placeholder="Prompt Başlığı (Opsiyonel)">
+                        <textarea id="prompt-text-1" class="form-input text-sm font-mono" rows="4" placeholder="Prompt metnini buraya girin..."></textarea>
+                        <input type="hidden" id="prompt-docId-1">
+                    </div>
+
+                    <div id="prompt-block-2" class="prompt-block hidden" data-level="2">
+                        <div class="prompt-label">
+                            <span>2. Seviye Prompt (Evrim 1)</span>
+                            <span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Kayıtlı</span>
+                        </div>
+                        <input type="text" id="prompt-title-2" class="form-input mb-2 text-sm" placeholder="Prompt Başlığı">
+                        <textarea id="prompt-text-2" class="form-input text-sm font-mono" rows="4" placeholder="2. Seviye prompt metni..."></textarea>
+                        <input type="hidden" id="prompt-docId-2">
+                    </div>
+
+                    <div id="prompt-block-3" class="prompt-block hidden" data-level="3">
+                        <div class="prompt-label">
+                            <span>3. Seviye Prompt (Evrim 2)</span>
+                            <span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Kayıtlı</span>
+                        </div>
+                        <input type="text" id="prompt-title-3" class="form-input mb-2 text-sm" placeholder="Prompt Başlığı">
+                        <textarea id="prompt-text-3" class="form-input text-sm font-mono" rows="4" placeholder="3. Seviye prompt metni..."></textarea>
+                        <input type="hidden" id="prompt-docId-3">
+                    </div>
+
+                    <div id="prompt-block-FUSION" class="prompt-block hidden" data-level="FÜZYON">
+                        <div class="prompt-label">
+                            <span class="text-fuchsia-400">Füzyon Promptu</span>
+                            <span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Kayıtlı</span>
+                        </div>
+                        <input type="text" id="prompt-title-FUSION" class="form-input mb-2 text-sm" placeholder="Füzyon Başlığı">
+                        <textarea id="prompt-text-FUSION" class="form-input text-sm font-mono" rows="4" placeholder="Füzyon prompt metni..."></textarea>
+                        <input type="hidden" id="prompt-docId-FUSION">
+                    </div>
+
+                    <div id="prompt-block-EK" class="prompt-block" data-level="EK">
+                        <div class="prompt-label">
+                            <span>Ek / Alternatif Prompt</span>
+                            <span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Kayıtlı</span>
+                        </div>
+                        <input type="text" id="prompt-title-EK" class="form-input mb-2 text-sm" placeholder="Ek Prompt Başlığı">
+                        <textarea id="prompt-text-EK" class="form-input text-sm font-mono" rows="4" placeholder="Ek prompt metni..."></textarea>
+                        <input type="hidden" id="prompt-docId-EK">
+                    </div>
+                </div>
                 
                 <div class="flex gap-4 mt-4"><button type="button" id="cancel-button" class="btn btn-secondary flex-grow hidden">İptal</button><button type="submit" id="save-button" class="btn btn-primary flex-grow">Kaydet</button></div>
             </form>
@@ -214,6 +279,29 @@
         </div>
     </div>
 
+    <div id="quick-prompt-modal" class="modal-backdrop hidden" onclick="closeQuickPromptModal()">
+        <div class="modal-content !max-w-screen-md relative" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-2 right-2" onclick="closeQuickPromptModal()" aria-label="Kapat">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h2 class="text-2xl font-bold mb-1 text-[var(--md-sys-color-primary)]">Promptlar</h2>
+            <p id="qp-char-name" class="text-sm text-gray-400 mb-6 pb-2 border-b border-gray-700"></p>
+            
+            <div id="qp-loading" class="text-center py-8 text-gray-400 hidden">
+                <span class="material-symbols-outlined animate-spin text-3xl mb-2">sync</span>
+                <p>Yükleniyor...</p>
+            </div>
+            
+            <div id="qp-content" class="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2">
+                </div>
+            
+            <div id="qp-empty" class="text-center py-8 text-gray-500 hidden">
+                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">content_paste_off</span>
+                <p>Bu kayıt için henüz hiç prompt eklenmemiş.</p>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         const firebaseConfig = {
@@ -229,6 +317,7 @@
         let apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null, vgy_user_key: null };
         let characters = [], easterEggs = [], dismissed = [], editingItemId = null, editingItemType = null;
         let selectorTargetInput = null;
+        let existingPrompts = {};
 
         const viewState = {
             filter: 'all',
@@ -269,6 +358,12 @@
             reportModal: document.getElementById('report-modal'),
             reportTitle: document.getElementById('report-title'),
             reportContent: document.getElementById('report-content'),
+            promptSection: document.getElementById('prompt-management-section'),
+            quickPromptModal: document.getElementById('quick-prompt-modal'),
+            qpCharName: document.getElementById('qp-char-name'),
+            qpContent: document.getElementById('qp-content'),
+            qpLoading: document.getElementById('qp-loading'),
+            qpEmpty: document.getElementById('qp-empty'),
         });
         
         const openLoginModal = () => { dom.loginModal.classList.add('visible'); dom.loginModal.classList.remove('hidden'); };
@@ -443,11 +538,17 @@
                 }
                 let starHtml;
                 if(isFusion) starHtml = getStarEmojis(true, 4); else if (isEasterEgg) starHtml = getStarEmojis(false, 1, 'auto_awesome'); else starHtml = getStarEmojis(false, 1);
+                
                 let actionButtonsHtml;
                 if (isRetired) {
                     actionButtonsHtml = `<button class="icon-button retire-button" data-id="${item.id}" data-type="${item.type}" data-action="unretire" aria-label="Geri Al"><span class="material-symbols-outlined">settings_backup_restore</span></button><button class="icon-button delete-button" data-id="${item.id}" data-type="${item.type}" aria-label="Kalıcı Olarak Sil"><span class="material-symbols-outlined">delete_forever</span></button>`;
                 } else {
-                    actionButtonsHtml = `<button class="icon-button retire-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" data-action="retire" aria-label="Emekliye Ayır"><span class="material-symbols-outlined">work_history</span></button><button class="icon-button edit-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Düzenle"><span class="material-symbols-outlined">edit</span></button><button class="icon-button delete-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Sil"><span class="material-symbols-outlined">delete</span></button>`;
+                    actionButtonsHtml = `
+                        <button class="icon-button view-prompt-button" data-id="${item.id}" data-name="${item.name}" aria-label="Promptları Gör"><span class="material-symbols-outlined" style="color: var(--md-sys-color-primary);">description</span></button>
+                        <button class="icon-button retire-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" data-action="retire" aria-label="Emekliye Ayır"><span class="material-symbols-outlined">work_history</span></button>
+                        <button class="icon-button edit-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Düzenle"><span class="material-symbols-outlined">edit</span></button>
+                        <button class="icon-button delete-button" data-id="${item.id}" data-type="${isFusion ? 'fusion' : (isEasterEgg ? 'easterEgg' : 'character')}" aria-label="Sil"><span class="material-symbols-outlined">delete</span></button>
+                    `;
                 }
                 const retiredBadge = isRetired ? `<p class="text-xs font-bold mt-1" style="color: var(--md-sys-color-warning);">EMEKLİ</p>` : '';
                 const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${getDate(item).toLocaleDateString('tr-TR')}</p>` : '<p class="text-xs text-red-400 mt-1">Tarih Yok</p>';
@@ -461,6 +562,8 @@
             dom.addEditForm.reset();
             editingItemId = null; 
             editingItemType = null;
+            existingPrompts = {};
+            
             dom.formTitle.textContent = "Yeni Kayıt Ekle";
             dom.itemTypeSelect.disabled = false;
             dom.addEditForm.elements['id'].readOnly = false;
@@ -476,6 +579,14 @@
                 container.querySelector('.image-upload-file').value = '';
                 container.querySelector('.image-upload-link').classList.add('hidden');
                 container.querySelector('.image-upload-link').value = '';
+            });
+
+            ['1', '2', '3', 'FUSION', 'EK'].forEach(level => {
+                 document.getElementById(`prompt-title-${level}`).value = '';
+                 document.getElementById(`prompt-text-${level}`).value = '';
+                 document.getElementById(`prompt-docId-${level}`).value = '';
+                 const indicator = document.querySelector(`#prompt-block-${level} .saved-indicator`);
+                 if(indicator) indicator.classList.remove('active');
             });
 
             dom.dateEditContainer.classList.add('hidden');
@@ -520,7 +631,7 @@
                     if (e.target.value === 'link') {
                         fileInput.classList.add('hidden');
                         linkInput.classList.remove('hidden');
-                    } else { // 'imgbb' or 'vgy'
+                    } else { 
                         fileInput.classList.remove('hidden');
                         linkInput.classList.add('hidden');
                     }
@@ -573,23 +684,46 @@
 
         const toggleFormFields = function() {
             const selectedType = dom.itemTypeSelect.value;
+            
             dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', selectedType !== 'character');
             dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', selectedType !== 'fusion');
             dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', selectedType !== 'fusion');
             dom.addEditForm.querySelector('#easter-egg-fields').classList.toggle('hidden', selectedType !== 'easterEgg');
+            
             dom.addEditForm.querySelector('#main-image-container > label').textContent = selectedType === 'easterEgg' ?
                 'Easter Egg Resim' : (selectedType === 'fusion' ? 'Ana Füzyon Resmi (GIF - İsteğe Bağlı)' : 'Ana Resim');
+
+            dom.promptSection.classList.remove('hidden');
+            if (selectedType === 'character') {
+                document.getElementById('prompt-block-1').classList.remove('hidden');
+                document.getElementById('prompt-block-2').classList.remove('hidden');
+                document.getElementById('prompt-block-3').classList.remove('hidden');
+                document.getElementById('prompt-block-FUSION').classList.add('hidden');
+                document.getElementById('prompt-block-EK').classList.remove('hidden');
+            } else if (selectedType === 'fusion') {
+                document.getElementById('prompt-block-1').classList.add('hidden');
+                document.getElementById('prompt-block-2').classList.add('hidden');
+                document.getElementById('prompt-block-3').classList.add('hidden');
+                document.getElementById('prompt-block-FUSION').classList.remove('hidden');
+                document.getElementById('prompt-block-EK').classList.remove('hidden');
+            } else {
+                dom.promptSection.classList.add('hidden'); 
+            }
         };
 
         const setupActionListeners = function() {
-            dom.adminGrid.querySelectorAll('.edit-button, .delete-button, .retire-button').forEach(button => {
+            dom.adminGrid.querySelectorAll('.view-prompt-button, .edit-button, .delete-button, .retire-button').forEach(button => {
                 button.addEventListener('click', (e) => {
-                    const { id, type, action } = e.currentTarget.dataset;
-                    if (button.classList.contains('edit-button')) {
+                    const targetBtn = e.currentTarget; 
+                    const { id, type, action, name } = targetBtn.dataset;
+
+                    if (targetBtn.classList.contains('view-prompt-button')) {
+                        openQuickPromptModal(id, name);
+                    } else if (targetBtn.classList.contains('edit-button')) {
                         loadItemForEdit(id, type);
-                    } else if (button.classList.contains('delete-button')) {
+                    } else if (targetBtn.classList.contains('delete-button')) {
                         deleteItem(id, type);
-                    } else if (button.classList.contains('retire-button')) {
+                    } else if (targetBtn.classList.contains('retire-button')) {
                         if (action === 'retire') {
                             retireItem(id, type);
                         } else if (action === 'unretire') {
@@ -600,7 +734,7 @@
             });
         };
 
-        const loadItemForEdit = function(itemId, itemType) {
+        const loadItemForEdit = async function(itemId, itemType) {
             resetForm();
             const allItems = [...characters, ...easterEggs, ...dismissed];
             const itemData = allItems.find(i => i.id === itemId);
@@ -664,6 +798,31 @@
                 updateSelectorDisplay('fusionPartners_1', itemData.fusionPartners?.[1]);
             } else if (itemType === 'easterEgg') {
                 updateSelectorDisplay('originalCharacterId', itemData.originalCharacterId);
+            }
+
+            try {
+                const promptSnapshot = await db.collection('promptLibrary').where('charId', '==', itemId).get();
+                promptSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const level = data.charStar; 
+                    let inputSuffix = level;
+                    if (level === 'FÜZYON') inputSuffix = 'FUSION';
+                    
+                    const titleEl = document.getElementById(`prompt-title-${inputSuffix}`);
+                    const textEl = document.getElementById(`prompt-text-${inputSuffix}`);
+                    const idEl = document.getElementById(`prompt-docId-${inputSuffix}`);
+                    const indicator = document.querySelector(`#prompt-block-${inputSuffix} .saved-indicator`);
+                    
+                    if (titleEl && textEl) {
+                        titleEl.value = data.title || '';
+                        textEl.value = data.prompt || '';
+                        idEl.value = doc.id;
+                        existingPrompts[inputSuffix] = data;
+                        if(indicator) indicator.classList.add('active');
+                    }
+                });
+            } catch (error) {
+                console.error("Promptlar çekilemedi:", error);
             }
             
             dom.saveButton.textContent = "Güncelle";
@@ -783,14 +942,52 @@
                     if (!data.imageUrl && !isEditing) throw new Error("Easter Egg resmi seçmek veya link girmek zorunludur.");
                 }
 
-                await db.collection(collectionName).doc(id).set(data, { merge: true });
-                alert(`Kayıt başarıyla ${isEditing ? 'güncellendi' : 'kaydedildi'}!`);
+                const batch = db.batch();
+                
+                const charRef = db.collection(collectionName).doc(id);
+                batch.set(charRef, data, { merge: true });
+
+                if (type === 'character' || type === 'fusion') {
+                    const levels = type === 'character' ? ['1', '2', '3', 'EK'] : ['FUSION', 'EK'];
+                    
+                    levels.forEach(suffix => {
+                        let dbKey = suffix;
+                        if (suffix === 'FUSION') dbKey = 'FÜZYON'; 
+                        
+                        const titleVal = document.getElementById(`prompt-title-${suffix}`).value.trim();
+                        const textVal = document.getElementById(`prompt-text-${suffix}`).value.trim();
+                        const docIdVal = document.getElementById(`prompt-docId-${suffix}`).value;
+
+                        if (textVal.length > 0) {
+                            const promptRef = docIdVal 
+                                ? db.collection('promptLibrary').doc(docIdVal) 
+                                : db.collection('promptLibrary').doc();
+                                
+                            batch.set(promptRef, {
+                                charId: id,
+                                charName: data.name, 
+                                charStar: dbKey,
+                                title: titleVal || `${data.name} ${dbKey}`,
+                                prompt: textVal,
+                                createdAt: docIdVal ? (existingPrompts[suffix]?.createdAt || firebase.firestore.FieldValue.serverTimestamp()) : firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                        } else if (docIdVal) {
+                            const promptRef = db.collection('promptLibrary').doc(docIdVal);
+                            batch.delete(promptRef);
+                        }
+                    });
+                }
+
+                await batch.commit();
+
+                alert(`Kayıt ve Promptlar başarıyla ${isEditing ? 'güncellendi' : 'kaydedildi'}!`);
                 await fetchItems();
                 dom.addEditFormContainer.classList.add('hidden');
                 dom.toggleFormText.textContent = 'Yeni Kayıt';
                 dom.toggleFormIcon.textContent = 'add';
                 resetForm();
             } catch (error) {
+                console.error(error);
                 alert(`Hata: ${error.message}`);
             } finally {
                 dom.saveButton.textContent = isEditing ? 'Güncelle' : 'Kaydet';
@@ -878,6 +1075,73 @@
                 else { alert("Yönetici API anahtarları bulunamadı."); return false; }
             } catch (error) { alert("API anahtarları çekilemedi."); return false; }
         };
+
+        // --- YENİ FONKSİYONLAR: HIZLI PROMPT GÖRÜNTÜLEME ---
+        function closeQuickPromptModal() {
+            dom.quickPromptModal.classList.remove('visible');
+            dom.quickPromptModal.classList.add('hidden');
+        }
+
+        async function openQuickPromptModal(charId, charName) {
+            dom.qpCharName.textContent = charName;
+            dom.qpContent.innerHTML = '';
+            dom.qpLoading.classList.remove('hidden');
+            dom.qpContent.classList.add('hidden');
+            dom.qpEmpty.classList.add('hidden');
+            
+            dom.quickPromptModal.classList.remove('hidden');
+            dom.quickPromptModal.classList.add('visible');
+
+            try {
+                const snapshot = await db.collection('promptLibrary').where('charId', '==', charId).get();
+                
+                if (snapshot.empty) {
+                    dom.qpLoading.classList.add('hidden');
+                    dom.qpEmpty.classList.remove('hidden');
+                    return;
+                }
+
+                const sortOrder = { '1': 1, '2': 2, '3': 3, 'FÜZYON': 4, 'EK': 5 };
+                const prompts = snapshot.docs.map(doc => doc.data());
+                prompts.sort((a, b) => (sortOrder[a.charStar] || 99) - (sortOrder[b.charStar] || 99));
+
+                let html = '';
+                prompts.forEach(p => {
+                    let badgeColor = 'bg-gray-700 text-gray-300';
+                    if(p.charStar === '1') badgeColor = 'bg-orange-900/50 text-orange-200 border border-orange-700/50';
+                    if(p.charStar === '2') badgeColor = 'bg-slate-700/50 text-slate-200 border border-slate-600/50';
+                    if(p.charStar === '3') badgeColor = 'bg-amber-900/50 text-amber-200 border border-amber-700/50';
+                    if(p.charStar === 'FÜZYON') badgeColor = 'bg-fuchsia-900/50 text-fuchsia-200 border border-fuchsia-700/50';
+
+                    html += `
+                        <div class="bg-[#131318] p-4 rounded-lg border border-gray-700 relative group">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="px-2 py-1 rounded text-xs font-bold ${badgeColor}">
+                                    ${p.charStar === 'FÜZYON' ? 'FÜZYON' : (isNaN(p.charStar) ? p.charStar : p.charStar + ' ★')}
+                                </span>
+                                <span class="text-xs text-gray-500">${p.title || 'Başlıksız'}</span>
+                            </div>
+                            <textarea readonly class="w-full bg-transparent text-sm font-mono text-gray-300 focus:outline-none resize-none" rows="4" onclick="this.select()">${p.prompt}</textarea>
+                            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.value).then(()=>alert('Kopyalandı!'))" class="bg-green-700 text-white p-1 rounded hover:bg-green-600" title="Kopyala">
+                                    <span class="material-symbols-outlined text-sm">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                dom.qpContent.innerHTML = html;
+                dom.qpLoading.classList.add('hidden');
+                dom.qpContent.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                dom.qpLoading.classList.add('hidden');
+                dom.qpContent.innerHTML = `<p class="text-red-400 text-center">Yükleme hatası!</p>`;
+                dom.qpContent.classList.remove('hidden');
+            }
+        }
     </script>
 </body>
 </html>
