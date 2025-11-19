@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rastgele Karakter Seçici</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <style>
+        :root {
+            --md-sys-color-primary-rgb: 189, 179, 255;
+            --md-sys-color-primary: rgb(var(--md-sys-color-primary-rgb));
+            --md-sys-color-on-primary: #2d235c;
+            --md-sys-color-primary-container: #443a74;
+            --md-sys-color-on-primary-container: #e6deff;
+            --md-sys-color-background: #131318;
+            --md-sys-color-on-background: #e5e1e6;
+            --md-sys-color-surface-container: #201f25;
+            --md-sys-color-surface-container-high: #2a2830;
+            --md-sys-color-on-surface: #e5e1e6;
+            --md-sys-color-on-surface-variant: #c8c4d0;
+            --md-sys-color-outline-variant: #48454e;
+        }
+        body { 
+            font-family: 'Manrope', sans-serif; 
+            background-color: var(--md-sys-color-background); 
+            color: var(--md-sys-color-on-background); 
+        }
+        .section-container {
+            background-color: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 99px;
+            font-weight: 700;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            opacity: 0.85;
+            box-shadow: 0 4px 12px rgba(var(--md-sys-color-primary-rgb), 0.2);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--md-sys-color-outline-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        .form-select, .form-checkbox {
+            background-color: var(--md-sys-color-surface-container-high);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            color: var(--md-sys-color-on-surface);
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+        .form-select:focus, .form-checkbox:focus {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 3px rgba(var(--md-sys-color-primary-rgb), 0.2);
+            outline: none;
+        }
+        .form-checkbox {
+            margin-right: 0.5rem;
+            width: 1.25em;
+            height: 1.25em;
+            accent-color: var(--md-sys-color-primary);
+        }
+        .char-card {
+            background-color: var(--md-sys-color-surface-container-high);
+            border-radius: 12px;
+            overflow: hidden;
+            text-align: center;
+            border: 2px solid var(--md-sys-color-outline-variant);
+            transition: all 0.2s ease;
+        }
+        .char-card img {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+        }
+        .char-card p {
+            font-weight: 600;
+            padding: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* Mode 3 Seçim Kartları */
+        .pool-card {
+            cursor: pointer;
+            border-width: 3px;
+        }
+        .pool-card.selected {
+            border-color: var(--md-sys-color-primary);
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(var(--md-sys-color-primary-rgb), 0.25);
+        }
+        .chip {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            font-weight: 500;
+            margin: 4px;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold" style="color: var(--md-sys-color-primary);">Rastgele Karakter Seçici</h1>
+            <p id="loading-status" class="text-lg mt-2 text-yellow-400">Veritabanına bağlanılıyor, karakterler yükleniyor...</p>
+        </header>
+
+        <main id="app-container" class="hidden">
+            <div class="section-container">
+                <h2 class="text-2xl font-bold mb-4">Karakter Filtreleri</h2>
+                <p class="mb-3" style="color: var(--md-sys-color-on-surface-variant);">Hangi karakterlerin havuzda yer alacağını seçin. (Hiçbiri seçilmezse tümü dahil edilir)</p>
+                <div id="filter-container" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <label class="flex items-center p-3 rounded-lg hover:bg-white/5 cursor-pointer">
+                        <input type="checkbox" class="form-checkbox" value="0">
+                        <span class="font-medium">0 kez kullananlar</span>
+                    </label>
+                    <label class="flex items-center p-3 rounded-lg hover:bg-white/5 cursor-pointer">
+                        <input type="checkbox" class="form-checkbox" value="1">
+                        <span class="font-medium">1 kez kullananlar</span>
+                    </label>
+                    <label class="flex items-center p-3 rounded-lg hover:bg-white/5 cursor-pointer">
+                        <input type="checkbox" class="form-checkbox" value="2">
+                        <span class="font-medium">2 kez kullananlar</span>
+                    </label>
+                    <label class="flex items-center p-3 rounded-lg hover:bg-white/5 cursor-pointer">
+                        <input type="checkbox" class="form-checkbox" value="3+">
+                        <span class="font-medium">3+ kez kullananlar</span>
+                    </label>
+                </div>
+                <p id="filter-count" class="text-center font-bold text-lg mt-4" style="color: var(--md-sys-color-primary-container);"></p>
+            </div>
+
+            <div id="results-container" class="section-container hidden">
+                <h2 class="text-2xl font-bold mb-4 text-center">Sonuç</h2>
+                <div id="results-grid" class="grid grid-cols-2 gap-4 md:w-1/2 mx-auto">
+                    </div>
+            </div>
+
+            <div class="section-container text-center">
+                <h2 class="text-2xl font-bold mb-4">Mod 1: Rastgele 2 Karakter Seç</h2>
+                <p class="mb-4" style="color: var(--md-sys-color-on-surface-variant);">Filtrelenmiş havuzdan tamamen rastgele 2 karakter seçer.</p>
+                <button id="mode-1-btn" class="btn">Şanslı Çifti Getir!</button>
+            </div>
+
+            <div class="section-container text-center">
+                <h2 class="text-2xl font-bold mb-4">Mod 2: 1 Sen, 1 Ben</h2>
+                <p class="mb-4" style="color: var(--md-sys-color-on-surface-variant);">Filtrelenmiş havuzdan 1 karakter sen seç, kalanı arasından 1 tane de ben seçeyim.</p>
+                <div class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+                    <select id="mode-2-select" class="form-select flex-grow">
+                        <option value="">Önce bir karakter seç...</option>
+                    </select>
+                    <button id="mode-2-btn" class="btn flex-shrink-0">Eşleşmeyi Bul!</button>
+                </div>
+            </div>
+
+            <div class="section-container">
+                <h2 class="text-2xl font-bold mb-4 text-center">Mod 3: Özel Havuzdan 2 Karakter Seç</h2>
+                <p class="mb-4 text-center" style="color: var(--md-sys-color-on-surface-variant);">Aşağıdaki filtrelenmiş karakterlerden istediklerini seçerek kendi özel havuzunu oluştur. Bu havuzdan rastgele 2 karakter seçilsin.</p>
+                
+                <h3 class="text-xl font-semibold mb-3">Karakterler (Tıklayıp Havuza Ekle/Çıkar)</h3>
+                <div id="mode-3-pool-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6 max-h-96 overflow-y-auto p-2" style="background-color: rgba(0,0,0,0.2); border-radius: 8px;">
+                    </div>
+
+                <h3 class="text-xl font-semibold mb-3">Özel Havuz (<span id="custom-pool-count">0</span> karakter seçildi)</h3>
+                <div id="custom-pool-display" class="min-h-16 p-3 rounded-lg mb-6" style="background-color: var(--md-sys-color-surface-container-high);">
+                    </div>
+
+                <div class="text-center">
+                    <button id="mode-3-btn" class="btn">Özel Havuzdan 2 Karakter Seç!</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+            authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+            projectId: "karaktergalerisi-dc337",
+            storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+            messagingSenderId: "486669559067",
+            appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Global Değişkenler
+        let allCharacters = []; // Sadece normal karakterler (füzyon olmayan)
+        let fusionCounts = new Map();
+        let filteredPool = [];
+        let customPool = []; // Mode 3 için seçilen karakter ID'leri
+        const dom = {};
+
+        // Uygulama Başlatma
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM elementlerini seç
+            Object.assign(dom, {
+                loadingStatus: document.getElementById('loading-status'),
+                appContainer: document.getElementById('app-container'),
+                filterContainer: document.getElementById('filter-container'),
+                filterCount: document.getElementById('filter-count'),
+                resultsContainer: document.getElementById('results-container'),
+                resultsGrid: document.getElementById('results-grid'),
+                mode1Btn: document.getElementById('mode-1-btn'),
+                mode2Btn: document.getElementById('mode-2-btn'),
+                mode2Select: document.getElementById('mode-2-select'),
+                mode3Btn: document.getElementById('mode-3-btn'),
+                mode3PoolList: document.getElementById('mode-3-pool-list'),
+                customPoolCount: document.getElementById('custom-pool-count'),
+                customPoolDisplay: document.getElementById('custom-pool-display')
+            });
+
+            // Olay Dinleyicileri Ekle
+            dom.mode1Btn.addEventListener('click', runMode1);
+            dom.mode2Btn.addEventListener('click', runMode2);
+            dom.mode3Btn.addEventListener('click', runMode3);
+            
+            // Filtre checkbox'larına dinleyici ekle
+            dom.filterContainer.querySelectorAll('.form-checkbox').forEach(cb => {
+                cb.addEventListener('change', applyFilters);
+            });
+
+            // Veriyi Çek
+            fetchData();
+        });
+
+        // 1. Veri Çekme ve İşleme
+        async function fetchData() {
+            try {
+                const charsSnap = await db.collection('characters').get();
+                
+                const allDocs = charsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Füzyonları ve normal karakterleri ayır
+                const allFusions = allDocs.filter(char => char.isFusion);
+                allCharacters = allDocs.filter(char => !char.isFusion);
+
+                // Füzyon sayılarını hesapla
+                calculateFusionCounts(allFusions);
+
+                // Filtreleri uygula (başlangıçta hepsi) ve UI'ı render et
+                applyFilters();
+
+                // Yükleme ekranını gizle, uygulamayı göster
+                dom.loadingStatus.textContent = `Veritabanı bağlandı. ${allCharacters.length} normal karakter yüklendi.`;
+                dom.loadingStatus.style.color = 'var(--md-sys-color-primary-container)';
+                dom.appContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Veri çekme hatası:", error);
+                dom.loadingStatus.textContent = "Veritabanı hatası! Lütfen sayfayı yenileyin.";
+                dom.loadingStatus.style.color = '#EF5350'; // danger color
+            }
+        }
+
+        // 2. Füzyon Sayılarını Hesaplama
+        function calculateFusionCounts(allFusions) {
+            // Her karakter için sayacı sıfırla
+            allCharacters.forEach(char => fusionCounts.set(char.id, 0));
+
+            // Füzyonları dolaş ve partnerlerin sayacını artır
+            allFusions.forEach(fusion => {
+                if (fusion.fusionPartners && Array.isArray(fusion.fusionPartners)) {
+                    fusion.fusionPartners.forEach(partnerId => {
+                        if (fusionCounts.has(partnerId)) {
+                            fusionCounts.set(partnerId, fusionCounts.get(partnerId) + 1);
+                        }
+                    });
+                }
+            });
+        }
+
+        // 3. Karakterin 3 Yıldızlı Resmini Alma (Yardımcı Fonksiyon)
+        function get3StarImageUrl(character) {
+            if (character && character.evolutions) {
+                const evo3 = character.evolutions.find(e => e.star === 3);
+                if (evo3 && evo3.imageUrl) {
+                    return evo3.imageUrl;
+                }
+            }
+            // 3 yıldız bulunamazsa, 1 yıldız resmini (ana resim) veya bir yer tutucu döndür
+            return character.imageUrl || 'https://via.placeholder.com/300x450?text=3-Yildiz+Resmi+Yok';
+        }
+
+        // 4. Filtreleri Uygulama
+        function applyFilters() {
+            const selectedFilters = Array.from(
+                dom.filterContainer.querySelectorAll('.form-checkbox:checked')
+            ).map(cb => cb.value);
+
+            // Eğer filtre seçilmediyse, tüm karakterleri al
+            if (selectedFilters.length === 0) {
+                filteredPool = [...allCharacters];
+            } else {
+                filteredPool = allCharacters.filter(char => {
+                    const count = fusionCounts.get(char.id) || 0;
+                    if (selectedFilters.includes('0') && count === 0) return true;
+                    if (selectedFilters.includes('1') && count === 1) return true;
+                    if (selectedFilters.includes('2') && count === 2) return true;
+                    if (selectedFilters.includes('3+') && count >= 3) return true;
+                    return false;
+                });
+            }
+            
+            // UI'ı güncelle
+            dom.filterCount.textContent = `Filtrelenmiş ${filteredPool.length} karakter bulundu.`;
+            renderCharacterPools();
+            
+            // Özel havuzu filtre dışı kalanlardan temizle
+            const filteredIds = new Set(filteredPool.map(c => c.id));
+            customPool = customPool.filter(id => filteredIds.has(id));
+            renderCustomPool();
+        }
+
+        // 5. Filtrelenmiş Havuzları UI'a Yansıtma
+        function renderCharacterPools() {
+            // Mod 2: Dropdown'ı doldur
+            dom.mode2Select.innerHTML = '<option value="">Önce bir karakter seç...</option>';
+            filteredPool.forEach(char => {
+                const option = document.createElement('option');
+                option.value = char.id;
+                option.textContent = `${char.name} (${fusionCounts.get(char.id)} kez)`;
+                dom.mode2Select.appendChild(option);
+            });
+
+            // Mod 3: Seçim listesini doldur
+            dom.mode3PoolList.innerHTML = '';
+            filteredPool.forEach(char => {
+                const isSelected = customPool.includes(char.id);
+                const card = document.createElement('div');
+                card.className = `char-card pool-card ${isSelected ? 'selected' : ''}`;
+                card.dataset.id = char.id;
+                card.onclick = () => toggleCustomPool(card);
+                
+                card.innerHTML = `
+                    <img src="${get3StarImageUrl(char)}" alt="${char.name}" loading="lazy">
+                    <p title="${char.name}">${char.name}</p>
+                `;
+                dom.mode3PoolList.appendChild(card);
+            });
+        }
+        
+        // 6. Mod 3 İçin Özel Havuz Yönetimi
+        function toggleCustomPool(cardElement) {
+            const charId = cardElement.dataset.id;
+            const index = customPool.indexOf(charId);
+
+            if (index > -1) {
+                // Karakter zaten havuzda, çıkar
+                customPool.splice(index, 1);
+                cardElement.classList.remove('selected');
+            } else {
+                // Karakter havuzda değil, ekle
+                customPool.push(charId);
+                cardElement.classList.add('selected');
+            }
+            renderCustomPool();
+        }
+
+        // 7. Mod 3 Seçilenleri Gösterme
+        function renderCustomPool() {
+            dom.customPoolCount.textContent = customPool.length;
+            dom.customPoolDisplay.innerHTML = '';
+            if (customPool.length === 0) {
+                dom.customPoolDisplay.innerHTML = '<p class="italic text-gray-400 text-center p-3">Havuza eklemek için yukarıdan karakter seçin...</p>';
+                return;
+            }
+            customPool.forEach(id => {
+                const char = allCharacters.find(c => c.id === id);
+                if (char) {
+                    const chip = document.createElement('span');
+                    chip.className = 'chip';
+                    chip.textContent = char.name;
+                    dom.customPoolDisplay.appendChild(chip);
+                }
+            });
+        }
+
+        // 8. Mod 1'i Çalıştırma
+        function runMode1() {
+            if (filteredPool.length < 2) {
+                alert("Havuzda rastgele 2 karakter seçecek kadar karakter yok!");
+                return;
+            }
+            const [char1, char2] = getRandomItems(filteredPool, 2);
+            displayResults(char1, char2);
+        }
+
+        // 9. Mod 2'yi Çalıştırma
+        function runMode2() {
+            const userCharId = dom.mode2Select.value;
+            if (!userCharId) {
+                alert("Lütfen önce bir karakter seçin!");
+                return;
+            }
+            
+            // Kendi seçtiği hariç havuz oluştur
+            const remainingPool = filteredPool.filter(char => char.id !== userCharId);
+            if (remainingPool.length < 1) {
+                alert("Seçtiğiniz karakter dışında havuzda başka karakter kalmadı!");
+                return;
+            }
+
+            const userChar = allCharacters.find(c => c.id === userCharId);
+            const [aiChar] = getRandomItems(remainingPool, 1);
+            displayResults(userChar, aiChar);
+        }
+
+        // 10. Mod 3'ü Çalıştırma
+        function runMode3() {
+            if (customPool.length < 2) {
+                alert("Özel havuzunuzda en az 2 karakter olmalı!");
+                return;
+            }
+            
+            // ID listesinden rastgele 2 ID seç
+            const [id1, id2] = getRandomItems(customPool, 2);
+            
+            // Tam karakter objelerini bul
+            const char1 = allCharacters.find(c => c.id === id1);
+            const char2 = allCharacters.find(c => c.id === id2);
+            
+            displayResults(char1, char2);
+        }
+
+        // 11. Sonuçları Ekranda Gösterme
+        function displayResults(char1, char2) {
+            dom.resultsGrid.innerHTML = ''; // Önceki sonuçları temizle
+            
+            [char1, char2].forEach(char => {
+                if (char) {
+                    const card = document.createElement('div');
+                    card.className = 'char-card';
+                    card.innerHTML = `
+                        <img src="${get3StarImageUrl(char)}" alt="${char.name}">
+                        <p title="${char.name}">${char.name}</p>
+                    `;
+                    dom.resultsGrid.appendChild(card);
+                }
+            });
+
+            dom.resultsContainer.classList.remove('hidden');
+            // Sonuçları görmek için ekrana kaydır
+            dom.resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // 12. Rastgele Öğe Seçme (Yardımcı Fonksiyon)
+        function getRandomItems(arr, n) {
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, n);
+        }
+
+    </script>
+
+</body>
+</html>

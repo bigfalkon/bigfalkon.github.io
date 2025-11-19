@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Kütüphanesi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Metamorphous&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
+    
+    <style>
+        :root { --bg: #131318; --card: #201f25; --primary: #bdb3ff; --on-primary: #131318;}
+        body { background-color: var(--bg); color: #e5e1e6; font-family: 'Manrope', sans-serif; }
+        .form-input { background: #2a2830; border: 1px solid #48454e; color: white; padding: 0.75rem; border-radius: 0.5rem; width: 100%; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--primary); outline: none; }
+        .prompt-card { 
+            background-color: var(--card); 
+            border-left: 5px solid var(--primary); 
+            transition: transform 0.2s, box-shadow 0.2s; 
+            cursor: pointer; 
+        }
+        .prompt-card:hover { background-color: #2a2830; transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .chip { background: #443a74; color: #e6deff; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+        .btn-primary { background: var(--primary); color: var(--on-primary); font-weight: 700; }
+        .btn-secondary { background: #443a74; color: white; }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-screen-xl mx-auto">
+
+    <header class="flex justify-between items-center mb-8 pb-4 border-b border-[#48454e]">
+        <h1 class="text-4xl font-extrabold" style="color: var(--primary);">Prompt Kütüphanesi</h1>
+        <div id="auth-button-container">
+            <button id="auth-action-btn" class="btn-secondary py-2 px-4 rounded-lg flex items-center gap-2" onclick="openLoginModal()">
+                <span id="auth-action-icon" class="material-symbols-outlined">login</span>
+                <span id="auth-action-text">Giriş Yap</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1">
+            <div id="add-prompt-container" class="bg-gray-800 p-6 rounded-xl shadow-lg sticky top-8 hidden">
+                <h2 class="text-2xl font-bold mb-4">Yeni Prompt Ekle (Bağlantısız)</h2>
+                <form id="add-prompt-form" class="flex flex-col gap-3">
+                    <input type="text" id="prompt-title" placeholder="Başlık (Örn: Genel Kategori)" class="form-input" required>
+                    <input type="text" id="prompt-category" placeholder="Kategori (Örn: Fantastik, Sci-Fi)" class="form-input">
+                    <input type="text" id="prompt-tags" placeholder="Etiketler (Virgülle ayır: Zırh, Kadın, Elf)" class="form-input">
+                    <textarea id="prompt-text" rows="6" placeholder="Prompt Metninin Tamamı" class="form-input" required></textarea>
+                    
+                    <button type="submit" class="btn-primary py-3 rounded mt-2 hover:bg-[#a599f5] transition-colors">
+                        Buluta Kaydet
+                    </button>
+                    <p id="save-status" class="text-center text-sm mt-2 h-4"></p>
+                </form>
+            </div>
+             <div id="login-prompt" class="bg-gray-800 p-6 rounded-xl shadow-lg sticky top-8 text-center">
+                 <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--primary);">lock</span>
+                 <p class="text-gray-400">Prompt eklemek için lütfen giriş yapın.</p>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2">
+            <input type="text" id="search-bar" placeholder="Başlık, Karakter, Prompt veya Etiket Ara..." class="form-input mb-6">
+            
+            <div id="prompt-list" class="flex flex-col gap-3">
+                <p id="loading-list" class="text-center text-gray-500">Prompt'lar yükleniyor...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="detail-modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-6 rounded-xl max-w-lg w-full relative">
+            <h2 id="modal-title" class="text-2xl font-bold mb-3 text-white"></h2>
+            <p id="modal-category" class="text-sm text-gray-400 mb-4"></p>
+            
+            <textarea id="modal-text" class="form-input mb-4 resize-none" rows="10" readonly></textarea>
+
+            <div class="flex justify-between items-center">
+                <button onclick="copyToClipboard()" class="bg-[#66bb6a] text-black py-2 px-4 rounded hover:bg-green-600 transition-colors">
+                    <span class="material-symbols-outlined align-middle mr-1">content_copy</span> Kopyala
+                </button>
+                <button onclick="closeModal()" class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-[1000]" onclick="closeLoginModal()">
+        <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm" onclick="event.stopPropagation()">
+            <h2 class="text-2xl font-bold mb-4 text-center">Yönetici Girişi</h2>
+            <input type="email" id="admin-email" placeholder="E-posta" class="form-input mb-2">
+            <input type="password" id="admin-password" placeholder="Şifre" class="form-input mb-4">
+            <button id="login-submit-btn" onclick="submitLogin()" class="btn-primary w-full py-2">Giriş Yap</button>
+            <p id="login-status" class="mt-2 text-center text-red-400 h-5"></p>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+            authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+            projectId: "karaktergalerisi-dc337",
+            storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+            messagingSenderId: "486669559067",
+            appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const PROMPT_COLLECTION = 'promptLibrary'; 
+        let allPrompts = []; 
+        let charMap = {}; // Karakter ID'lerini karakter objeleriyle eşleştiren harita
+        const statusEl = document.getElementById('save-status');
+        
+        // --- YARDIMCI GÖRSEL FONKSİYONLAR ---
+        function getImageUrl(char, star) {
+            if (!char) return 'https://via.placeholder.com/60x90?text=Karakter+Yok';
+            
+            // Füzyon, Ek veya Emekli (Tek Resim)
+            if (star === 'FÜZYON' || star === 'EK' || star === 'EMEKLİ') {
+                return char.imageUrl || char.previewUrl || char.selectedImage || 'https://via.placeholder.com/60x90?text=Özel';
+            }
+
+            // Yıldız Seviyelerine Göre Resim
+            const targetStar = parseInt(star, 10);
+            if (char.evolutions && char.evolutions.length > 0 && targetStar >= 1 && targetStar <= 3) {
+                const evolution = char.evolutions.find(e => e.star === targetStar);
+                if (evolution) return evolution.imageUrl;
+            }
+
+            // Varsayılan resmi döndür (Genellikle 1 yıldız)
+            return char.imageUrl || 'https://via.placeholder.com/60x90?text=Varsayılan';
+        }
+
+        // --- VERİ ÇEKME VE YÖNETİM ---
+        async function fetchCharacterData() {
+             try {
+                const [charsSnap, dismissedSnap] = await Promise.all([
+                    db.collection('characters').get(), 
+                    db.collection('dismissed').get(),
+                ]);
+                
+                // Karakter verilerini haritaya at
+                charsSnap.docs.forEach(doc => {
+                    charMap[doc.id] = doc.data();
+                });
+                // Emekli karakterleri de haritaya at
+                dismissedSnap.docs.forEach(doc => {
+                    charMap[doc.id] = {...doc.data(), isDismissed: true};
+                });
+
+            } catch (error) {
+                console.error("Karakter verileri çekilemedi:", error);
+            }
+        }
+
+        async function loadPrompts() {
+            const loadingEl = document.getElementById('loading-list');
+            if (loadingEl) loadingEl.textContent = 'Promptlar ve Karakterler Yükleniyor...';
+            
+            // Önce karakter haritasını oluştur
+            await fetchCharacterData(); 
+
+            try {
+                // Promptları sıralama zorunluluğu olmadan çek (Dizin hatasını önlemek için)
+                const snapshot = await db.collection(PROMPT_COLLECTION).get();
+                
+                allPrompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Manuel sıralama (Daha az hataya açık)
+                allPrompts.sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                        return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime();
+                    }
+                    return 0;
+                });
+                
+                if (loadingEl) loadingEl.remove();
+
+                renderList(allPrompts);
+            } catch (error) {
+                if (document.getElementById('prompt-list').children.length === 0) {
+                    document.getElementById('prompt-list').innerHTML = `<p class="text-center text-red-500">Veri Yüklenemedi. (Kural/Dizin hatası olabilir)</p>`;
+                }
+                console.error("Prompt Yükleme hatası:", error);
+            }
+        }
+
+        function renderList(list) {
+            const listContainer = document.getElementById('prompt-list');
+            listContainer.innerHTML = ''; 
+
+            if (list.length === 0) {
+                listContainer.innerHTML = '<p class="text-center text-gray-500">Hiç prompt bulunamadı.</p>';
+                return;
+            }
+
+            list.forEach(prompt => {
+                const card = document.createElement('div');
+                // Kartı esnek (flex) hale getir
+                card.className = 'prompt-card p-4 rounded-lg flex items-center gap-4'; 
+                card.onclick = () => openModal(prompt);
+
+                const char = charMap[prompt.charId];
+                const charName = prompt.charName || 'Bağlantısız';
+                const starDisplay = prompt.charStar ? (prompt.charStar.length < 3 ? prompt.charStar + '★' : prompt.charStar) : '';
+                const tagsHtml = (prompt.tags || [])
+                    .map(tag => `<span class="chip">${tag}</span>`)
+                    .join('');
+                
+                const imageUrl = getImageUrl(char, prompt.charStar);
+                
+                // Kart İçeriği
+                card.innerHTML = `
+                    <div class="flex-shrink-0 w-12 h-18 aspect-[2/3] overflow-hidden rounded">
+                        <img src="${imageUrl}" class="w-full h-full object-cover" alt="${charName} Resmi">
+                    </div>
+                    
+                    <div class="flex-grow flex flex-col min-w-0">
+                        <h3 class="text-xl font-bold truncate mb-1">${starDisplay} ${prompt.title}</h3>
+                        <p class="text-xs text-gray-400 mb-2 truncate">
+                            ${charName} / ${prompt.category || 'Genel'}
+                        </p>
+                        <div class="flex flex-wrap gap-1 mt-auto">${tagsHtml}</div>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // --- ARAMA VE FİLTRELEME ---
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            if (term.length < 2 && term.length !== 0) return; 
+
+            const filtered = allPrompts.filter(p => {
+                const searchArea = `${p.title} ${p.prompt} ${p.category} ${p.tags.join(' ')} ${p.charName}`.toLowerCase();
+                return searchArea.includes(term);
+            });
+
+            renderList(filtered);
+        });
+
+        // --- AUTH MANTIĞI VE UI (Aynı Kaldı) ---
+        
+        auth.onAuthStateChanged(user => {
+            const authBtn = document.getElementById('auth-action-btn');
+            if (user) {
+                authBtn.querySelector('#auth-action-text').textContent = 'Çıkış Yap';
+                authBtn.querySelector('#auth-action-icon').textContent = 'logout';
+                authBtn.onclick = () => auth.signOut();
+                document.getElementById('add-prompt-container').classList.remove('hidden');
+                document.getElementById('login-prompt').classList.add('hidden');
+                closeLoginModal();
+            } else {
+                authBtn.querySelector('#auth-action-text').textContent = 'Giriş Yap';
+                authBtn.querySelector('#auth-action-icon').textContent = 'login';
+                authBtn.onclick = openLoginModal;
+                document.getElementById('add-prompt-container').classList.add('hidden');
+                document.getElementById('login-prompt').classList.remove('hidden');
+            }
+        });
+        
+        // --- MODAL VE KOPYALAMA (Aynı Kaldı) ---
+        function openModal(prompt) {
+            const starDisplay = prompt.charStar ? (prompt.charStar.length < 3 ? prompt.charStar + '★' : prompt.charStar) : '';
+            const charName = prompt.charName ? ` | ${prompt.charName}` : '';
+            
+            document.getElementById('modal-title').textContent = `${starDisplay} ${prompt.title}`;
+            document.getElementById('modal-category').textContent = `Kategori: ${prompt.category || 'Genel'} ${charName}`;
+            
+            const textArea = document.getElementById('modal-text');
+            textArea.value = prompt.prompt;
+            textArea.select(); 
+
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        function copyToClipboard() {
+            const textArea = document.getElementById('modal-text');
+            textArea.select();
+            document.execCommand('copy');
+            alert("Prompt kopyalandı!");
+        }
+
+        function openLoginModal() { 
+            document.getElementById('login-modal').classList.add('flex'); 
+            document.getElementById('login-modal').classList.remove('hidden'); 
+        }
+        function closeLoginModal() { 
+            document.getElementById('login-modal').classList.add('hidden'); 
+            document.getElementById('login-modal').classList.remove('flex'); 
+            document.getElementById('login-status').textContent = '';
+        }
+        async function submitLogin() {
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            const status = document.getElementById('login-status');
+            
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                status.textContent = `Hata: ${error.code}`;
+            }
+        }
+        
+        // Başlangıçta yükle
+        loadPrompts();
+    </script>
+</body>
+</html>
