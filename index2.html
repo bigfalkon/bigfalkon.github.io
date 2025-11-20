@@ -92,7 +92,6 @@
                 <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Yönetim Paneli</h1>
                 <p class="text-lg mt-2" style="color: var(--md-sys-color-on-surface-variant);">Karakterleri, Füzyonları ve Promptları Yönet</p>
             </div>
-
             <div id="auth-button-container">
                 <button id="auth-action-btn" class="btn btn-secondary"><span id="auth-action-icon" class="material-symbols-outlined">login</span><span id="auth-action-text">Giriş Yap</span></button>
             </div>
@@ -115,10 +114,11 @@
             </select>
 
             <div class="col-span-full md:col-span-4 mt-4 flex flex-col sm:flex-row gap-4">
-                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span></button>
-                <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">gallery_thumbnail</span></a>
-                <a href="rastgelekarakter.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">casino</span></a>
-                <a href="links.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">link</span></a>
+                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span>Yeni EKle</span></button>
+                <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">gallery_thumbnail</span><span>Ana Galeri</span></a>
+                <a href="rastgelekarakter.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">casino</span><span>Rastgele Karakter</span></a>
+                <button id="export-btn" class="btn btn-secondary w-full sm:w-auto" onclick="openExportModal()"><span class="material-symbols-outlined">download</span><span>Tüm Promptları İndir</span></button>
+                <a href="links.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">link</span><span>Linkler</span></a>
             </div>
         </div>
         
@@ -286,22 +286,37 @@
             </button>
             <h2 class="text-2xl font-bold mb-1 text-[var(--md-sys-color-primary)]">Promptlar</h2>
             <p id="qp-char-name" class="text-sm text-gray-400 mb-6 pb-2 border-b border-gray-700"></p>
-            
-            <div id="qp-loading" class="text-center py-8 text-gray-400 hidden">
-                <span class="material-symbols-outlined animate-spin text-3xl mb-2">sync</span>
-                <p>Yükleniyor...</p>
-            </div>
-            
-            <div id="qp-content" class="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2">
-                </div>
-            
-            <div id="qp-empty" class="text-center py-8 text-gray-500 hidden">
-                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">content_paste_off</span>
-                <p>Bu kayıt için henüz hiç prompt eklenmemiş.</p>
-            </div>
+            <div id="qp-loading" class="text-center py-8 text-gray-400 hidden"><span class="material-symbols-outlined animate-spin text-3xl mb-2">sync</span><p>Yükleniyor...</p></div>
+            <div id="qp-content" class="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2"></div>
+            <div id="qp-empty" class="text-center py-8 text-gray-500 hidden"><span class="material-symbols-outlined text-4xl mb-2 opacity-50">content_paste_off</span><p>Bu kayıt için henüz hiç prompt eklenmemiş.</p></div>
         </div>
     </div>
 
+    <div id="export-modal" class="modal-backdrop hidden" onclick="closeExportModal()">
+        <div class="modal-content !max-w-sm relative" onclick="event.stopPropagation()">
+            <button class="icon-button absolute top-2 right-2" onclick="closeExportModal()" aria-label="Kapat">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h2 class="text-xl font-bold mb-4 text-[var(--md-sys-color-primary)]">Promptları İndir</h2>
+            <p class="text-sm text-gray-400 mb-4">Kütüphanedeki tüm promptları tek bir metin (.txt) dosyası olarak indirir.</p>
+            
+            <div class="flex flex-col gap-3 mb-6">
+                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)]">
+                    <input type="checkbox" id="export-include-retired" class="w-5 h-5 accent-[var(--md-sys-color-primary)]">
+                    <span class="text-sm font-medium">Emeklileri Dahil Et</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)]">
+                    <input type="checkbox" id="export-include-eastereggs" class="w-5 h-5 accent-[var(--md-sys-color-primary)]">
+                    <span class="text-sm font-medium">Easter Eggleri Dahil Et</span>
+                </label>
+            </div>
+            
+            <button id="export-action-btn" class="btn btn-primary w-full" onclick="downloadPrompts()">
+                <span class="material-symbols-outlined">download</span> İndirmeyi Başlat
+            </button>
+            <p id="export-status" class="text-center text-sm mt-2 text-gray-400"></p>
+        </div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -364,6 +379,13 @@
             qpContent: document.getElementById('qp-content'),
             qpLoading: document.getElementById('qp-loading'),
             qpEmpty: document.getElementById('qp-empty'),
+            
+            // YENİ: Export Modal
+            exportModal: document.getElementById('export-modal'),
+            exportIncludeRetired: document.getElementById('export-include-retired'),
+            exportIncludeEasterEggs: document.getElementById('export-include-eastereggs'),
+            exportStatus: document.getElementById('export-status'),
+            exportBtn: document.getElementById('export-action-btn')
         });
         
         const openLoginModal = () => { dom.loginModal.classList.add('visible'); dom.loginModal.classList.remove('hidden'); };
@@ -1076,7 +1098,7 @@
             } catch (error) { alert("API anahtarları çekilemedi."); return false; }
         };
 
-        // --- YENİ FONKSİYONLAR: HIZLI PROMPT GÖRÜNTÜLEME ---
+        // --- HIZLI PROMPT GÖRÜNTÜLEME ---
         function closeQuickPromptModal() {
             dom.quickPromptModal.classList.remove('visible');
             dom.quickPromptModal.classList.add('hidden');
@@ -1140,6 +1162,117 @@
                 dom.qpLoading.classList.add('hidden');
                 dom.qpContent.innerHTML = `<p class="text-red-400 text-center">Yükleme hatası!</p>`;
                 dom.qpContent.classList.remove('hidden');
+            }
+        }
+
+        // --- YENİ: PROMPT İNDİRME FONKSİYONLARI ---
+        function openExportModal() {
+            dom.exportModal.classList.add('visible');
+            dom.exportModal.classList.remove('hidden');
+            dom.exportStatus.textContent = '';
+            dom.exportBtn.disabled = false;
+        }
+
+        function closeExportModal() {
+            dom.exportModal.classList.remove('visible');
+            dom.exportModal.classList.add('hidden');
+        }
+
+        async function downloadPrompts() {
+            const includeRetired = dom.exportIncludeRetired.checked;
+            const includeEasterEggs = dom.exportIncludeEasterEggs.checked;
+            const status = dom.exportStatus;
+            const btn = dom.exportBtn;
+
+            btn.disabled = true;
+            status.textContent = 'Veriler çekiliyor...';
+
+            try {
+                // 1. Tüm promptları çek
+                const snapshot = await db.collection('promptLibrary').get();
+                if (snapshot.empty) throw new Error('Hiç prompt bulunamadı.');
+
+                let allPrompts = snapshot.docs.map(doc => doc.data());
+                
+                // 2. Karakter verilerini hazırla (isim ve tür kontrolü için)
+                // Global değişkenler (characters, dismissed, easterEggs) fetchItems() ile zaten doldu varsayıyoruz.
+                const allActiveChars = characters;
+                const allRetiredChars = dismissed;
+                const allEEs = easterEggs;
+
+                let textContent = "";
+                let count = 0;
+
+                // 3. Sıralama ve Filtreleme
+                // Promptları karakter ismine göre sıralayalım
+                allPrompts.sort((a, b) => a.charName.localeCompare(b.charName, 'tr'));
+
+                allPrompts.forEach(p => {
+                    const charId = p.charId;
+                    let char = allActiveChars.find(c => c.id === charId);
+                    let type = 'active';
+
+                    if (!char) {
+                        char = allRetiredChars.find(c => c.id === charId);
+                        type = 'retired';
+                    }
+                    if (!char) {
+                        char = allEEs.find(c => c.id === charId);
+                        type = 'easterEgg';
+                    }
+
+                    // Filtreleme Kontrolü
+                    if (type === 'retired' && !includeRetired) return;
+                    if (type === 'easterEgg' && !includeEasterEggs) return;
+                    if (!char && !includeRetired) return; // Karakter silinmişse ve emekliler istenmiyorsa geç
+
+                    // İsimlendirme ve Füzyon Detayı
+                    let displayName = p.charName;
+                    if (char && char.isFusion && char.fusionPartners && char.fusionPartners.length > 0) {
+                        const partnerNames = char.fusionPartners.map(pid => {
+                            const pChar = [...allActiveChars, ...allRetiredChars].find(c => c.id === pid);
+                            return pChar ? pChar.name : 'Bilinmiyor';
+                        });
+                        displayName += ` (${partnerNames.join(' + ')})`;
+                    }
+
+                    // Yıldız / Tür Etiketi
+                    let starLabel = p.charStar;
+                    if (starLabel === '1') starLabel = '1. Seviye';
+                    else if (starLabel === '2') starLabel = '2. Seviye';
+                    else if (starLabel === '3') starLabel = '3. Seviye';
+
+                    // Metne Ekle
+                    textContent += `### ${displayName} - [${starLabel}] ###\n`;
+                    if (p.title) textContent += `Başlık: ${p.title}\n`;
+                    textContent += `${p.prompt}\n`;
+                    textContent += `--------------------------------------------------\n\n`;
+                    count++;
+                });
+
+                if (count === 0) throw new Error('Seçilen kriterlere uygun prompt bulunamadı.');
+
+                // 4. Dosya Oluşturma ve İndirme
+                const blob = new Blob([textContent], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const date = new Date().toISOString().slice(0, 10);
+                a.download = `prompt_arsivi_${date}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                status.textContent = `${count} adet prompt indirildi!`;
+                setTimeout(closeExportModal, 2000);
+
+            } catch (error) {
+                console.error(error);
+                status.textContent = `Hata: ${error.message}`;
+                status.classList.add('text-red-400');
+            } finally {
+                btn.disabled = false;
             }
         }
     </script>
