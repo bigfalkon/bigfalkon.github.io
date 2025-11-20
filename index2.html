@@ -114,7 +114,7 @@
             </select>
 
             <div class="col-span-full md:col-span-4 mt-4 flex flex-col sm:flex-row gap-4">
-                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span>Yeni EKle</span></button>
+                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span>Yeni Ekle</span></button>
                 <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">gallery_thumbnail</span><span>Ana Galeri</span></a>
                 <a href="rastgelekarakter.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">casino</span><span>Rastgele Karakter</span></a>
                 <button id="export-btn" class="btn btn-secondary w-full sm:w-auto" onclick="openExportModal()"><span class="material-symbols-outlined">download</span><span>Tüm Promptları İndir</span></button>
@@ -552,11 +552,11 @@
                 let imageBlockHtml;
                 if(isFusion || isEasterEgg) {
                     const imageUrl = (isFusion ? item.previewUrl : item.imageUrl) || 'https://via.placeholder.com/96';
-                    imageBlockHtml = `<div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event, '${imageUrl}')"><img src="${imageUrl}" alt="${item.name}" class="w-full h-full object-cover"></div>`;
+                    imageBlockHtml = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event, '${imageUrl}')"><img src="${imageUrl}" alt="${item.name}" class="w-full h-full object-cover"></div>`;
                 } else {
                     const evo2 = item.evolutions?.find(e => e.star === 2), evo3 = item.evolutions?.find(e => e.star === 3);
-                    const thumbClass = "w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-black/20 border border-white/10 flex items-center justify-center", placeholderClass = "text-sm font-bold text-gray-500", imgClass = "w-full h-full object-cover cursor-zoom-in";
-                    imageBlockHtml = `<div class="flex items-center gap-3"><div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event, '${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} 1★" class="${imgClass}"></div><div class="flex flex-col gap-1.5"><div class="${thumbClass}" onclick="${evo2 ? `enlargeImage(event, '${evo2.imageUrl}')` : ''}">${evo2 ? `<img src="${evo2.imageUrl}" alt="${item.name} 2★" class="${imgClass}">` : `<span class="${placeholderClass}">2★</span>`}</div><div class="${thumbClass}" onclick="${evo3 ? `enlargeImage(event, '${evo3.imageUrl}')` : ''}">${evo3 ? `<img src="${evo3.imageUrl}" alt="${item.name} 3★" class="${imgClass}">` : `<span class="${placeholderClass}">3★</span>`}</div></div></div>`;
+                    const thumbClass = "w-8 h-12 md:w-16 md:h-24 flex-shrink-0 rounded-md overflow-hidden bg-black/20 border border-white/10 flex items-center justify-center", placeholderClass = "text-sm font-bold text-gray-500", imgClass = "w-full h-full object-cover cursor-zoom-in";
+                    imageBlockHtml = `<div class="flex items-center gap-3"><div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event, '${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} 1★" class="${imgClass}"></div><div class="flex flex-col gap-1.5"><div class="${thumbClass}" onclick="${evo2 ? `enlargeImage(event, '${evo2.imageUrl}')` : ''}">${evo2 ? `<img src="${evo2.imageUrl}" alt="${item.name} 2★" class="${imgClass}">` : `<span class="${placeholderClass}">2★</span>`}</div><div class="${thumbClass}" onclick="${evo3 ? `enlargeImage(event, '${evo3.imageUrl}')` : ''}">${evo3 ? `<img src="${evo3.imageUrl}" alt="${item.name} 3★" class="${imgClass}">` : `<span class="${placeholderClass}">3★</span>`}</div></div></div>`;
                 }
                 let starHtml;
                 if(isFusion) starHtml = getStarEmojis(true, 4); else if (isEasterEgg) starHtml = getStarEmojis(false, 1, 'auto_awesome'); else starHtml = getStarEmojis(false, 1);
