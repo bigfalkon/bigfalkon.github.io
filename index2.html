@@ -114,7 +114,7 @@
             </select>
 
             <div class="col-span-full md:col-span-4 mt-4 flex flex-col sm:flex-row gap-4">
-                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span>Yeni Ekle</span></button>
+                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto"><span id="toggle-form-icon" class="material-symbols-outlined">add</span><span id="toggle-form-text">Yeni Ekle</span></button>
                 <a href="index.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">gallery_thumbnail</span><span>Ana Galeri</span></a>
                 <a href="rastgelekarakter.html" rel="noopener noreferrer" class="btn btn-secondary w-full sm:w-auto"><span class="material-symbols-outlined">casino</span><span>Rastgele Karakter</span></a>
                 <button id="export-btn" class="btn btn-secondary w-full sm:w-auto" onclick="openExportModal()"><span class="material-symbols-outlined">download</span><span>Tüm Promptları İndir</span></button>
@@ -588,6 +588,7 @@
             
             dom.formTitle.textContent = "Yeni Kayıt Ekle";
             dom.itemTypeSelect.disabled = false;
+            dom.itemTypeSelect.value = 'character'; 
             dom.addEditForm.elements['id'].readOnly = false;
             dom.saveButton.textContent = "Kaydet";
             dom.cancelButton.classList.add('hidden');
@@ -694,9 +695,11 @@
 
             dom.toggleFormBtn.addEventListener('click', () => {
                 const isHidden = dom.addEditFormContainer.classList.toggle('hidden');
-                dom.toggleFormText.textContent = isHidden ? 'Yeni Kayıt' : 'Formu Kapat';
+                dom.toggleFormText.textContent = isHidden ? 'Yeni Ekle' : 'Formu Kapat';
                 dom.toggleFormIcon.textContent = isHidden ? 'add' : 'close';
-                if(isHidden || editingItemId) {
+                
+                // DÜZELTME: Form açıldığında (hidden değilken) sıfırlama yap
+                if (!isHidden) {
                     resetForm();
                 }
             });
