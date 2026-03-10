@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karakter Galerisi</title>
+    <title>Character Gallery</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#443a74"/>
@@ -113,9 +113,9 @@
 
     <div id="app" class="max-w-screen-2xl mx-auto">
         <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Karakter Galerisi<span id="easter-egg-indicator" class="material-symbols-outlined text-yellow-400 hidden ml-2 align-middle cursor-pointer" style="font-size: 2.5rem;">auto_awesome</span></h1>
+            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--md-sys-color-primary);">Character Gallery<span id="easter-egg-indicator" class="material-symbols-outlined text-yellow-400 hidden ml-2 align-middle cursor-pointer" style="font-size: 2.5rem;">auto_awesome</span></h1>
             <p id="description-menu-trigger" class="text-lg mt-2 inline-block cursor-pointer transition-colors duration-200 hover:text-white p-1" style="color: var(--md-sys-color-on-surface-variant);">
-                Evrenin Kahramanlarını Keşfet
+                Discover the Heroes of the Universe
             </p>
         </header>
         
@@ -128,22 +128,22 @@
                 <div class="relative" id="filter-container">
                     <button id="filter-toggle-btn" class="chip ripple-effect">
                         <span id="filter-label-icon" class="material-symbols-outlined">apps</span>
-                        <span id="filter-label-text" class="hidden sm:inline">Tümü</span>
+                        <span id="filter-label-text" class="hidden sm:inline">All</span>
                     </button>
                     <div id="filter-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl shadow-lg p-2 z-50" style="background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant);">
-                        <button class="menu-item" data-filter="all" title="Tüm Karakterler"><div><span class="material-symbols-outlined">apps</span><span>Tümü</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="1-star" title="1 Yıldız"><div><span class="material-symbols-outlined text-orange-400">filter_1</span><span>1 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="2-star" title="2 Yıldız"><div><span class="material-symbols-outlined text-slate-400">filter_2</span><span>2 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="3-star" title="3 Yıldız"><div><span class="material-symbols-outlined text-amber-400">filter_3</span><span>3 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-filter="fusion" title="4 Yıldız (Füzyon)"><div><span class="material-symbols-outlined text-fuchsia-400">filter_4</span><span>4 Yıldız</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" id="dismissed-filter-menu-btn" data-filter="dismissed" title="Emekliler"><div><span class="material-symbols-outlined">badge</span><span>Emekliler</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="all" title="Tüm Karakterler"><div><span class="material-symbols-outlined">apps</span><span>All</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="1-star" title="1 Star"><div><span class="material-symbols-outlined text-orange-400">filter_1</span><span>1 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="2-star" title="2 Star"><div><span class="material-symbols-outlined text-slate-400">filter_2</span><span>2 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="3-star" title="3 Star"><div><span class="material-symbols-outlined text-amber-400">filter_3</span><span>3 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-filter="fusion" title="4 Star (Füzyon)"><div><span class="material-symbols-outlined text-fuchsia-400">filter_4</span><span>4 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" id="dismissed-filter-menu-btn" data-filter="dismissed" title="Retired"><div><span class="material-symbols-outlined">badge</span><span>Retired</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                         <button class="menu-item hidden" id="easter-egg-filter-menu-btn" data-filter="easter-egg" title="Sırlar"><div><span class="material-symbols-outlined text-yellow-500">auto_awesome</span><span>Sırlar</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                         
                         <hr class="menu-divider">
                         
-                        <button class="menu-item" data-sort="name" title="İsme Göre Sırala (A-Z)"><div><span class="material-symbols-outlined">sort_by_alpha</span><span>İsme Göre</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-sort="date_desc" title="Tarihe Göre (En Yeni)"><div><span class="material-symbols-outlined">arrow_downward</span><span>En Yeni</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                        <button class="menu-item" data-sort="date_asc" title="Tarihe Göre (En Eski)"><div><span class="material-symbols-outlined">arrow_upward</span><span>En Eski</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-sort="name" title="Name Sırala (A-Z)"><div><span class="material-symbols-outlined">sort_by_alpha</span><span>Name</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-sort="date_desc" title="Tarihe Göre (Newest)"><div><span class="material-symbols-outlined">arrow_downward</span><span>Newest</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                        <button class="menu-item" data-sort="date_asc" title="Tarihe Göre (Oldest)"><div><span class="material-symbols-outlined">arrow_upward</span><span>Oldest</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     </div>
                 </div>
 
@@ -166,7 +166,7 @@
             <div class="m3-dialog-content px-4 py-6 flex-grow flex flex-col items-center justify-between">
                 <div id="modal-evolutions" class="grid gap-4 justify-center w-full"></div>
                 <div id="modal-fusions" class="hidden w-full mt-8">
-                    <h3 class="text-xl font-bold mb-4 text-center" style="color: var(--md-sys-color-fusion);">Katıldığı Füzyonlar</h3>
+                    <h3 class="text-xl font-bold mb-4 text-center" style="color: var(--md-sys-color-fusion);">Fusions</h3>
                     <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-center"></div>
                 </div>
             </div>
@@ -551,7 +551,7 @@
                 evoDiv.style.backgroundColor = 'var(--md-sys-color-surface-container)';
                 const imgWrapper = document.createElement('div');
                 imgWrapper.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
-                imgWrapper.innerHTML = `<img src="${getCharacterImageUrlByStar(char.id, evo.star)}" alt="${char.name} ${evo.star} Yıldız" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+                imgWrapper.innerHTML = `<img src="${getCharacterImageUrlByStar(char.id, evo.star)}" alt="${char.name} ${evo.star} Star" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
                 const p = document.createElement('p');
                 p.className = 'text-lg font-medium flex';
                 p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
