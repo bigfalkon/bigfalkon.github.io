@@ -145,6 +145,22 @@
 </head>
 <body class="p-4 sm:p-6 md:p-8">
 
+<!-- LOGIN WALL — shown until authenticated -->
+<div id="login-wall" class="fixed inset-0 z-50 flex items-center justify-center" style="background:var(--bg);">
+    <div class="w-full max-w-sm p-8 rounded-2xl" style="background:var(--surface);border:1px solid var(--outline-var);">
+        <h1 class="text-3xl font-extrabold mb-1 text-center" style="color:var(--primary);">Admin Panel</h1>
+        <p class="text-center text-sm mb-6" style="color:var(--on-surface-var);">Sign in to continue</p>
+        <div class="flex flex-col gap-3">
+            <input type="email" id="wall-email" placeholder="Email" class="form-input" autocomplete="email">
+            <input type="password" id="wall-password" placeholder="Password" class="form-input" autocomplete="current-password">
+            <button id="wall-sign-in-btn" class="btn btn-primary w-full" onclick="wallSignIn()">
+                <span class="material-symbols-outlined">login</span> Sign In
+            </button>
+            <p id="wall-error" class="text-red-400 text-sm text-center hidden"></p>
+        </div>
+    </div>
+</div>
+
 <div id="app" class="max-w-screen-xl mx-auto">
     <header class="flex justify-between items-center mb-6 pb-4 border-b" style="border-color: var(--outline-var);">
         <div>
@@ -213,7 +229,6 @@
                 <select id="item-type-select" class="form-select mb-2">
                     <option value="character">Normal Character</option>
                     <option value="fusion">Fusion</option>
-                    <option value="easterEgg">Easter Egg</option>
                 </select>
                 <input required type="text" name="id" placeholder="Record ID (must be unique)" class="form-input">
                 <input required type="text" name="name" placeholder="Name" class="form-input">
@@ -235,7 +250,7 @@
                     <div id="evo1-image-container">
                         <label class="block text-sm font-medium mb-1">2★ Image</label>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
                             <input type="file" name="evolutions_1_file" class="form-input flex-grow image-upload-file">
                             <input type="text" name="evolutions_1_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
@@ -243,7 +258,7 @@
                     <div id="evo2-image-container">
                         <label class="block text-sm font-medium mb-1">3★ Image</label>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
                             <input type="file" name="evolutions_2_file" class="form-input flex-grow image-upload-file">
                             <input type="text" name="evolutions_2_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
@@ -264,7 +279,7 @@
                     <div id="preview-image-container">
                         <label class="block text-sm font-medium mb-1">Fusion Preview Image (PNG/JPG)</label>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
                             <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file">
                             <input type="text" name="previewUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
@@ -520,7 +535,7 @@
             <div id="au-star3-field">
                 <label class="block text-sm font-medium mb-1">3★ AU Image <span class="text-xs text-gray-400">(character alternative)</span></label>
                 <div class="flex flex-col sm:flex-row gap-2">
-                    <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                    <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
                     <input type="file" class="form-input flex-grow image-upload-file" id="au-star3-file">
                     <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-star3-link" placeholder="https://...">
                 </div>
@@ -532,7 +547,7 @@
             <div id="au-fusion-field" class="hidden">
                 <label class="block text-sm font-medium mb-1">Fusion AU Image <span class="text-xs text-gray-400">(replaces GIF preview)</span></label>
                 <div class="flex flex-col sm:flex-row gap-2">
-                    <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                    <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
                     <input type="file" class="form-input flex-grow image-upload-file" id="au-fusion-file">
                     <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-fusion-link" placeholder="https://...">
                 </div>
@@ -567,7 +582,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let apiKeys = { imgbb_main_key: null, imgbb_easteregg_key: null, vgy_user_key: null };
+let apiKeys = { imgbb_main_key: null, imgbb2_key: null, vgy_user_key: null };
 let characters = [], easterEggs = [], dismissed = [];
 let alternativeUniverses = [];
 let editingItemId = null, editingItemType = null, selectorTargetInput = null, existingPrompts = {};
@@ -698,8 +713,9 @@ const processImageInput = async (containerId) => {
     if (!file) return (editingItemId ? linkInput.value.trim() : null) || null;
     try {
         if (method === 'imgbb') {
-            const key = dom.itemTypeSelect.value === 'easterEgg' ? apiKeys.imgbb_easteregg_key : apiKeys.imgbb_main_key;
-            return await uploadImageToImgBB(file, key);
+            return await uploadImageToImgBB(file, apiKeys.imgbb_main_key);
+        } else if (method === 'imgbb2') {
+            return await uploadImageToImgBB(file, apiKeys.imgbb2_key);
         } else if (method === 'vgy') {
             return await uploadImageToVGY(file, apiKeys.vgy_user_key);
         }
@@ -715,6 +731,7 @@ const processRawImageInput = async (methodSelectEl, fileInputEl, linkInputEl) =>
     if (!file) return linkInputEl.value.trim() || null;
     try {
         if (method === 'imgbb') return await uploadImageToImgBB(file, apiKeys.imgbb_main_key);
+        if (method === 'imgbb2') return await uploadImageToImgBB(file, apiKeys.imgbb2_key);
         if (method === 'vgy')   return await uploadImageToVGY(file, apiKeys.vgy_user_key);
     } catch (e) { alert(`Image upload failed: ${e.message}`); return null; }
     return null;
@@ -1442,19 +1459,49 @@ const unretireItem = async (itemId) => {
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
+// ─── Login wall ───────────────────────────────────────────────────────────────
+async function wallSignIn() {
+    const email  = document.getElementById('wall-email').value.trim();
+    const pw     = document.getElementById('wall-password').value;
+    const errEl  = document.getElementById('wall-error');
+    const btn    = document.getElementById('wall-sign-in-btn');
+    errEl.classList.add('hidden');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try {
+        await firebase.auth().signInWithEmailAndPassword(email, pw);
+        // updateAuthUI will handle hiding the wall
+    } catch(e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined">login</span> Sign In';
+    }
+}
+// Allow Enter key on wall inputs
+document.addEventListener('DOMContentLoaded', () => {
+    ['wall-email','wall-password'].forEach(id => {
+        document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') wallSignIn(); });
+    });
+});
+
 function updateAuthUI(user) {
+    const wall = document.getElementById('login-wall');
     const lockEls = [dom.appContainer.querySelector('main'), dom.toggleFormBtn?.closest('div'), dom.addEditFormContainer, dom.viewFilter, dom.sortBy, dom.searchInput];
     if (user) {
+        // Hide login wall, show app
+        if (wall) wall.style.display = 'none';
         dom.authActionText.textContent = 'Sign Out';
         dom.authActionIcon.textContent = 'logout';
         dom.authActionBtn.onclick = () => { if(confirm('Sign out?')) firebase.auth().signOut(); };
         closeLoginModal();
         fetchApiKeys().then(ok => lockEls.forEach(el => { if(el){el.style.opacity=ok?'1':'0.5';el.style.pointerEvents=ok?'auto':'none';}}));
     } else {
+        // Show login wall, block app
+        if (wall) { wall.style.display = 'flex'; }
         dom.authActionText.textContent = 'Sign In';
         dom.authActionIcon.textContent = 'login';
         dom.authActionBtn.onclick = openLoginModal;
-        apiKeys = { imgbb_main_key:null, imgbb_easteregg_key:null, vgy_user_key:null };
+        apiKeys = { imgbb_main_key:null, imgbb2_key:null, vgy_user_key:null };
         lockEls.forEach(el => { if(el){el.style.opacity='0.5';el.style.pointerEvents='none';}});
         dom.addEditFormContainer.classList.add('hidden');
         dom.toggleFormText.textContent='Add New'; dom.toggleFormIcon.textContent='add';
@@ -1463,7 +1510,7 @@ function updateAuthUI(user) {
 const fetchApiKeys = async () => {
     try {
         const doc = await db.collection('settings').doc('apiKeys').get();
-        if (doc.exists) { const d=doc.data(); apiKeys.imgbb_main_key=d.imgbb_main_key||null; apiKeys.imgbb_easteregg_key=d.imgbb_easteregg_key||null; apiKeys.vgy_user_key=d.vgy_user_key||null; return true; }
+        if (doc.exists) { const d=doc.data(); apiKeys.imgbb_main_key=d.imgbb_main_key||null; apiKeys.imgbb2_key=d.imgbb2_key||d.imgbb_easteregg_key||null; apiKeys.vgy_user_key=d.vgy_user_key||null; return true; }
         alert("Admin API keys not found."); return false;
     } catch(e) { alert("Failed to load API keys."); return false; }
 };
