@@ -471,6 +471,10 @@
                 <input type="checkbox" id="export-include-eastereggs" class="w-5 h-5 accent-[var(--primary)]">
                 <span class="text-sm font-medium">Include Easter Eggs</span>
             </label>
+            <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+                <input type="checkbox" id="export-include-au" class="w-5 h-5 accent-[var(--au)]">
+                <span class="text-sm font-medium" style="color: var(--on-au-container);">Include AU Prompts</span>
+            </label>
         </div>
         <button id="export-action-btn" class="btn btn-primary w-full" onclick="downloadPrompts()">
             <span class="material-symbols-outlined">download</span> Start Download
@@ -661,6 +665,7 @@ Object.assign(dom, {
     exportModal:        document.getElementById('export-modal'),
     exportIncludeRetired: document.getElementById('export-include-retired'),
     exportIncludeEasterEggs: document.getElementById('export-include-eastereggs'),
+    exportIncludeAu:    document.getElementById('export-include-au'),
     exportStatus:       document.getElementById('export-status'),
     exportBtn:          document.getElementById('export-action-btn'),
     // AU tab
@@ -1518,6 +1523,7 @@ function updateAuthUI(user) {
         dom.authActionBtn.onclick = () => { if(confirm('Sign out?')) firebase.auth().signOut(); };
         closeLoginModal();
         fetchApiKeys().then(ok => lockEls.forEach(el => { if(el){el.style.opacity=ok?'1':'0.5';el.style.pointerEvents=ok?'auto':'none';}}));
+        fetchItems();
     } else {
         // Show login wall, block app
         if (wall) { wall.style.display = 'flex'; }
@@ -1550,6 +1556,8 @@ const fetchItems = async () => {
         characters = cs.docs.map(d=>({id:d.id,...d.data()}));
         easterEggs = es.docs.map(d=>({id:d.id,...d.data()}));
         dismissed  = ds.docs.map(d=>({id:d.id,...d.data(),isRetired:true}));
+        window.characters = characters;
+        window.dismissed  = dismissed;
         alternativeUniverses = aus.docs.map(d=>({id:d.id,...d.data()}));
         renderAdminPanel();
         renderAuDefinitions();
@@ -1595,7 +1603,7 @@ async function openQuickPromptModal(charId, charName) {
 function openExportModal() { dom.exportModal.classList.add('visible'); dom.exportModal.classList.remove('hidden'); dom.exportStatus.textContent=''; dom.exportBtn.disabled=false; }
 function closeExportModal() { dom.exportModal.classList.remove('visible'); dom.exportModal.classList.add('hidden'); }
 async function downloadPrompts() {
-    const incRetired = dom.exportIncludeRetired.checked, incEE = dom.exportIncludeEasterEggs.checked;
+    const incRetired = dom.exportIncludeRetired.checked, incEE = dom.exportIncludeEasterEggs.checked, incAU = dom.exportIncludeAu.checked;
     dom.exportBtn.disabled=true; dom.exportStatus.textContent='Fetching data...';
     try {
         const snap = await db.collection('promptLibrary').get();
@@ -1623,6 +1631,29 @@ async function downloadPrompts() {
             txt+=`${p.prompt}\n--------------------------------------------------\n\n`;
             count++;
         });
+        if(!count && !incAU) throw new Error("No prompts match the selected criteria.");
+
+        // ── AU prompts ──
+        if (incAU) {
+            const allChars = [...characters, ...(incRetired ? dismissed : [])];
+            const auPromptLines = [];
+            allChars.forEach(char => {
+                if (!char.auData) return;
+                Object.entries(char.auData).forEach(([auId, entry]) => {
+                    if (!entry.prompt) return;
+                    const auDef = alternativeUniverses.find(a => a.id === auId);
+                    const auName = auDef ? auDef.name : auId;
+                    const type = char.isFusion ? 'FUSION' : '3★';
+                    auPromptLines.push(`### ${char.name} - [${auName} AU / ${type}] ###\n${entry.prompt}\n--------------------------------------------------\n\n`);
+                });
+            });
+            if (auPromptLines.length) {
+                if (count) txt += '\n\n========== AU PROMPTS ==========\n\n';
+                txt += auPromptLines.join('');
+                count += auPromptLines.length;
+            }
+        }
+
         if(!count) throw new Error("No prompts match the selected criteria.");
         const blob=new Blob([txt],{type:'text/plain'});
         const url=URL.createObjectURL(blob);
@@ -1690,7 +1721,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('au-entry-cancel').addEventListener('click', closeAuEntryModal);
     dom.auEntrySearch.addEventListener('input', () => renderAuEntrySelector(dom.auEntrySearch.value));
 
-    fetchItems();
     toggleFormFields();
 });
 </script>
