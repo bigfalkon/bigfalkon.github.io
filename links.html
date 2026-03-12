@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Gallery — Links</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#443a74"/>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --primary-rgb: 189, 179, 255;
+            --primary: rgb(var(--primary-rgb));
+            --on-primary: #2d235c;
+            --bg: #131318;
+            --on-bg: #e5e1e6;
+            --surface: #201f25;
+            --outline-var: #48454e;
+            --on-surface-var: #c8c4d0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background: var(--bg); color: var(--on-bg);
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(var(--primary-rgb),.14) 0%, transparent 45%),
+                radial-gradient(circle at 80% 70%, rgba(140,179,255,.11) 0%, transparent 45%);
+            animation: aurora 22s infinite alternate ease-in-out;
+        }
+        @keyframes aurora {
+            from { transform: translate(0,0) scale(1.15); }
+            to   { transform: translate(4vw,-4vh) scale(1.15); }
+        }
+
+        .link-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1rem 1.25rem; border-radius: 16px;
+            background: var(--surface); border: 1px solid var(--outline-var);
+            color: var(--on-bg); text-decoration: none;
+            transition: all .25s cubic-bezier(.25,.8,.25,1);
+            position: relative; overflow: hidden;
+        }
+        .link-btn::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(var(--primary-rgb),.06), transparent);
+            opacity: 0; transition: opacity .25s;
+        }
+        .link-btn:hover {
+            transform: translateY(-4px);
+            border-color: rgba(var(--primary-rgb),.5);
+            box-shadow: 0 12px 28px -8px rgba(var(--primary-rgb),.2);
+        }
+        .link-btn:hover::before { opacity: 1; }
+        .link-btn:hover .link-icon   { color: var(--primary); }
+        .link-btn:hover .arrow-icon  { transform: translateX(4px); opacity: .9; }
+
+        .link-icon { color: rgba(var(--primary-rgb),.7); transition: color .2s; font-size: 26px !important; flex-shrink: 0; }
+        .arrow-icon { opacity: .35; transition: transform .2s, opacity .2s; flex-shrink: 0; }
+
+        .profile-ring {
+            background: linear-gradient(45deg, var(--primary), #443a74);
+            padding: 3px; border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="px-4 py-12">
+
+    <div class="w-full max-w-sm flex flex-col gap-3">
+
+        <!-- Title -->
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-extrabold" style="color:var(--primary);font-family:'Metamorphous',serif">
+                Character Gallery
+            </h1>
+            <p class="text-sm mt-1" style="color:var(--on-surface-var)">Choose a destination</p>
+        </div>
+
+        <a href="index.html" class="link-btn group">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined link-icon">collections</span>
+                <div>
+                    <div class="font-bold text-base leading-tight">Gallery</div>
+                    <div class="text-xs mt-0.5" style="color:var(--on-surface-var)">Browse all characters</div>
+                </div>
+            </div>
+            <span class="material-symbols-outlined arrow-icon">chevron_right</span>
+        </a>
+
+        <a href="index2.html" class="link-btn group">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined link-icon">admin_panel_settings</span>
+                <div>
+                    <div class="font-bold text-base leading-tight">Admin Panel</div>
+                    <div class="text-xs mt-0.5" style="color:var(--on-surface-var)">Manage characters & universes</div>
+                </div>
+            </div>
+            <span class="material-symbols-outlined arrow-icon">chevron_right</span>
+        </a>
+
+        <a href="oyun.html" class="link-btn group">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined link-icon">sports_esports</span>
+                <div>
+                    <div class="font-bold text-base leading-tight">Tournament</div>
+                    <div class="text-xs mt-0.5" style="color:var(--on-surface-var)">Pick your favourite</div>
+                </div>
+            </div>
+            <span class="material-symbols-outlined arrow-icon">chevron_right</span>
+        </a>
+
+        <a href="rastgelekarakter.html" class="link-btn group">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined link-icon">casino</span>
+                <div>
+                    <div class="font-bold text-base leading-tight">Random Picker</div>
+                    <div class="text-xs mt-0.5" style="color:var(--on-surface-var)">Draw random character pairs</div>
+                </div>
+            </div>
+            <span class="material-symbols-outlined arrow-icon">chevron_right</span>
+        </a>
+
+    </div>
+
+    <footer class="mt-10 text-xs" style="color:var(--outline-var)">© Character Gallery</footer>
+
+</body>
+</html>

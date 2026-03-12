@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Character Picker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#443a74"/>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root {
+            --primary-rgb: 189, 179, 255;
+            --primary: rgb(var(--primary-rgb));
+            --on-primary: #2d235c;
+            --primary-container: #443a74;
+            --on-primary-container: #e6deff;
+            --bg: #131318;
+            --on-bg: #e5e1e6;
+            --surface: #201f25;
+            --surface-high: #2a2830;
+            --on-surface: #e5e1e6;
+            --on-surface-var: #c8c4d0;
+            --outline-var: #48454e;
+            --success: #4caf92;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background: var(--bg); color: var(--on-bg);
+            overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background:
+                radial-gradient(circle at 15% 25%, rgba(var(--primary-rgb),.14) 0%, transparent 40%),
+                radial-gradient(circle at 85% 65%, rgba(140,179,255,.11) 0%, transparent 45%);
+            animation: aurora 20s infinite alternate ease-in-out;
+        }
+        @keyframes aurora {
+            from { transform: translate(0,0) rotate(0deg) scale(1.2); }
+            to   { transform: translate(5vw,-5vh) rotate(10deg) scale(1.2); }
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 10px 22px; border-radius: 99px; font-weight: 700;
+            cursor: pointer; border: 1px solid transparent; transition: all .2s;
+            font-size: .95rem;
+        }
+        .btn:hover:not(:disabled) { opacity: .88; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+        .btn:disabled { opacity: .42; cursor: not-allowed; transform: none !important; }
+        .btn-primary  { background: var(--primary); color: var(--on-primary); }
+        .btn-secondary{ background: var(--surface-high); color: var(--on-surface-var); border-color: var(--outline-var); }
+        .btn-ghost    { background: transparent; color: var(--primary); border-color: rgba(var(--primary-rgb),.35); }
+        .btn-ghost:hover:not(:disabled) { background: rgba(var(--primary-rgb),.1); }
+
+        /* ── Cards ── */
+        .section-card {
+            background: var(--surface); border: 1px solid var(--outline-var);
+            border-radius: 18px; padding: 1.75rem; margin-bottom: 1.25rem;
+        }
+
+        /* ── Form controls ── */
+        .form-select {
+            background: var(--surface-high); border: 1px solid var(--outline-var);
+            color: var(--on-bg); border-radius: 10px; padding: 11px 14px; width: 100%;
+            transition: border-color .2s;
+        }
+        .form-select:focus { border-color: var(--primary); outline: none; }
+
+        /* ── Filter chips ── */
+        .filter-chip {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border-radius: 12px; cursor: pointer;
+            border: 2px solid var(--outline-var); background: var(--surface-high);
+            font-weight: 600; font-size: .875rem; transition: all .18s; user-select: none;
+        }
+        .filter-chip:hover { border-color: rgba(var(--primary-rgb),.5); }
+        .filter-chip input { display: none; }
+        .filter-chip.active { border-color: var(--primary); background: rgba(var(--primary-rgb),.12); color: var(--primary); }
+        .filter-chip .chip-dot {
+            width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+            border: 2px solid currentColor; display: flex; align-items: center; justify-content: center;
+            transition: background .18s;
+        }
+        .filter-chip.active .chip-dot { background: var(--primary); border-color: var(--primary); }
+        .filter-chip.active .chip-dot::after {
+            content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--on-primary);
+        }
+
+        /* ── Pool character cards ── */
+        .pool-card {
+            background: var(--surface-high); border-radius: 10px; overflow: hidden;
+            text-align: center; border: 2px solid var(--outline-var);
+            cursor: pointer; transition: all .18s; position: relative;
+        }
+        .pool-card:hover { border-color: rgba(var(--primary-rgb),.6); transform: translateY(-2px); }
+        .pool-card.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(var(--primary-rgb),.3); }
+        .pool-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+        .pool-card .card-name {
+            font-size: .75rem; font-weight: 600; padding: 6px 6px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .pool-card .selected-tick {
+            position: absolute; top: 5px; right: 5px;
+            background: var(--primary); border-radius: 50%;
+            width: 20px; height: 20px; display: none;
+            align-items: center; justify-content: center;
+        }
+        .pool-card .selected-tick span { font-size: 13px; color: var(--on-primary); }
+        .pool-card.selected .selected-tick { display: flex; }
+
+        /* ── Result cards ── */
+        .result-card {
+            background: var(--surface-high); border-radius: 14px; overflow: hidden;
+            border: 2px solid var(--outline-var); text-align: center;
+            animation: pop-in .35s cubic-bezier(.175,.885,.32,1.275) both;
+        }
+        @keyframes pop-in {
+            from { opacity: 0; transform: scale(.85) translateY(12px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .result-card:nth-child(2) { animation-delay: .07s; }
+        .result-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+        .result-card .card-label {
+            padding: 12px 10px; font-weight: 700; font-size: 1rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* ── Pool count badge ── */
+        .count-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 12px; border-radius: 99px; font-size: .8rem; font-weight: 700;
+            background: rgba(var(--primary-rgb),.15); border: 1px solid rgba(var(--primary-rgb),.3);
+            color: var(--primary);
+        }
+
+        /* ── Name chips ── */
+        .name-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px 4px 8px; border-radius: 99px; font-size: .8rem; font-weight: 600;
+            background: var(--primary-container); color: var(--on-primary-container);
+            margin: 3px; cursor: pointer; transition: opacity .15s;
+        }
+        .name-chip:hover { opacity: .8; }
+        .name-chip .remove-icon { font-size: 14px; opacity: .7; }
+
+        /* ── Mode header badge ── */
+        .mode-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 50%; font-weight: 800;
+            font-size: .8rem; background: var(--primary); color: var(--on-primary);
+            flex-shrink: 0;
+        }
+
+        /* ── Divider ── */
+        .divider { border: none; border-top: 1px solid var(--outline-var); margin: 1rem 0; }
+
+        /* ── Loading state ── */
+        .spinner {
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid rgba(var(--primary-rgb),.3);
+            border-top-color: var(--primary);
+            animation: spin .7s linear infinite; flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Scrollable pool area ── */
+        .pool-scroll {
+            max-height: 380px; overflow-y: auto; overflow-x: hidden;
+            border-radius: 10px; padding: 8px;
+            background: rgba(0,0,0,.18);
+        }
+        .pool-scroll::-webkit-scrollbar { width: 5px; }
+        .pool-scroll::-webkit-scrollbar-track { background: transparent; }
+        .pool-scroll::-webkit-scrollbar-thumb { background: var(--outline-var); border-radius: 3px; }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+<div class="max-w-5xl mx-auto">
+
+    <!-- HEADER -->
+    <header class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 pb-4 border-b gap-4" style="border-color:var(--outline-var)">
+        <div>
+            <h1 class="text-4xl font-extrabold" style="color:var(--primary)">Random Character Picker</h1>
+            <p id="loading-status" class="text-base mt-1 flex items-center gap-2">
+                <span class="spinner"></span>
+                <span id="loading-text" style="color:var(--on-surface-var)">Connecting to database…</span>
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="index.html" class="btn btn-secondary">
+                <span class="material-symbols-outlined">collections</span>
+                <span class="hidden sm:inline">Gallery</span>
+            </a>
+            <a href="oyun.html" class="btn btn-secondary">
+                <span class="material-symbols-outlined">sports_esports</span>
+                <span class="hidden sm:inline">Tournament</span>
+            </a>
+            <a href="index2.html" class="btn btn-secondary">
+                <span class="material-symbols-outlined">admin_panel_settings</span>
+                <span class="hidden sm:inline">Admin</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN APP (hidden until data loads) -->
+    <main id="app-container" class="hidden">
+
+        <!-- FILTER SECTION -->
+        <div class="section-card">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-xl font-bold">Filter Pool</h2>
+                    <p class="text-sm mt-0.5" style="color:var(--on-surface-var)">Filter by how many fusions a character has been part of. Select none to include everyone.</p>
+                </div>
+                <button id="filter-count-btn" class="count-badge" style="cursor:pointer;background:rgba(var(--primary-rgb),.15);border:1px solid rgba(var(--primary-rgb),.3);color:var(--primary);padding:3px 12px;border-radius:99px;font-size:.8rem;font-weight:700;display:inline-flex;align-items:center;gap:5px">
+                    <span class="material-symbols-outlined" style="font-size:14px">people</span>
+                    <span id="filter-count-text">0 characters</span>
+                    <span id="pool-preview-chevron" class="material-symbols-outlined" style="font-size:14px;transition:transform .2s">expand_more</span>
+                </button>
+            </div>
+            <div id="filter-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <label class="filter-chip">
+                    <input type="checkbox" value="0">
+                    <span class="chip-dot"></span>Never fused
+                </label>
+                <label class="filter-chip">
+                    <input type="checkbox" value="1">
+                    <span class="chip-dot"></span>Fused once
+                </label>
+                <label class="filter-chip">
+                    <input type="checkbox" value="2">
+                    <span class="chip-dot"></span>Fused twice
+                </label>
+                <label class="filter-chip">
+                    <input type="checkbox" value="3+">
+                    <span class="chip-dot"></span>Fused 3+ times
+                </label>
+            </div>
+        </div>
+
+        <!-- POOL PREVIEW (collapsible) -->
+        <div id="pool-preview-panel" class="section-card hidden" style="padding-top:1rem">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-sm uppercase tracking-wide" style="color:var(--on-surface-var)">Characters in pool</h3>
+                <button id="pool-preview-close" class="btn btn-secondary !p-1 !rounded-full" style="min-width:0">
+                    <span class="material-symbols-outlined" style="font-size:18px">close</span>
+                </button>
+            </div>
+            <div id="pool-preview-grid" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-2 max-h-80 overflow-y-auto pr-1" style="scrollbar-width:thin;scrollbar-color:var(--outline-var) transparent"></div>
+        </div>
+
+        <!-- RESULT SECTION -->
+        <div id="results-container" class="section-card hidden">
+            <h2 class="text-lg font-bold mb-4 text-center" style="color:var(--on-surface-var)">Result</h2>
+            <div id="results-grid" class="grid grid-cols-2 gap-4 max-w-xs sm:max-w-sm mx-auto"></div>
+        </div>
+
+        <!-- MODE 1 -->
+        <div class="section-card">
+            <div class="flex items-start gap-3 mb-3">
+                <span class="mode-badge">1</span>
+                <div>
+                    <h2 class="text-xl font-bold leading-tight">Random Pair</h2>
+                    <p class="text-sm mt-0.5" style="color:var(--on-surface-var)">Pick 2 completely random characters from the filtered pool.</p>
+                </div>
+            </div>
+            <hr class="divider">
+            <div class="text-center">
+                <button id="mode-1-btn" class="btn btn-primary">
+                    <span class="material-symbols-outlined">shuffle</span>Pick Random Pair
+                </button>
+            </div>
+        </div>
+
+        <!-- MODE 2 -->
+        <div class="section-card">
+            <div class="flex items-start gap-3 mb-3">
+                <span class="mode-badge">2</span>
+                <div>
+                    <h2 class="text-xl font-bold leading-tight">You Pick One, I Pick One</h2>
+                    <p class="text-sm mt-0.5" style="color:var(--on-surface-var)">Choose a character, then get a random partner from the rest of the pool.</p>
+                </div>
+            </div>
+            <hr class="divider">
+            <div class="flex flex-col sm:flex-row gap-3 max-w-md">
+                <select id="mode-2-select" class="form-select flex-grow">
+                    <option value="">Select a character…</option>
+                </select>
+                <button id="mode-2-btn" class="btn btn-primary flex-shrink-0">
+                    <span class="material-symbols-outlined">auto_awesome</span>Find Partner
+                </button>
+            </div>
+        </div>
+
+        <!-- MODE 3 -->
+        <div class="section-card">
+            <div class="flex items-start gap-3 mb-3">
+                <span class="mode-badge">3</span>
+                <div>
+                    <h2 class="text-xl font-bold leading-tight">Custom Pool</h2>
+                    <p class="text-sm mt-0.5" style="color:var(--on-surface-var)">Hand-pick a pool, then draw 2 random characters from it.</p>
+                </div>
+            </div>
+            <hr class="divider">
+
+            <!-- Selected pool display -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-semibold" style="color:var(--on-surface-var)">
+                        Your pool &nbsp;<span id="custom-pool-count" class="count-badge">0</span>
+                    </span>
+                    <button id="clear-pool-btn" class="btn btn-ghost !py-1 !px-3 !text-sm hidden">
+                        <span class="material-symbols-outlined" style="font-size:16px">clear_all</span>Clear
+                    </button>
+                </div>
+                <div id="custom-pool-display" class="min-h-10 p-3 rounded-xl flex flex-wrap gap-1" style="background:var(--surface-high);border:1px solid var(--outline-var)">
+                    <span id="pool-placeholder" class="text-sm italic w-full text-center py-1" style="color:var(--on-surface-var)">Tap characters below to add them…</span>
+                </div>
+            </div>
+
+            <!-- Char grid -->
+            <div class="mb-4">
+                <p class="text-sm font-semibold mb-2" style="color:var(--on-surface-var)">
+                    <span class="material-symbols-outlined align-middle mr-1" style="font-size:15px">touch_app</span>
+                    Tap to add / remove
+                </p>
+                <div id="mode-3-pool-list" class="pool-scroll grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2"></div>
+            </div>
+
+            <div class="flex justify-center">
+                <button id="mode-3-btn" class="btn btn-primary" disabled>
+                    <span class="material-symbols-outlined">casino</span>Draw from Custom Pool
+                </button>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+    authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+    projectId: "karaktergalerisi-dc337",
+    storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+    messagingSenderId: "486669559067",
+    appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let allCharacters = [];     // non-fusion characters only
+let fusionCounts  = new Map();
+let filteredPool  = [];
+let customPool    = new Set(); // char ids in the custom pool (mode 3)
+const dom = {};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const get3StarUrl = (char) =>
+    char?.evolutions?.find(e => e.star === 3)?.imageUrl
+    || char?.imageUrl
+    || '';
+
+
+function getRandomItems(arr, n) {
+    return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+}
+
+// ─── Data fetch ───────────────────────────────────────────────────────────────
+async function fetchData() {
+    try {
+        const snap = await db.collection('characters').get();
+        const all  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const fusions = all.filter(c => c.isFusion);
+        allCharacters = all.filter(c => !c.isFusion);
+
+        // Count how many fusions each character appears in
+        allCharacters.forEach(c => fusionCounts.set(c.id, 0));
+        fusions.forEach(f => {
+            (f.fusionPartners || []).forEach(pid => {
+                if (fusionCounts.has(pid)) fusionCounts.set(pid, fusionCounts.get(pid) + 1);
+            });
+        });
+
+        applyFilters();
+
+        // Hide spinner, show count
+        dom.loadingStatus.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size:18px;color:var(--success)">check_circle</span>
+            <span style="color:var(--on-surface-var)">${allCharacters.length} characters loaded.</span>
+        `;
+        dom.appContainer.classList.remove('hidden');
+    } catch(e) {
+        console.error(e);
+        dom.loadingStatus.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size:18px;color:#ef5350">error</span>
+            <span style="color:#ef5350">Failed to load data. Please refresh.</span>
+        `;
+    }
+}
+
+// ─── Pool preview ─────────────────────────────────────────────────────────────
+function renderPoolPreview() {
+    dom.poolPreviewGrid.innerHTML = '';
+    if (filteredPool.length === 0) {
+        dom.poolPreviewGrid.innerHTML = '<p class="col-span-full text-center text-sm py-4" style="color:var(--on-surface-var)">No characters match the current filter.</p>';
+        return;
+    }
+    filteredPool.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'pool-card';
+        card.style.cursor = 'default';
+        const n = fusionCounts.get(c.id) || 0;
+        card.innerHTML = `
+            <img src="${get3StarUrl(c)}" alt="${c.name}" loading="lazy">
+            <div class="card-name" title="${c.name} (${n}×)">${c.name}</div>
+        `;
+        dom.poolPreviewGrid.appendChild(card);
+    });
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+function applyFilters() {
+    const active = [...dom.filterContainer.querySelectorAll('input:checked')].map(cb => cb.value);
+
+    filteredPool = active.length === 0
+        ? [...allCharacters]
+        : allCharacters.filter(c => {
+            const n = fusionCounts.get(c.id) || 0;
+            return (active.includes('0') && n === 0)
+                || (active.includes('1') && n === 1)
+                || (active.includes('2') && n === 2)
+                || (active.includes('3+') && n >= 3);
+        });
+
+    dom.filterCountText.textContent = `${filteredPool.length} character${filteredPool.length !== 1 ? 's' : ''}`;
+
+    // Remove from custom pool any chars no longer in filtered pool
+    const filteredIds = new Set(filteredPool.map(c => c.id));
+    customPool.forEach(id => { if (!filteredIds.has(id)) customPool.delete(id); });
+
+    renderMode2Select();
+    renderMode3Grid();
+    renderCustomPool();
+    // Refresh preview if it's currently open
+    if (dom.poolPreviewPanel && !dom.poolPreviewPanel.classList.contains('hidden')) renderPoolPreview();
+}
+
+// ─── Mode 2 select ────────────────────────────────────────────────────────────
+function renderMode2Select() {
+    dom.mode2Select.innerHTML = '<option value="">Select a character…</option>';
+    filteredPool.forEach(c => {
+        const n = fusionCounts.get(c.id) || 0;
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.name}  (fused ${n}×)`;
+        dom.mode2Select.appendChild(opt);
+    });
+}
+
+// ─── Mode 3 grid ─────────────────────────────────────────────────────────────
+function renderMode3Grid() {
+    dom.mode3PoolList.innerHTML = '';
+    filteredPool.forEach(c => {
+        const card = document.createElement('div');
+        card.className = `pool-card${customPool.has(c.id) ? ' selected' : ''}`;
+        card.dataset.id = c.id;
+        card.innerHTML = `
+            <img src="${get3StarUrl(c)}" alt="${c.name}" loading="lazy">
+            <div class="card-name" title="${c.name}">${c.name}</div>
+            <div class="selected-tick"><span class="material-symbols-outlined">check</span></div>
+        `;
+        card.addEventListener('click', () => toggleCustomPool(card, c.id));
+        dom.mode3PoolList.appendChild(card);
+    });
+}
+
+// ─── Custom pool ──────────────────────────────────────────────────────────────
+function toggleCustomPool(cardEl, id) {
+    if (customPool.has(id)) {
+        customPool.delete(id);
+        cardEl.classList.remove('selected');
+    } else {
+        customPool.add(id);
+        cardEl.classList.add('selected');
+    }
+    renderCustomPool();
+}
+
+function renderCustomPool() {
+    const count = customPool.size;
+    dom.customPoolCount.textContent = count;
+    dom.mode3Btn.disabled = count < 2;
+    dom.clearPoolBtn.classList.toggle('hidden', count === 0);
+
+    if (count === 0) {
+        dom.customPoolDisplay.innerHTML = '<span id="pool-placeholder" class="text-sm italic w-full text-center py-1" style="color:var(--on-surface-var)">Tap characters below to add them…</span>';
+        return;
+    }
+    dom.customPoolDisplay.innerHTML = '';
+    customPool.forEach(id => {
+        const char = allCharacters.find(c => c.id === id);
+        if (!char) return;
+        const chip = document.createElement('span');
+        chip.className = 'name-chip';
+        chip.innerHTML = `${char.name}<span class="material-symbols-outlined remove-icon">close</span>`;
+        chip.addEventListener('click', () => {
+            customPool.delete(id);
+            // also unselect the card
+            const card = dom.mode3PoolList.querySelector(`[data-id="${id}"]`);
+            if (card) card.classList.remove('selected');
+            renderCustomPool();
+        });
+        dom.customPoolDisplay.appendChild(chip);
+    });
+}
+
+// ─── Display results ──────────────────────────────────────────────────────────
+function displayResults(char1, char2) {
+    dom.resultsGrid.innerHTML = '';
+    [char1, char2].forEach(c => {
+        if (!c) return;
+        const card = document.createElement('div');
+        card.className = 'result-card';
+        const img = document.createElement('img');
+        img.alt = c.name;
+        img.src = get3StarUrl(c);
+        const label = document.createElement('div');
+        label.className = 'card-label';
+        label.title = c.name;
+        label.textContent = c.name;
+        card.append(img, label);
+        dom.resultsGrid.appendChild(card);
+    });
+    dom.resultsContainer.classList.remove('hidden');
+    dom.resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ─── Modes ────────────────────────────────────────────────────────────────────
+function runMode1() {
+    if (filteredPool.length < 2) { alert('Not enough characters in the pool (need at least 2).'); return; }
+    const [c1, c2] = getRandomItems(filteredPool, 2);
+    displayResults(c1, c2);
+}
+
+function runMode2() {
+    const id = dom.mode2Select.value;
+    if (!id) { alert('Please select a character first.'); return; }
+    const remaining = filteredPool.filter(c => c.id !== id);
+    if (remaining.length < 1) { alert('No other characters left in the pool after your pick!'); return; }
+    const userChar = allCharacters.find(c => c.id === id);
+    const [partner] = getRandomItems(remaining, 1);
+    displayResults(userChar, partner);
+}
+
+function runMode3() {
+    if (customPool.size < 2) { alert('Add at least 2 characters to your custom pool.'); return; }
+    const [id1, id2] = getRandomItems([...customPool], 2);
+    displayResults(
+        allCharacters.find(c => c.id === id1),
+        allCharacters.find(c => c.id === id2)
+    );
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    Object.assign(dom, {
+        loadingStatus:       document.getElementById('loading-status'),
+        appContainer:        document.getElementById('app-container'),
+        filterContainer:     document.getElementById('filter-container'),
+        filterCountText:     document.getElementById('filter-count-text'),
+        filterCountBtn:      document.getElementById('filter-count-btn'),
+        poolPreviewPanel:    document.getElementById('pool-preview-panel'),
+        poolPreviewGrid:     document.getElementById('pool-preview-grid'),
+        poolPreviewChevron:  document.getElementById('pool-preview-chevron'),
+        poolPreviewClose:    document.getElementById('pool-preview-close'),
+        resultsContainer:    document.getElementById('results-container'),
+        resultsGrid:         document.getElementById('results-grid'),
+        mode1Btn:            document.getElementById('mode-1-btn'),
+        mode2Btn:            document.getElementById('mode-2-btn'),
+        mode2Select:         document.getElementById('mode-2-select'),
+        mode3Btn:            document.getElementById('mode-3-btn'),
+        mode3PoolList:       document.getElementById('mode-3-pool-list'),
+        customPoolCount:     document.getElementById('custom-pool-count'),
+        customPoolDisplay:   document.getElementById('custom-pool-display'),
+        clearPoolBtn:        document.getElementById('clear-pool-btn'),
+    });
+
+    // Filter chip toggle visual
+    dom.filterContainer.addEventListener('change', e => {
+        if (e.target.type !== 'checkbox') return;
+        e.target.closest('.filter-chip').classList.toggle('active', e.target.checked);
+        applyFilters();
+    });
+
+    dom.mode1Btn.addEventListener('click', runMode1);
+    dom.mode2Btn.addEventListener('click', runMode2);
+    dom.mode3Btn.addEventListener('click', runMode3);
+
+    // Pool preview toggle
+    let poolPreviewOpen = false;
+    function setPoolPreview(open) {
+        poolPreviewOpen = open;
+        dom.poolPreviewPanel.classList.toggle('hidden', !open);
+        dom.poolPreviewChevron.style.transform = open ? 'rotate(180deg)' : '';
+        if (open) renderPoolPreview();
+    }
+    dom.filterCountBtn.addEventListener('click', () => setPoolPreview(!poolPreviewOpen));
+    dom.poolPreviewClose.addEventListener('click', () => setPoolPreview(false));
+
+    dom.clearPoolBtn.addEventListener('click', () => {
+        customPool.clear();
+        dom.mode3PoolList.querySelectorAll('.pool-card.selected').forEach(c => c.classList.remove('selected'));
+        renderCustomPool();
+    });
+
+    fetchData();
+});
+</script>
+</body>
+</html>
