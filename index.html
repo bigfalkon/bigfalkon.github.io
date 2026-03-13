@@ -384,26 +384,8 @@
                     <span class="material-symbols-outlined" style="font-size:20px;">auto_fix_high</span>
                     <span id="au-label-text" class="text-sm font-semibold hidden sm:inline">AU</span>
                 </button>
-                <div id="au-menu" class="hidden absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
-                    <!-- AU selection list (populated dynamically) -->
+                <div id="au-menu" class="hidden absolute top-full left-0 mt-2 w-56 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
                     <div id="au-select-list"></div>
-                    <!-- Mode selector (shown only when an AU is active) -->
-                    <div id="au-mode-selector" class="hidden">
-                        <hr class="menu-divider">
-                        <p class="px-3 py-1 text-xs font-bold uppercase tracking-wider" style="color: var(--on-surface-var);">View Mode</p>
-                        <button class="menu-item au-mode-item" data-au-view="overlay">
-                            <div><span class="material-symbols-outlined">layers</span><span>Overlay</span></div>
-                            <span class="check-icon material-symbols-outlined">check</span>
-                        </button>
-                        <button class="menu-item au-mode-item" data-au-view="filter">
-                            <div><span class="material-symbols-outlined">filter_alt</span><span>Filter Only</span></div>
-                            <span class="check-icon material-symbols-outlined">check</span>
-                        </button>
-                        <button class="menu-item au-mode-item" data-au-view="compare">
-                            <div><span class="material-symbols-outlined">auto_awesome</span><span>AU Only</span></div>
-                            <span class="check-icon material-symbols-outlined">check</span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -546,9 +528,8 @@ const state = {
     currentModalCharId: null,
     currentModalType: null,
     sortBy: 'name',
-    activeAuIds: new Set(),   // Set of active AU ids (multi-select)
-    auViewMode: 'overlay',    // 'overlay' | 'filter' | 'compare'
-    unlockedAuIds: new Set(), // AU ids that have been unlocked with password
+    activeAuId: null,         // null = normal; string = active AU id
+    unlockedAuIds: new Set(),
 };
 
 const sizeProfiles = [
@@ -574,11 +555,9 @@ const getStarEmojis = (isFusion, isDismissed, starCount, iconName = 'star') => {
 const get3StarImageUrl = (charId, useAu = false) => {
     const char = characters.find(c => c.id === charId && !c.isFusion);
     if (!char) return '';
-    if (useAu && state.activeAuIds.size > 0) {
-        for (const auId of state.activeAuIds) {
-            const auImg = char.auData?.[auId]?.star3ImageUrl;
-            if (auImg) return auImg;
-        }
+    if (useAu && state.activeAuId) {
+        const auImg = char.auData?.[state.activeAuId]?.star3ImageUrl;
+        if (auImg) return auImg;
     }
     return char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl || '';
 };
@@ -587,25 +566,21 @@ const getCharacterImageUrlByStar = (charId, star, useAu = false) => {
     const char = characters.find(c => c.id === charId && !c.isFusion)
                || dismissedCharacters.find(c => c.id === charId && !c.isFusion);
     if (!char) return '';
-    if (useAu && state.activeAuIds.size > 0 && star === 3) {
-        for (const auId of state.activeAuIds) {
-            const auImg = char.auData?.[auId]?.star3ImageUrl;
-            if (auImg) return auImg;
-        }
+    if (useAu && state.activeAuId && star === 3) {
+        const auImg = char.auData?.[state.activeAuId]?.star3ImageUrl;
+        if (auImg) return auImg;
     }
     if (star === 1) return char.imageUrl || '';
     return char.evolutions?.find(e => e.star === star)?.imageUrl || '';
 };
 
-/** Returns the image URL for a given character card item respecting current AUs. */
+/** Returns the AU image if active AU has one, else original */
 const resolveCardImage = (char) => {
-    if (state.activeAuIds.size === 0) return char.displayImageUrl || char.imageUrl || '';
-    for (const auId of state.activeAuIds) {
-        const au = char.auData?.[auId];
-        if (!au) continue;
-        if (char.isFusion && au.fusionImageUrl) return au.fusionImageUrl;
-        if (!char.isFusion && char.displayStar === 3 && au.star3ImageUrl) return au.star3ImageUrl;
-    }
+    if (!state.activeAuId) return char.displayImageUrl || char.imageUrl || '';
+    const au = char.auData?.[state.activeAuId];
+    if (!au) return char.displayImageUrl || char.imageUrl || '';
+    if (char.isFusion) return au.fusionImageUrl || char.displayImageUrl || char.imageUrl || '';
+    if (char.displayStar === 3) return au.star3ImageUrl || char.displayImageUrl || '';
     return char.displayImageUrl || char.imageUrl || '';
 };
 
@@ -628,8 +603,6 @@ const getReachableAus = () => alternativeUniverses.filter(isAuReachable);
 
 /** Check if char has entry in at least one reachable AU */
 const hasReachableAuEntry = (char) => getReachableAus().some(au => hasAuEntry(char, au.id));
-/** Check if char has entry in any of the currently active AUs */
-const hasActiveAuEntry = (char) => state.activeAuIds.size === 0 ? false : [...state.activeAuIds].some(auId => hasAuEntry(char, auId));
 
 // ─── Image Observer (lazy GIF swap) ──────────────────────────────────────────
 let observer;
@@ -716,40 +689,21 @@ function _doRender() {
         }
     }
 
-    // Active AU filter modes
-    if (state.activeAuIds.size > 0) {
-        if (state.auViewMode === 'filter' || state.auViewMode === 'compare') {
-            // Only show entries that have at least one of the active AUs
-            items = items.filter(item => hasActiveAuEntry(item));
-        }
-        // overlay: keep all items, AU images shown via resolveCardImage
-    }
-
-    // In compare (AU Only) mode: only show AU version of items — non-fusions: only 3★ AU, fusions: AU image
-    if (state.activeAuIds.size > 0 && state.auViewMode === 'compare') {
+    // AU Only mode: filter to entries with AU data, show only their AU images (3★ for chars, fusion for fusions)
+    if (state.activeAuId) {
+        items = items.filter(item => hasAuEntry(item, state.activeAuId));
         const auOnlyItems = [];
         const seen = new Set();
         items.forEach(item => {
             if (item.isFusion) {
                 if (!seen.has(item.id)) {
                     seen.add(item.id);
-                    // Find first active AU with a fusion image
-                    let auImg = null;
-                    for (const auId of state.activeAuIds) {
-                        auImg = item.auData?.[auId]?.fusionImageUrl;
-                        if (auImg) break;
-                    }
+                    const auImg = item.auData?.[state.activeAuId]?.fusionImageUrl;
                     auOnlyItems.push({ ...item, displayStar: 4, displayImageUrl: auImg || item.imageUrl });
                 }
-            } else {
-                if (item.displayStar === 3) {
-                    let auImg = null;
-                    for (const auId of state.activeAuIds) {
-                        auImg = item.auData?.[auId]?.star3ImageUrl;
-                        if (auImg) break;
-                    }
-                    auOnlyItems.push({ ...item, displayImageUrl: auImg || item.displayImageUrl });
-                }
+            } else if (item.displayStar === 3) {
+                const auImg = item.auData?.[state.activeAuId]?.star3ImageUrl;
+                auOnlyItems.push({ ...item, displayImageUrl: auImg || item.displayImageUrl });
             }
         });
         items = auOnlyItems;
@@ -771,41 +725,35 @@ function _buildCard(char, index) {
     const isFusion   = !!char.isFusion;
     const isDismissed= !!char.isDismissed || (dismissedCharacters.some(d => d.id === char.id));
     // EE cards are never shown in gallery anymore
-    const hasReachableAu = state.activeAuIds.size > 0
-        ? hasActiveAuEntry(char)
+    const hasReachableAu = state.activeAuId
+        ? hasAuEntry(char, state.activeAuId)
         : hasReachableAuEntry(char);
 
     let cls = 'character-card';
-    if (isFusion)        cls += ' fusion-card';
-    if (isDismissed)     cls += ' dismissed-card';
-    if (hasReachableAu)  cls += ' has-au';
+    if (isFusion)       cls += ' fusion-card';
+    if (isDismissed)    cls += ' dismissed-card';
+    if (hasReachableAu) cls += ' has-au';
 
     card.className = cls;
     card.dataset.id = char.id;
     card.style.animationDelay = `${index * 35}ms`;
 
-    if (isFusion)      card.onclick = () => openFusionModal(char.id);
+    if (isFusion)         card.onclick = () => openFusionModal(char.id);
     else if (isDismissed) card.onclick = () => openCharacterModal(char.id, true);
-    else               card.onclick = () => openCharacterModal(char.id, false);
+    else                  card.onclick = () => openCharacterModal(char.id, false);
 
     const nameClass = (isFusion || isDismissed) ? 'font-fantastical' : '';
     const stars = isDismissed
         ? getStarEmojis(false, true, 1, 'badge')
         : getStarEmojis(isFusion, false, char.displayStar || char.star);
 
-    // AU badge / dots
+    // AU badge
     let auBadgeHtml = '';
-    if (state.activeAuIds.size > 0 && state.auViewMode === 'compare') {
-        const matchingAu = [...state.activeAuIds].map(id => alternativeUniverses.find(a => a.id === id)).find(a => a && hasAuEntry(char, a.id));
-        if (matchingAu) {
-            auBadgeHtml = `<div class="au-badge" style="background:rgba(10,79,58,0.9);border-color:${matchingAu.color||'#64dcb4'};color:${matchingAu.color||'#64dcb4'};">${matchingAu.name}</div>`;
-        }
-    } else if (state.activeAuIds.size > 0) {
-        const matchingAu = [...state.activeAuIds].map(id => alternativeUniverses.find(a => a.id === id)).find(a => a && hasAuEntry(char, a.id));
-        if (matchingAu) {
-            auBadgeHtml = `<div class="au-badge" style="border-color:${matchingAu.color||'var(--au)'};color:${matchingAu.color||'var(--au)'};">${matchingAu.name}</div>`;
-        }
-    } else {
+    if (state.activeAuId && hasAuEntry(char, state.activeAuId)) {
+        const auDef = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const color = auDef?.color || '#64dcb4';
+        auBadgeHtml = `<div class="au-badge" style="border-color:${color};color:${color};">${auDef?.name || 'AU'}</div>`;
+    } else if (!state.activeAuId) {
         const reachable = getReachableAus().filter(au => hasAuEntry(char, au.id));
         if (reachable.length > 0) {
             const dots = reachable.map(au =>
@@ -815,16 +763,10 @@ function _buildCard(char, index) {
         }
     }
 
-    // Resolve image
     const resolvedImgUrl = resolveCardImage(char);
-
     let imageHtml;
-    if (isFusion && char.imageUrl && char.previewUrl && state.auViewMode !== 'compare') {
-        let auFusionImg = null;
-        for (const auId of state.activeAuIds) {
-            auFusionImg = char.auData?.[auId]?.fusionImageUrl;
-            if (auFusionImg) break;
-        }
+    if (isFusion && char.imageUrl && char.previewUrl) {
+        const auFusionImg = state.activeAuId ? char.auData?.[state.activeAuId]?.fusionImageUrl : null;
         const previewSrc = auFusionImg || char.previewUrl;
         const gifSrc     = auFusionImg || char.imageUrl;
         imageHtml = `<img src="${previewSrc}" data-gif-src="${gifSrc}" data-preview-src="${previewSrc}" alt="${char.name}" class="character-card-image">`;
@@ -845,47 +787,26 @@ function _buildCard(char, index) {
 
 // ─── AU dropdown builder ──────────────────────────────────────────────────────
 function buildAuDropdown() {
-    const toggleBtn = document.getElementById('au-toggle-btn');
+    const toggleBtn  = document.getElementById('au-toggle-btn');
     const selectList = document.getElementById('au-select-list');
-    const modeSelector = document.getElementById('au-mode-selector');
-    const auLabelText = document.getElementById('au-label-text');
+    const auLabelText  = document.getElementById('au-label-text');
     const auToggleIcon = toggleBtn?.querySelector('.material-symbols-outlined');
 
     const visibleAus = alternativeUniverses.filter(au => isAuReachable(au));
     if (!visibleAus.length) { toggleBtn.classList.add('hidden'); return; }
     toggleBtn.classList.remove('hidden');
 
-    const isActive = state.activeAuIds.size > 0;
-
-    // Build AU select list
     selectList.innerHTML = '';
 
-    // "Clear all" reset
-    const resetItem = document.createElement('div');
-    resetItem.className = `au-menu-item ${!isActive ? 'active' : ''}`;
-    resetItem.innerHTML = `<div class="au-dot" style="background:transparent;border-color:var(--outline-var);"></div><span>None</span>`;
-    resetItem.onclick = () => { state.activeAuIds.clear(); _applyAuMode(); };
-    selectList.appendChild(resetItem);
-
-    // "All" option
-    const allSelected = isActive && visibleAus.every(au => state.activeAuIds.has(au.id));
-    const allItem = document.createElement('div');
-    allItem.className = `au-menu-item ${allSelected ? 'active' : ''}`;
-    allItem.innerHTML = `
-        <div class="au-dot" style="background:conic-gradient(${visibleAus.map((au,i)=>`${au.color||'#64dcb4'} ${Math.round(i/visibleAus.length*360)}deg ${Math.round((i+1)/visibleAus.length*360)}deg`).join(',')});"></div>
-        <span class="material-symbols-outlined" style="font-size:16px;flex-shrink:0;">auto_awesome</span>
-        <span style="flex:1;">All</span>
-        <span class="material-symbols-outlined" style="font-size:16px;opacity:${allSelected?1:0};transition:opacity 0.2s;">check</span>
-    `;
-    allItem.onclick = () => {
-        if (allSelected) { state.activeAuIds.clear(); }
-        else { visibleAus.forEach(au => state.activeAuIds.add(au.id)); }
-        _applyAuMode();
-    };
-    selectList.appendChild(allItem);
+    // "None" option
+    const noneItem = document.createElement('div');
+    noneItem.className = `au-menu-item ${!state.activeAuId ? 'active' : ''}`;
+    noneItem.innerHTML = `<div class="au-dot" style="background:transparent;border-color:var(--outline-var);"></div><span style="flex:1;">None</span>${!state.activeAuId ? '<span class="material-symbols-outlined" style="font-size:16px;">check</span>' : ''}`;
+    noneItem.onclick = () => { state.activeAuId = null; _applyAuMode(); document.getElementById('au-menu').classList.add('hidden'); };
+    selectList.appendChild(noneItem);
 
     visibleAus.forEach(au => {
-        const isSelected = state.activeAuIds.has(au.id);
+        const isSelected = state.activeAuId === au.id;
         const item = document.createElement('div');
         item.className = `au-menu-item ${isSelected ? 'active' : ''}`;
         item.style.color = isSelected ? (au.color || 'var(--au)') : '';
@@ -893,41 +814,31 @@ function buildAuDropdown() {
             <div class="au-dot" style="background:${au.color||'#64dcb4'};"></div>
             <span class="material-symbols-outlined" style="font-size:16px;flex-shrink:0;color:${au.color||'#64dcb4'}">${au.icon||'auto_fix_high'}</span>
             <span style="flex:1;">${au.name}</span>
-            <span class="material-symbols-outlined" style="font-size:16px;color:${au.color||'#64dcb4'};opacity:${isSelected?1:0};transition:opacity 0.2s;">check</span>
+            ${isSelected ? `<span class="material-symbols-outlined" style="font-size:16px;color:${au.color||'#64dcb4'};">check</span>` : ''}
         `;
         item.onclick = () => {
-            if (state.activeAuIds.has(au.id)) { state.activeAuIds.delete(au.id); }
-            else { state.activeAuIds.add(au.id); }
+            state.activeAuId = isSelected ? null : au.id;
             _applyAuMode();
+            document.getElementById('au-menu').classList.add('hidden');
         };
         selectList.appendChild(item);
     });
 
-    // Show/hide mode selector
-    if (isActive) {
-        modeSelector.classList.remove('hidden');
-        document.querySelectorAll('.au-mode-item').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.auView === state.auViewMode);
-        });
-        // Label & icon on the AU button
-        const activeAuList = [...state.activeAuIds].map(id => alternativeUniverses.find(a => a.id === id)).filter(Boolean);
-        const modeLabel = { overlay: 'Overlay', filter: 'Filter', compare: 'AU Only' }[state.auViewMode];
-        if (activeAuList.length === 1) {
-            const au = activeAuList[0];
-            auLabelText.textContent = au.name + ' · ' + modeLabel;
-            if (auToggleIcon && au.icon) auToggleIcon.textContent = au.icon;
-        } else {
-            auLabelText.textContent = `${activeAuList.length} AUs · ${modeLabel}`;
-            if (auToggleIcon) auToggleIcon.textContent = 'auto_fix_high';
-        }
+    // Update toggle button appearance
+    if (state.activeAuId) {
+        const auDef = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const color = auDef?.color || '#64dcb4';
+        auLabelText.textContent = auDef?.name || 'AU';
+        if (auToggleIcon && auDef?.icon) auToggleIcon.textContent = auDef.icon;
+        toggleBtn.style.borderColor = color + '99';
+        toggleBtn.style.color = color;
         toggleBtn.classList.add('au-selected');
     } else {
-        modeSelector.classList.add('hidden');
         auLabelText.textContent = 'AU';
         if (auToggleIcon) auToggleIcon.textContent = 'auto_fix_high';
-        toggleBtn.classList.remove('au-selected');
         toggleBtn.style.borderColor = '';
         toggleBtn.style.color = '';
+        toggleBtn.classList.remove('au-selected');
     }
 }
 
@@ -955,101 +866,116 @@ function setupSecretUnlock() {
 }
 
 function _applyAuMode() {
-    const isAu = state.activeAuIds.size > 0;
-    document.body.classList.toggle('au-mode', isAu);
-    const banner = document.getElementById('au-mode-banner');
+    document.body.classList.toggle('au-mode', !!state.activeAuId);
+    const banner     = document.getElementById('au-mode-banner');
     const auToggleBtn = document.getElementById('au-toggle-btn');
 
-    // Remove old injected style
     document.getElementById('au-dynamic-style')?.remove();
 
-    if (isAu) {
-        const activeAuList = [...state.activeAuIds]
-            .map(id => alternativeUniverses.find(a => a.id === id))
-            .filter(Boolean);
-
-        // Banner text
-        const names = activeAuList.map(a => a.name).join(', ');
-        document.getElementById('au-banner-name').textContent = names;
+    if (state.activeAuId) {
+        const def  = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const hex  = def?.color || '#64dcb4';
+        document.getElementById('au-banner-name').textContent = def ? def.name : state.activeAuId;
         banner.classList.add('visible');
 
-        // Build CSS colors
-        const hexToRgb = hex => {
-            const h = hex.replace('#','');
-            return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
-        };
-        const darkenHex = (hex, f) => {
-            const [r,g,b] = hexToRgb(hex);
-            return '#'+[r,g,b].map(v=>Math.max(0,Math.round(v*f)).toString(16).padStart(2,'0')).join('');
-        };
-        const lightenHex = (hex) => {
-            const [r,g,b] = hexToRgb(hex);
-            return '#'+[r,g,b].map(v=>Math.min(255,Math.round(v*0.15+200)).toString(16).padStart(2,'0')).join('');
-        };
+        // Parse hex → rgb
+        const h = hex.replace('#','');
+        const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
 
-        let styleText = '';
-
-        if (activeAuList.length === 1) {
-            const au = activeAuList[0];
-            const color = au.color || '#64dcb4';
-            const [r,g,b] = hexToRgb(color);
-            const container = darkenHex(color, 0.3);
-            const onContainer = lightenHex(color);
-
-            styleText = `
-                body.au-theme-active {
-                    --primary-rgb: ${r}, ${g}, ${b};
-                    --primary: ${color};
-                    --on-primary: #0a1a12;
-                    --primary-container: ${container};
-                    --on-primary-container: ${onContainer};
-                }
-                body.au-theme-active::before {
-                    background:
-                        radial-gradient(circle at 15% 25%, ${color}28 0%, transparent 45%),
-                        radial-gradient(circle at 85% 65%, ${color}18 0%, transparent 50%);
-                }
-                #au-mode-banner {
-                    background: linear-gradient(90deg, ${color}44 0%, ${color}18 100%) !important;
-                    border-color: ${color}88 !important;
-                    color: ${color} !important;
-                }
-            `;
-            // Update AU toggle button inline style
-            auToggleBtn.style.borderColor = color + '99';
-            auToggleBtn.style.color = color;
-
-        } else {
-            // Multi-AU: rainbow keyframe gradient
-            const colors = activeAuList.map(a => a.color || '#64dcb4');
-            // Build keyframe stops: cycle through all colors
-            const stops = [...colors, colors[0]]; // close the loop
-            const kfBefore = stops.map((c, i) => {
-                const pct = Math.round(i / (stops.length - 1) * 100);
-                return `${pct}% { background:
-                    radial-gradient(circle at 15% 25%, ${c}28 0%, transparent 45%),
-                    radial-gradient(circle at 85% 65%, ${colors[(i+1)%colors.length]}18 0%, transparent 50%); }`;
-            }).join('\n');
-            const gradientStops = [...colors, colors[0]].join(', ');
-
-            styleText = `
-                @keyframes au-rainbow-bg { ${kfBefore} }
-                body.au-theme-active::before {
-                    animation: aurora 20s infinite alternate ease-in-out, au-rainbow-bg ${colors.length * 4}s infinite linear !important;
-                }
-                #au-mode-banner {
-                    background: linear-gradient(90deg, ${gradientStops}) !important;
-                    border-color: ${colors[0]}88 !important;
-                    color: #fff !important;
-                }
-            `;
-            auToggleBtn.style.borderColor = '';
-            auToggleBtn.style.color = '';
-        }
+        // Derive a second accent by rotating hue ~60°
+        const toHsl = (r,g,b) => { r/=255;g/=255;b/=255; const max=Math.max(r,g,b),min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}h/=6;} return [h*360,s*100,l*100]; };
+        const hslToHex = (h,s,l) => { s/=100;l/=100; const a=s*Math.min(l,1-l); const f=n=>{const k=(n+h/30)%12; const color=l-a*Math.max(Math.min(k-3,9-k,1),-1); return Math.round(255*color).toString(16).padStart(2,'0'); }; return `#${f(0)}${f(8)}${f(4)}`; };
+        const [hh,hs,hl] = toHsl(r,g,b);
+        const accent2 = hslToHex((hh+60)%360, hs, Math.min(hl+10,90));
+        const accent3 = hslToHex((hh+180)%360, hs*0.6, Math.min(hl+5,80));
+        const containerHex = hslToHex(hh, hs*0.8, Math.max(hl*0.25, 8));
+        const onContainerHex = hslToHex(hh, hs*0.5, Math.min(hl+45, 92));
 
         const styleEl = document.createElement('style');
         styleEl.id = 'au-dynamic-style';
-        styleEl.textContent = styleText;
+        styleEl.textContent = `
+            body.au-theme-active {
+                --primary-rgb: ${r}, ${g}, ${b};
+                --primary: ${hex};
+                --on-primary: #050f09;
+                --primary-container: ${containerHex};
+                --on-primary-container: ${onContainerHex};
+                --au-rgb: ${r}, ${g}, ${b};
+                --au: ${hex};
+                --au-container: ${containerHex};
+                --on-au-container: ${onContainerHex};
+            }
+            /* Deep background aurora with AU colors */
+            body.au-theme-active::before {
+                background:
+                    radial-gradient(ellipse at 10% 20%, ${hex}30 0%, transparent 45%),
+                    radial-gradient(ellipse at 90% 75%, ${accent2}22 0%, transparent 50%),
+                    radial-gradient(ellipse at 50% 100%, ${accent3}18 0%, transparent 40%);
+                animation: aurora 18s infinite alternate ease-in-out, au-pulse 6s infinite alternate ease-in-out;
+            }
+            @keyframes au-pulse {
+                0%   { opacity: 0.85; }
+                50%  { opacity: 1; }
+                100% { opacity: 0.9; }
+            }
+            /* Control panel border glow */
+            body.au-theme-active .control-panel {
+                border-color: ${hex}44;
+                box-shadow: 0 0 24px ${hex}18, 0 0 0 1px ${hex}22;
+                transition: border-color 0.6s ease, box-shadow 0.6s ease;
+            }
+            /* Card hover glow */
+            body.au-theme-active .character-card:hover {
+                border-color: ${hex}66 !important;
+                box-shadow: 0 12px 32px ${hex}28, 0 0 0 1px ${hex}33 !important;
+            }
+            /* Selected chip */
+            body.au-theme-active .chip.selected {
+                background-color: ${hex};
+                border-color: ${hex};
+                box-shadow: 0 0 12px ${hex}55;
+            }
+            /* Scrollbar */
+            body.au-theme-active .m3-dialog-content::-webkit-scrollbar-thumb { background-color: ${hex}88; }
+            /* Modal border glow */
+            body.au-theme-active .m3-dialog {
+                border-color: ${hex}44;
+                box-shadow: 0 8px 48px ${hex}22, 0 0 0 1px ${hex}22;
+            }
+            /* Sparkle particles */
+            body.au-theme-active::after {
+                content: '';
+                position: fixed; inset: 0; pointer-events: none; z-index: 0;
+                background-image:
+                    radial-gradient(circle, ${hex}cc 1px, transparent 1px),
+                    radial-gradient(circle, ${accent2}99 1px, transparent 1px),
+                    radial-gradient(circle, ${hex}88 1.5px, transparent 1.5px);
+                background-size: 180px 180px, 260px 260px, 340px 340px;
+                background-position: 20px 40px, 90px 130px, 60px 200px;
+                animation: sparkle-drift 12s infinite linear;
+                opacity: 0.35;
+            }
+            @keyframes sparkle-drift {
+                0%   { transform: translate(0, 0)   rotate(0deg); }
+                33%  { transform: translate(8px, -12px) rotate(3deg); }
+                66%  { transform: translate(-6px, 8px) rotate(-2deg); }
+                100% { transform: translate(0, 0)   rotate(0deg); }
+            }
+            /* Banner */
+            #au-mode-banner {
+                background: linear-gradient(90deg, ${hex}44 0%, ${accent2}22 60%, ${hex}18 100%) !important;
+                border-color: ${hex}77 !important;
+                color: ${hex} !important;
+                box-shadow: 0 0 20px ${hex}22;
+            }
+            /* Gallery title glow */
+            body.au-theme-active #gallery-title {
+                color: ${hex} !important;
+                text-shadow: 0 0 30px ${hex}66, 0 0 60px ${hex}33;
+            }
+            /* Search input focus */
+            body.au-theme-active #search-input:focus { border-color: ${hex} !important; box-shadow: 0 0 0 3px ${hex}33; }
+        `;
         document.head.appendChild(styleEl);
         document.body.classList.add('au-theme-active');
 
@@ -1153,48 +1079,42 @@ function openCharacterModal(charId, isDismissed = false) {
     m.evolutions.style.gridTemplateColumns = `repeat(auto-fit, ${sizeProfiles[state.imageSizeIndex].minCardWidth})`;
     m.evolutions.innerHTML = '';
 
-    const isAuOnlyMode = state.activeAuIds.size > 0 && state.auViewMode === 'compare';
+    const isAuOnlyMode = !!state.activeAuId;
     const reachableAusWithEntry = getReachableAus().filter(au => char.auData?.[au.id]?.star3ImageUrl);
 
     if (isAuOnlyMode) {
-        // ── AU Only mode: for each active AU that has an entry, show AU image; then 3★ original ──
+        // AU Only mode: show AU image + 3★ original side by side
+        const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const auEntry = char.auData?.[state.activeAuId];
         const star3Img = char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl;
         const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
+        const color = auDef?.color || '#64dcb4';
 
-        const makeCard = (imgSrc, labelHtml, color) => {
+        const makeCard = (imgSrc, labelHtml, cardColor) => {
             const div = document.createElement('div');
-            const isAu = !!color;
-            div.className = `flex flex-col items-center p-3 rounded-2xl ${isAu ? 'au-evo-card' : ''}`;
-            div.style.cssText = isAu
-                ? `border-color:${color}88; background: linear-gradient(135deg, ${color}18 0%, rgba(32,31,37,0.9) 100%);`
+            div.className = `flex flex-col items-center p-3 rounded-2xl ${cardColor ? 'au-evo-card' : ''}`;
+            div.style.cssText = cardColor
+                ? `border-color:${cardColor}88; background:linear-gradient(135deg,${cardColor}18 0%,rgba(32,31,37,0.95) 100%);`
                 : 'background-color:var(--surface);';
             div.innerHTML = `
-                <div style="width:${w}">
-                    <img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">
-                </div>
-                <p class="text-sm font-bold flex items-center gap-1" style="color:${color || 'var(--on-surface-var)'};">${labelHtml}</p>
+                <div style="width:${w}"><img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div>
+                <p class="text-sm font-bold flex items-center gap-1" style="color:${cardColor||'var(--on-surface-var)'};">${labelHtml}</p>
             `;
             return div;
         };
 
-        // AU cards for each active AU with an entry
-        [...state.activeAuIds].forEach(auId => {
-            const auDef = alternativeUniverses.find(a => a.id === auId);
-            const auEntry = char.auData?.[auId];
-            if (auEntry?.star3ImageUrl && auDef) {
-                m.evolutions.appendChild(makeCard(auEntry.star3ImageUrl,
-                    `<span class="material-symbols-outlined" style="font-size:15px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version`,
-                    auDef.color || '#64dcb4'));
-            }
-        });
-        // 3★ original
+        if (auEntry?.star3ImageUrl) {
+            m.evolutions.appendChild(makeCard(auEntry.star3ImageUrl,
+                `<span class="material-symbols-outlined" style="font-size:15px;">${auDef?.icon||'auto_fix_high'}</span>${auDef?.name||'AU'} Version`,
+                color));
+        }
         m.evolutions.appendChild(makeCard(star3Img,
             `<span class="material-symbols-outlined" style="font-size:15px;">star</span>3★ Original`, null));
 
         document.getElementById('char-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
 
     } else {
-        // ── Normal / Overlay / Filter mode: show all evolutions ──
+        // Normal mode: show all evolutions
         const allEvos = [{ star: 1, imageUrl: char.imageUrl }, ...(char.evolutions || [])];
         allEvos.forEach(evo => {
             const div = document.createElement('div');
@@ -1210,13 +1130,13 @@ function openCharacterModal(charId, isDismissed = false) {
             m.evolutions.appendChild(div);
         });
 
-        // ── AU cards: one per reachable AU that has a 3★ entry (hidden by default) ──
+        // AU cards (hidden by default, toggled via header buttons)
         reachableAusWithEntry.forEach(au => {
             const auEntry = char.auData[au.id];
             const div = document.createElement('div');
             div.className = 'flex flex-col items-center p-3 rounded-2xl au-evo-card modal-au-card';
             div.dataset.auId = au.id;
-            div.style.cssText = `border-color: ${au.color||'#64dcb4'}88; display: none;`;
+            div.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
             const wrap = document.createElement('div');
             wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
             wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
@@ -1228,15 +1148,7 @@ function openCharacterModal(charId, isDismissed = false) {
             m.evolutions.appendChild(div);
         });
 
-        // ── AU icon buttons in header ──
         _buildModalAuBtns('char-modal-header-btns', reachableAusWithEntry, '.modal-au-card');
-
-        // Auto-activate first active AU in filter mode
-        if (state.activeAuIds.size > 0 && state.auViewMode === 'filter') {
-            const firstActiveAuId = [...state.activeAuIds][0];
-            const activeBtn = document.querySelector(`#char-modal-header-btns .modal-au-btn[data-au-id="${firstActiveAuId}"]`);
-            if (activeBtn) activeBtn.click();
-        }
     }
 
     // Fusions
@@ -1272,42 +1184,22 @@ function openFusionModal(fusionId) {
     // ── Clean old AU cards ──
     document.querySelectorAll('.fusion-au-extra-card').forEach(el => el.remove());
 
-    const isAuOnlyMode = state.activeAuIds.size > 0 && state.auViewMode === 'compare';
+    const isAuOnlyMode = !!state.activeAuId;
     const reachableAusWithEntry = getReachableAus().filter(au => fusion.auData?.[au.id]?.fusionImageUrl);
 
     if (isAuOnlyMode) {
-        // AU Only mode: show each active AU version, then original
-        // Main slot: first active AU that has a fusion image
-        let firstAuImg = null, firstAuDef = null;
-        for (const auId of state.activeAuIds) {
-            const au = alternativeUniverses.find(a => a.id === auId);
-            const img = fusion.auData?.[auId]?.fusionImageUrl;
-            if (img && au) { firstAuImg = img; firstAuDef = au; break; }
-        }
-        m.img.src = firstAuImg || fusion.imageUrl || '';
+        // AU Only mode: AU image main + original as extra card
+        const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const auImg  = fusion.auData?.[state.activeAuId]?.fusionImageUrl;
+        const color  = auDef?.color || '#64dcb4';
+
+        m.img.src = auImg || fusion.imageUrl || '';
         m.img.setAttribute('onclick', `enlargeImage('${m.img.src}')`);
-        m.star.innerHTML = firstAuDef
-            ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${firstAuDef.color||'#64dcb4'}"><span class="material-symbols-outlined" style="font-size:14px;">${firstAuDef.icon||'auto_fix_high'}</span>${firstAuDef.name} Version</span>`
+        m.star.innerHTML = auDef
+            ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${color}"><span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version</span>`
             : getStarEmojis(true, false, 4);
 
-        // Additional AU cards for remaining active AUs
-        [...state.activeAuIds].slice(1).forEach(auId => {
-            const auDef = alternativeUniverses.find(a => a.id === auId);
-            const auImg = fusion.auData?.[auId]?.fusionImageUrl;
-            if (!auImg || !auDef) return;
-            const card = document.createElement('div');
-            card.className = 'fusion-au-extra-card flex flex-col items-center text-center au-fusion-card rounded-2xl p-4';
-            card.style.cssText = `width:${w}; border-color:${auDef.color||'#64dcb4'}88; display:block;`;
-            card.innerHTML = `
-                <p class="text-xs font-bold mb-2 flex items-center gap-1 justify-center" style="color:${auDef.color||'#64dcb4'};">
-                    <span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name}
-                </p>
-                <img src="${auImg}" alt="${fusion.name} ${auDef.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
-            `;
-            m.imgWrap.insertAdjacentElement('afterend', card);
-        });
-
-        // Original fusion
+        // Original as extra card
         const origCard = document.createElement('div');
         origCard.className = 'fusion-au-extra-card flex flex-col items-center text-center rounded-2xl p-4';
         origCard.style.cssText = `width:${w}; border:1px solid var(--outline-var); display:block;`;
@@ -1323,11 +1215,10 @@ function openFusionModal(fusionId) {
         m.right.container.style.display = 'none';
         document.getElementById('fusion-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
     } else {
-        // Normal / Overlay / Filter mode
+        // Normal mode
         m.img.src = fusion.imageUrl || '';
         m.img.setAttribute('onclick', `enlargeImage('${fusion.imageUrl||''}')`);
         m.star.innerHTML = getStarEmojis(true, false, 4);
-
         m.left.container.style.display = '';
         m.right.container.style.display = '';
 
@@ -1349,11 +1240,10 @@ function openFusionModal(fusionId) {
         setPartner(m.left, p1);
         setPartner(m.right, p2);
 
-        // ── AU cards (hidden by default) ──
         reachableAusWithEntry.forEach(au => {
             const auEntry = fusion.auData[au.id];
             const auCard = document.createElement('div');
-            auCard.className = `fusion-au-extra-card flex flex-col items-center text-center au-fusion-card rounded-2xl p-4`;
+            auCard.className = 'fusion-au-extra-card flex flex-col items-center text-center au-fusion-card rounded-2xl p-4';
             auCard.dataset.auId = au.id;
             auCard.style.cssText = `width:${w}; border-color:${au.color||'#64dcb4'}88; display:none;`;
             auCard.innerHTML = `
@@ -1364,14 +1254,7 @@ function openFusionModal(fusionId) {
             `;
             m.imgWrap.insertAdjacentElement('afterend', auCard);
         });
-
         _buildModalAuBtns('fusion-modal-header-btns', reachableAusWithEntry, '.fusion-au-extra-card');
-
-        if (state.activeAuIds.size > 0 && state.auViewMode === 'filter') {
-            const firstActiveAuId = [...state.activeAuIds][0];
-            const activeBtn = document.querySelector(`#fusion-modal-header-btns .modal-au-btn[data-au-id="${firstActiveAuId}"]`);
-            if (activeBtn) activeBtn.click();
-        }
     }
 
     openModal(m.el, m.content);
@@ -1492,9 +1375,9 @@ function updateModalNav(id, type) {
         }
     }
 
-    // Further filter by active AUs if in filter/compare mode
-    if (state.activeAuIds.size > 0 && (state.auViewMode === 'filter' || state.auViewMode === 'compare')) {
-        nav = nav.filter(c => hasActiveAuEntry(c));
+    // Filter by active AU
+    if (state.activeAuId) {
+        nav = nav.filter(c => hasAuEntry(c, state.activeAuId));
     }
 
     // Deduplicate by id
@@ -1635,14 +1518,6 @@ async function initApp() {
         const auToggleBtn = document.getElementById('au-toggle-btn');
         const auMenu = document.getElementById('au-menu');
         auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
-        auMenu.addEventListener('click', e => {
-            const btn = e.target.closest('.au-mode-item');
-            if (!btn) return;
-            state.auViewMode = btn.dataset.auView;
-            buildAuDropdown();
-            auMenu.classList.add('hidden');
-            renderCharacters();
-        });
 
         document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
         dom.searchModal.input.addEventListener('input', renderSearchResults);
@@ -1657,7 +1532,7 @@ async function initApp() {
         dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); }});
         dom.zoomOutBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); }});
         dom.fitScreenBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
-        document.getElementById('au-banner-exit').addEventListener('click', () => { state.activeAuIds.clear(); _applyAuMode(); });
+        document.getElementById('au-banner-exit').addEventListener('click', () => { state.activeAuId = null; _applyAuMode(); });
 
         buildAuDropdown();
         setupSecretUnlock();
