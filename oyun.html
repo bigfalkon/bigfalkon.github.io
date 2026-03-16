@@ -41,7 +41,6 @@
             --danger: #ef5350;
             --gold: #FFD700;
         }
-        html { background: var(--bg); }
         body {
             font-family: 'Manrope', sans-serif;
             background: var(--bg); color: var(--on-bg); overflow-x: hidden;
@@ -151,15 +150,6 @@
         .progress-bar { height: 4px; border-radius: 2px; background: var(--outline-var); overflow: hidden; }
         .progress-fill { height: 100%; border-radius: 2px; background: var(--primary); transition: width .4s ease; }
 
-        /* Safe area for camera cutouts / notches */
-        @supports (padding-top: env(safe-area-inset-top)) {
-            body {
-                padding-top: calc(1rem + env(safe-area-inset-top)) !important;
-                padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
-                padding-left: calc(1rem + env(safe-area-inset-left)) !important;
-                padding-right: calc(1rem + env(safe-area-inset-right)) !important;
-            }
-        }
     </style>
 </head>
 <body class="p-4 sm:p-6">
