@@ -2,10 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Admin Panel</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#443a74"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Karakterler">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
@@ -47,7 +53,13 @@
             --au-container: #0a4f3a;
             --on-au-container: #a0f5d8;
         }
-        body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--on-bg); }
+        body {
+            font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--on-bg);
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
         .form-input, .form-select {
             background-color: var(--surface-high); border: 1px solid var(--outline-var);
             color: var(--on-surface); border-radius: 8px; padding: 12px; width: 100%;
