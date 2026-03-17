@@ -54,6 +54,7 @@
             --au-container: #0a4f3a;
             --on-au-container: #a0f5d8;
         }
+        html { background: var(--bg); }
         body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--on-bg); }
         .form-input, .form-select {
             background-color: var(--surface-high); border: 1px solid var(--outline-var);
@@ -166,6 +167,18 @@
             height: 100%; border-radius: 2px; background: var(--primary); transition: width .3s ease;
         }
 
+        /* Safe area for camera cutouts / notches */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: calc(1rem + env(safe-area-inset-top)) !important;
+                padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+                padding-left: calc(1rem + env(safe-area-inset-left)) !important;
+                padding-right: calc(1rem + env(safe-area-inset-right)) !important;
+            }
+            #cache-toast {
+                bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+            }
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
