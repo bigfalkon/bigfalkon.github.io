@@ -40,6 +40,7 @@
 
         * { box-sizing: border-box; }
 
+        html { background: var(--bg); }
         body {
             font-family: 'Manrope', sans-serif;
             background: var(--bg); color: var(--on-bg);
@@ -192,6 +193,15 @@
         .pool-scroll::-webkit-scrollbar-track { background: transparent; }
         .pool-scroll::-webkit-scrollbar-thumb { background: var(--outline-var); border-radius: 3px; }
 
+        /* Safe area for camera cutouts / notches */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: calc(1rem + env(safe-area-inset-top)) !important;
+                padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+                padding-left: calc(1rem + env(safe-area-inset-left)) !important;
+                padding-right: calc(1rem + env(safe-area-inset-right)) !important;
+            }
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">

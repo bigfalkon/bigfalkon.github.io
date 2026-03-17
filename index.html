@@ -58,6 +58,7 @@
             --outline-var: #48454e;
         }
         body.modal-open { overflow: hidden; }
+        html { background: var(--bg); }
         body {
             font-family: 'Manrope', sans-serif;
             background-color: var(--bg);
@@ -330,6 +331,18 @@
         }
         #au-mode-banner.visible { display: flex; }
 
+        /* Safe area for camera cutouts / notches */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: calc(1rem + env(safe-area-inset-top)) !important;
+                padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+                padding-left: calc(1rem + env(safe-area-inset-left)) !important;
+                padding-right: calc(1rem + env(safe-area-inset-right)) !important;
+            }
+            .control-panel.sticky {
+                top: calc(1rem + env(safe-area-inset-top)) !important;
+            }
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
