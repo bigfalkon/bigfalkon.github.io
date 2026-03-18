@@ -1571,8 +1571,9 @@ const fetchItems = async () => {
         characters = cs.docs.map(d=>({id:d.id,...d.data()}));
         easterEggs = es.docs.map(d=>({id:d.id,...d.data()}));
         dismissed  = ds.docs.map(d=>({id:d.id,...d.data(),isRetired:true}));
-        window.characters = characters;
-        window.dismissed  = dismissed;
+        window.characters  = characters;
+        window.dismissed   = dismissed;
+        window.easterEggs  = easterEggs;
         alternativeUniverses = aus.docs.map(d=>({id:d.id,...d.data()}));
         renderAdminPanel();
         renderAuDefinitions();
@@ -1752,7 +1753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Collect all image URLs from the loaded data
     function collectImageUrls() {
         const urls = new Set();
-        const all = [...(window.characters||[]), ...(window.dismissed||[])];
+        const all = [...(window.characters||[]), ...(window.dismissed||[]), ...(window.easterEggs||[])];
 
         all.forEach(c => {
             // 1★ main image
