@@ -20,7 +20,7 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ─── Activate — clean up legacy caches, keep current ────────────────────────
+// ─── Activate ───────────────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
     const keep = new Set([CACHE_NAME, IMAGE_CACHE_NAME]);
     event.waitUntil(
@@ -97,7 +97,31 @@ self.addEventListener('message', event => {
     }
 });
 
-// ─── Precache — 10 parallel, 3s timeout, skip & move on ────────────────────
+// ─── Smart timeout: 3s connect + dynamic body time based on size ────────────
+//
+//  Strategy:
+//    1. fetch() with 3s abort — if server doesn't respond in 3s, skip
+//    2. Once headers arrive, check Content-Length
+//    3. Give body download time based on size:
+//         - < 500 KB  →  5s
+//         - < 2 MB    → 10s
+//         - < 5 MB    → 20s
+//         - > 5 MB    → 30s
+//         - unknown   → 15s
+//    4. If body doesn't finish in time, skip that one image
+//
+//  This way small PNGs cache fast, big GIFs get enough time,
+//  and truly stuck connections don't block everything.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function bodyTimeout(contentLength) {
+    if (contentLength == null) return 15000;      // unknown size → 15s
+    if (contentLength < 500 * 1024) return 5000;  // < 500 KB → 5s
+    if (contentLength < 2 * 1024 * 1024) return 10000;  // < 2 MB → 10s
+    if (contentLength < 5 * 1024 * 1024) return 20000;  // < 5 MB → 20s
+    return 30000;                                  // > 5 MB → 30s
+}
+
 async function precacheImages(urls) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
@@ -106,9 +130,9 @@ async function precacheImages(urls) {
     const total = urls.length;
     const failed = [];
 
-    const BATCH      = 10;
-    const TIMEOUT_MS = 3000;   // 3 seconds — can't load in 3s? skip it
-    const DELAY_MS   = 50;
+    const BATCH       = 6;     // slightly less parallel to give big files breathing room
+    const CONNECT_MS  = 3000;  // 3s to get headers back
+    const DELAY_MS    = 50;
 
     const startTime = Date.now();
 
@@ -130,7 +154,7 @@ async function precacheImages(urls) {
         await Promise.allSettled(batch.map(async url => {
             const t0 = Date.now();
             try {
-                // Already cached? Skip instantly
+                // ── Already cached? Skip ────────────────────────────────
                 const existing = await cache.match(url);
                 if (existing) {
                     done++;
@@ -138,12 +162,12 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                // Fetch with hard timeout
+                // ── Phase 1: Connect (3s timeout) ───────────────────────
                 const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+                const connectTimer = setTimeout(() => controller.abort(), CONNECT_MS);
 
                 const res = await fetch(url, { signal: controller.signal });
-                clearTimeout(timer);
+                clearTimeout(connectTimer);
 
                 if (!res.ok) {
                     done++;
@@ -151,11 +175,14 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                // Read body with its own timeout guard
+                // ── Phase 2: Download body (dynamic timeout) ────────────
+                const size = parseInt(res.headers.get('content-length'), 10) || null;
+                const bodyMs = bodyTimeout(size);
+
                 const blob = await Promise.race([
                     res.blob(),
                     new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('body timeout')), TIMEOUT_MS)
+                        setTimeout(() => reject(new Error('body_timeout')), bodyMs)
                     )
                 ]);
 
@@ -168,10 +195,16 @@ async function precacheImages(urls) {
 
             } catch (e) {
                 done++;
-                const reason = e.name === 'AbortError' ? 'skipped (>3s)'
-                    : e.message === 'body timeout' ? 'skipped (download slow)'
-                    : e.name === 'QuotaExceededError' ? 'storage full'
-                    : (e.message || 'error');
+                let reason;
+                if (e.name === 'AbortError') {
+                    reason = 'connect timeout (3s)';
+                } else if (e.message === 'body_timeout') {
+                    reason = 'download too slow';
+                } else if (e.name === 'QuotaExceededError') {
+                    reason = 'storage full';
+                } else {
+                    reason = e.message || 'error';
+                }
                 failed.push({ url, reason, durationMs: Date.now() - t0 });
             }
         }));
