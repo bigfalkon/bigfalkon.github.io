@@ -1717,19 +1717,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Collect all image URLs from the loaded data
     function collectImageUrls() {
         const urls = new Set();
-        const all = [...(window.characters||[])];
+        // Include both active and dismissed characters
+        const all = [...(window.characters||[]), ...(window.dismissed||[])];
 
         all.forEach(c => {
-            // 1★ main image
             if (c.imageUrl) urls.add(c.imageUrl);
-            // 2★ and 3★ evolutions
             (c.evolutions || []).forEach(e => { if (e.imageUrl) urls.add(e.imageUrl); });
-            // Fusion GIF + preview
             if (c.isFusion) {
                 if (c.imageUrl)   urls.add(c.imageUrl);
                 if (c.previewUrl) urls.add(c.previewUrl);
             }
-            // AU variants
             const auData = c.auData || {};
             Object.values(auData).forEach(entry => {
                 if (entry.star3ImageUrl)  urls.add(entry.star3ImageUrl);
@@ -1737,16 +1734,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Strip cache-bust params, clean up malformed query strings, then re-deduplicate
         return [...new Set([...urls].map(u => {
-            u = u.replace(/[?&]_t=\d+/g, '');    // remove _t param
-            u = u.replace(/\?&/, '?');            // fix ?& → ?
-            u = u.replace(/\?$/, '');             // remove trailing ?
+            u = u.replace(/[?&]_t=\d+/g, '');
+            u = u.replace(/\?&/, '?');
+            u = u.replace(/\?$/, '');
             return u;
         }))];
     }
 
-    // Format milliseconds to human-readable duration
     function formatDuration(ms) {
         if (ms < 1000) return ms + 'ms';
         const s = Math.round(ms / 1000);
@@ -1755,7 +1750,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return m + 'm ' + (s % 60) + 's';
     }
 
-    // Extract short filename from URL for display
     function shortName(url) {
         try {
             const path = new URL(url).pathname;
@@ -1764,7 +1758,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch { return url.slice(-30); }
     }
 
-    // Toast helpers
     const toast       = document.getElementById('cache-toast');
     const toastIcon   = document.getElementById('cache-toast-icon');
     const toastText   = document.getElementById('cache-toast-text');
@@ -1782,65 +1775,66 @@ document.addEventListener('DOMContentLoaded', () => {
         if (autohide) toastTimer = setTimeout(() => toast.classList.add('hidden'), 4500);
     }
 
-    // Cache button state
     const cacheBtn     = document.getElementById('cache-btn');
     const cacheBtnIcon = document.getElementById('cache-btn-icon');
     const cacheBtnText = document.getElementById('cache-btn-text');
-    let isCaching = false;
 
     function setBtnState(state) {
-        // state: 'idle' | 'loading' | 'done' | 'clearing'
-        isCaching = (state === 'loading' || state === 'clearing');
-        cacheBtn.disabled = isCaching;
+        cacheBtn.disabled = state === 'loading' || state === 'clearing';
         if (state === 'idle')     { cacheBtnIcon.textContent = 'cloud_download'; cacheBtnText.textContent = 'Cache Images'; }
         if (state === 'loading')  { cacheBtnIcon.textContent = 'sync';           cacheBtnText.textContent = 'Caching…'; }
         if (state === 'done')     { cacheBtnIcon.textContent = 'cloud_done';     cacheBtnText.textContent = 'Cache Images'; }
         if (state === 'clearing') { cacheBtnIcon.textContent = 'sync';           cacheBtnText.textContent = 'Refreshing…'; }
     }
 
-    function sendToSW(type, urls) {
-        return navigator.serviceWorker.controller
-            ? navigator.serviceWorker.controller.postMessage({ type, urls })
-            : null;
+    // ── Ensure we have an active SW controller before sending messages ───────
+    async function getController() {
+        // If we already have one, use it
+        if (navigator.serviceWorker.controller) {
+            return navigator.serviceWorker.controller;
+        }
+        // Wait for the SW to claim this page (up to 5 seconds)
+        console.log('[Cache] No controller yet, waiting for SW to claim…');
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('SW controller not available after 5s'));
+            }, 5000);
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                clearTimeout(timeout);
+                console.log('[Cache] Controller acquired:', navigator.serviceWorker.controller?.scriptURL);
+                resolve(navigator.serviceWorker.controller);
+            }, { once: true });
+
+            // Also try registering fresh
+            navigator.serviceWorker.ready.then(reg => {
+                if (navigator.serviceWorker.controller) {
+                    clearTimeout(timeout);
+                    resolve(navigator.serviceWorker.controller);
+                }
+            });
+        });
     }
 
-    // ── Stall watchdog ──────────────────────────────────────────────────────
-    // If we don't hear from the SW for 45 seconds while caching, assume it stalled
-    let stallTimer = null;
-    let lastProgress = 0;
-    const STALL_TIMEOUT = 45000;
-
-    function resetStallTimer() {
-        clearTimeout(stallTimer);
-        if (!isCaching) return;
-        stallTimer = setTimeout(() => {
-            if (!isCaching) return;
-            showToast('error', 'Cache appears stuck — try again', lastProgress, false,
-                'The service worker stopped responding. Refresh the page and retry.');
-            setBtnState('done');
-        }, STALL_TIMEOUT);
-    }
-
-    // Listen for SW progress messages (now via broadcast from clients API)
+    // Listen for SW progress messages
     navigator.serviceWorker.addEventListener('message', e => {
         const d = e.data || {};
+        console.log('[Cache] SW message:', d.type, d.done !== undefined ? `${d.done}/${d.total}` : '');
+
         if (d.type === 'CACHE_PROGRESS') {
             const { done, total, skipped, failedCount, elapsedMs, currentBatch, batchDurationMs } = d;
             const pct = Math.round((done / total) * 100);
-            lastProgress = pct;
             const elapsed = formatDuration(elapsedMs || 0);
 
-            let failTxt = failedCount ? ` · ${failedCount} failed` : '';
-            let skipTxt = skipped ? ` · ${skipped} cached` : '';
+            let failTxt = failedCount ? ` · ${failedCount} hata` : '';
+            let skipTxt = skipped ? ` · ${skipped} zaten var` : '';
             showToast('cloud_download', `${done} / ${total}${skipTxt}${failTxt} — ${elapsed}`, pct, false,
                 currentBatch ? `${currentBatch.map(shortName).join(', ')}` :
-                batchDurationMs ? `Batch: ${formatDuration(batchDurationMs)}` : '');
+                batchDurationMs ? `Son batch: ${formatDuration(batchDurationMs)}` : '');
 
             cacheBtnText.textContent = `${pct}%`;
-            resetStallTimer();
         }
         if (d.type === 'CACHE_COMPLETE') {
-            clearTimeout(stallTimer);
             const { total, skipped, failed, elapsedMs } = d;
             const elapsed = formatDuration(elapsedMs || 0);
             const newDownloads = total - (skipped || 0) - (failed ? failed.length : 0);
@@ -1848,10 +1842,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (failed && failed.length) {
                 const reasons = {};
                 failed.forEach(f => { reasons[f.reason] = (reasons[f.reason] || 0) + 1; });
-                const summary = Object.entries(reasons).map(([r,c]) => `${c}× ${r}`).join(', ');
+                const summary = Object.entries(reasons).map(([r,c]) => `${c}x ${r}`).join(', ');
 
                 showToast('warning',
-                    `${total - failed.length}/${total} cached, ${failed.length} failed — ${elapsed}`,
+                    `${total - failed.length}/${total} cached, ${failed.length} hata — ${elapsed}`,
                     100, false,
                     summary);
 
@@ -1862,46 +1856,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.groupEnd();
             } else {
-                const detail = skipped ? `${newDownloads} new, ${skipped} already cached` : '';
-                showToast('cloud_done', `${total} images cached — ${elapsed}`, 100, true, detail);
+                const detail = skipped ? `${newDownloads} yeni, ${skipped} zaten vardı` : '';
+                showToast('cloud_done', `${total} resim cached — ${elapsed}`, 100, true, detail);
             }
             setBtnState('done');
         }
         if (d.type === 'CACHE_CLEARED') {
-            showToast('sync', 'Cache cleared — re-downloading…', 0);
-            resetStallTimer();
+            showToast('sync', 'Cache temizlendi — yeniden indiriliyor…', 0);
         }
     });
 
-    // Click handler — first click caches, shift+click forces a full refresh
-    cacheBtn.addEventListener('click', e => {
-        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-            alert('Service worker not active. Try refreshing the page first.');
-            return;
-        }
+    // Click handler
+    cacheBtn.addEventListener('click', async e => {
         const urls = collectImageUrls();
+        console.log('[Cache] Collected URLs:', urls.length);
         if (!urls.length) {
             alert('No character data loaded yet. Wait for the page to finish loading.');
             return;
         }
 
+        let controller;
+        try {
+            controller = await getController();
+        } catch (err) {
+            console.error('[Cache]', err.message);
+            alert('Service worker not active. Try refreshing the page (Ctrl+Shift+R).');
+            return;
+        }
+
+        console.log('[Cache] Sending to SW:', controller.scriptURL);
+
         if (e.shiftKey) {
-            if (!confirm(`Wipe the image cache and re-download all ${urls.length} images? This may take a moment.`)) return;
+            if (!confirm(`Wipe the image cache and re-download all ${urls.length} images?`)) return;
             setBtnState('clearing');
-            lastProgress = 0;
-            showToast('sync', 'Clearing cache…', 0);
-            sendToSW('CLEAR_IMAGE_CACHE', urls);
-            resetStallTimer();
+            showToast('sync', 'Cache temizleniyor…', 0);
+            controller.postMessage({ type: 'CLEAR_IMAGE_CACHE', urls });
         } else {
             setBtnState('loading');
-            lastProgress = 0;
-            showToast('cloud_download', `Caching ${urls.length} images…`, 0);
-            sendToSW('PRECACHE_IMAGES', urls);
-            resetStallTimer();
+            showToast('cloud_download', `${urls.length} resim cache'leniyor…`, 0);
+            controller.postMessage({ type: 'PRECACHE_IMAGES', urls });
         }
     });
 
     cacheBtn.title = 'Cache all images for fast loading • Shift+click to force refresh';
+
+    // Log SW state on load for debugging
+    console.log('[Cache] SW controller on load:', navigator.serviceWorker.controller?.scriptURL || 'NONE');
+    navigator.serviceWorker.ready.then(reg => {
+        console.log('[Cache] SW ready — active:', reg.active?.scriptURL, 'waiting:', reg.waiting?.scriptURL);
+    });
 })();
 </script>
 </body>
