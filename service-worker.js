@@ -101,13 +101,7 @@ async function precacheImages(urls, client) {
 
     let done = 0;
     const total = urls.length;
-
-    function fetchWithTimeout(url, ms) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), ms);
-        return fetch(url, { mode: 'no-cors', signal: controller.signal })
-            .finally(() => clearTimeout(timer));
-    }
+    const failed = [];
 
     // Fetch in parallel batches of 6 to avoid overwhelming the network
     const BATCH = 6;
@@ -117,23 +111,28 @@ async function precacheImages(urls, client) {
             try {
                 // Skip if already cached
                 const existing = await cache.match(url);
-                if (existing) return;
-                const response = await fetchWithTimeout(url, 15000);
+                if (existing) { done++; return; }
+
+                const response = await fetch(url, { mode: 'no-cors' });
                 await cache.put(url, response);
-            } catch(e) {
-                console.warn('[SW] Failed to cache:', url, e.message);
-            } finally {
                 done++;
+            } catch(e) {
+                done++;
+                const reason = e.name === 'TypeError' ? 'network error'
+                    : e.name === 'QuotaExceededError' ? 'storage full'
+                    : e.message || e.name || 'unknown';
+                failed.push({ url, reason });
+                console.warn('[SW] Failed to cache:', url, reason);
             }
         }));
 
         // Report progress back to the requesting page
         if (client) {
-            client.postMessage({ type: 'CACHE_PROGRESS', done, total });
+            client.postMessage({ type: 'CACHE_PROGRESS', done, total, failedCount: failed.length });
         }
     }
 
     if (client) {
-        client.postMessage({ type: 'CACHE_COMPLETE', total });
+        client.postMessage({ type: 'CACHE_COMPLETE', total, failed });
     }
 }
