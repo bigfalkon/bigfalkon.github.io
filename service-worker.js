@@ -98,25 +98,29 @@ async function precacheImages(urls, client) {
 
     // Fetch in parallel batches of 6 to avoid overwhelming the network
     const BATCH = 6;
-    for (let i = 0; i < urls.length; i += BATCH) {
-        const batch = urls.slice(i, i + BATCH);
-        await Promise.allSettled(batch.map(async url => {
-            // Skip if already cached (set-and-forget: don't re-fetch)
-            const existing = await cache.match(url);
-            if (existing) { done++; return; }
-            try {
-                const response = await fetch(url, { mode: 'no-cors' });
-                await cache.put(url, response);
-            } catch(e) {
-                console.warn('[SW] Failed to cache:', url, e);
-            }
-            done++;
-        }));
+    try {
+        for (let i = 0; i < urls.length; i += BATCH) {
+            const batch = urls.slice(i, i + BATCH);
+            await Promise.allSettled(batch.map(async url => {
+                // Skip if already cached (set-and-forget: don't re-fetch)
+                try {
+                    const existing = await cache.match(url);
+                    if (existing) { done++; return; }
+                    const response = await fetch(url);
+                    await cache.put(url, response);
+                } catch(e) {
+                    console.warn('[SW] Failed to cache:', url, e);
+                }
+                done++;
+            }));
 
-        // Report progress back to the requesting page
-        if (client) {
-            try { client.postMessage({ type: 'CACHE_PROGRESS', done, total }); } catch(_) {}
+            // Report progress back to the requesting page
+            if (client) {
+                try { client.postMessage({ type: 'CACHE_PROGRESS', done, total }); } catch(_) {}
+            }
         }
+    } catch(e) {
+        console.error('[SW] precacheImages loop error:', e);
     }
 
     if (client) {
