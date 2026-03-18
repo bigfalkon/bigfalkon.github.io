@@ -1,5 +1,5 @@
-const CACHE_NAME        = 'karakter-galerisi-cache-v7';
-const IMAGE_CACHE_NAME  = 'karakter-images-v6';
+const CACHE_NAME        = 'karakter-app-v1';
+const IMAGE_CACHE_NAME  = 'karakter-images-v1';
 
 // Core app shell cached on install
 const urlsToCache = [
@@ -21,7 +21,7 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ─── Activate — clean up old caches ─────────────────────────────────────────
+// ─── Activate — clean up legacy caches from old versions, keep current ──────
 self.addEventListener('activate', event => {
     const keep = new Set([CACHE_NAME, IMAGE_CACHE_NAME]);
     event.waitUntil(
@@ -118,7 +118,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
         .finally(() => clearTimeout(timer));
 }
 
-// ─── Precache — fast parallel batches for imgbb CDN ─────────────────────────
+// ─── Precache — fast parallel batches, skips already-cached images ──────────
 async function precacheImages(urls) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
@@ -153,18 +153,22 @@ async function precacheImages(urls) {
         await Promise.allSettled(batch.map(async url => {
             const fetchStart = Date.now();
             try {
-                // Skip if already cached
+                // ── Skip if already cached ──────────────────────────────
+                // cache.match returns undefined if not found, or a Response.
+                // For imgbb images, response.ok will be true (status 200).
+                // We accept any cached entry (ok OR opaque) as valid.
                 const existing = await cache.match(url);
-                if (existing && (existing.ok || existing.type === 'opaque')) {
+                if (existing) {
                     done++;
                     skipped++;
                     return;
                 }
-                if (existing) await cache.delete(url);
 
+                // ── Download and cache ──────────────────────────────────
                 const response = await fetchWithTimeout(url, {}, TIMEOUT_MS);
 
                 if (response.ok) {
+                    // Read full body before caching to avoid partial entries
                     const blob = await response.blob();
                     await cache.put(url, new Response(blob, {
                         status: response.status,
