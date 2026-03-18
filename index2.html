@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel</title>
+    <title>Admin Panel - Karakter Evreni</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#443a74"/>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Karakterler">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
@@ -308,12 +312,6 @@
                         </div>
                     </div>
                 </div>
-                <div id="easter-egg-fields" class="hidden flex flex-col gap-3">
-                    <div class="character-selector-wrapper">
-                        <label class="block text-sm font-medium mb-1">Original Character</label>
-                        <div class="flex items-center gap-2"><div id="originalCharacterId_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Not selected</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('originalCharacterId')">Select</button><input type="hidden" name="originalCharacterId"></div>
-                    </div>
-                </div>
 
                 <div id="prompt-management-section" class="hidden">
                     <h3 class="prompt-section-header">Prompt Management</h3>
@@ -468,10 +466,6 @@
                 <span class="text-sm font-medium">Include Retired</span>
             </label>
             <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
-                <input type="checkbox" id="export-include-eastereggs" class="w-5 h-5 accent-[var(--primary)]">
-                <span class="text-sm font-medium">Include Easter Eggs</span>
-            </label>
-            <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
                 <input type="checkbox" id="export-include-au" class="w-5 h-5 accent-[var(--au)]">
                 <span class="text-sm font-medium" style="color: var(--on-au-container);">Include AU Prompts</span>
             </label>
@@ -610,7 +604,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let apiKeys = { imgbb_main_key: null, imgbb2_key: null, vgy_user_key: null };
-let characters = [], easterEggs = [], dismissed = [];
+let characters = [], dismissed = [];
 let alternativeUniverses = [];
 let editingItemId = null, editingItemType = null, selectorTargetInput = null, existingPrompts = {};
 
@@ -664,7 +658,6 @@ Object.assign(dom, {
     qpEmpty:            document.getElementById('qp-empty'),
     exportModal:        document.getElementById('export-modal'),
     exportIncludeRetired: document.getElementById('export-include-retired'),
-    exportIncludeEasterEggs: document.getElementById('export-include-eastereggs'),
     exportIncludeAu:    document.getElementById('export-include-au'),
     exportStatus:       document.getElementById('export-status'),
     exportBtn:          document.getElementById('export-action-btn'),
@@ -829,7 +822,7 @@ function renderAdminPanel() {
 
     dom.adminGrid.innerHTML = '';
     const q = dom.searchInput.value.toLowerCase().trim();
-    let items = [...characters, ...easterEggs, ...dismissed];
+    let items = [...characters, ...dismissed];
     if (viewState.filter === 'available') {
         const pIds = new Set(characters.filter(c=>c.isFusion).flatMap(f=>f.fusionPartners||[]));
         items = characters.filter(c=>!c.isFusion && !pIds.has(c.id));
@@ -846,12 +839,12 @@ function renderAdminPanel() {
         const card = document.createElement('div');
         const isRetired = !!item.isRetired;
         card.className = `item-card ${isRetired?'retired':''}`;
-        const isFusion = item.isFusion, isEE = !!item.originalCharacterId;
-        const nameClass = (isFusion||isEE) ? 'font-fantastical' : '';
+        const isFusion = item.isFusion;
+        const nameClass = isFusion ? 'font-fantastical' : '';
 
         let imgBlock;
-        if (isFusion||isEE) {
-            const url = (isFusion ? item.previewUrl : item.imageUrl) || '';
+        if (isFusion) {
+            const url = item.previewUrl || '';
             imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${url}')"><img src="${url}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy"></div>`;
         } else {
             const e2 = item.evolutions?.find(e=>e.star===2), e3 = item.evolutions?.find(e=>e.star===3);
@@ -871,12 +864,10 @@ function renderAdminPanel() {
                 <button class="icon-button retire-button" data-id="${item.id}" data-type="${item.type}" data-action="unretire" title="Restore"><span class="material-symbols-outlined">settings_backup_restore</span></button>
                 <button class="icon-button delete-button" data-id="${item.id}" data-type="${item.type}" title="Delete Permanently"><span class="material-symbols-outlined">delete_forever</span></button>`;
         } else {
-            const type = isFusion ? 'fusion' : (isEE ? 'easterEgg' : 'character');
-            // AU button only for non-EE
-            const auBtn = !isEE ? `<button class="icon-button au-button" data-id="${item.id}" data-type="${type}" title="Manage AU"><span class="material-symbols-outlined">auto_fix_high</span></button>` : '';
+            const type = isFusion ? 'fusion' : 'character';
             actionBtns = `
                 <button class="icon-button view-prompt-button" data-id="${item.id}" data-name="${item.name}" title="View Prompts"><span class="material-symbols-outlined" style="color:var(--primary);">description</span></button>
-                ${auBtn}
+                <button class="icon-button au-button" data-id="${item.id}" data-type="${type}" title="Manage AU"><span class="material-symbols-outlined">auto_fix_high</span></button>
                 <button class="icon-button retire-button" data-id="${item.id}" data-type="${type}" data-action="retire" title="Retire"><span class="material-symbols-outlined">work_history</span></button>
                 <button class="icon-button edit-button" data-id="${item.id}" data-type="${type}" title="Edit"><span class="material-symbols-outlined">edit</span></button>
                 <button class="icon-button delete-button" data-id="${item.id}" data-type="${type}" title="Delete"><span class="material-symbols-outlined">delete</span></button>`;
@@ -886,17 +877,17 @@ function renderAdminPanel() {
         const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${getDate(item).toLocaleDateString('en-US')}</p>` : '<p class="text-xs text-red-400 mt-1">No date</p>';
 
         // AU coverage dots
-        const auDots = !isEE ? Object.keys(item.auData||{}).filter(auId => {
+        const auDots = Object.keys(item.auData||{}).filter(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             const auEntry = item.auData[auId];
             return def && (isFusion ? auEntry?.fusionImageUrl : auEntry?.star3ImageUrl);
         }).map(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             return `<span title="${def?.name||auId}" style="width:8px;height:8px;border-radius:50%;background:${def?.color||'#64dcb4'};display:inline-block;border:1px solid rgba(255,255,255,0.2);"></span>`;
-        }).join('') : '';
+        }).join('');
         const auDotsHtml = auDots ? `<div class="flex gap-1 flex-wrap mt-1 items-center"><span class="text-xs text-gray-500 mr-1">AU:</span>${auDots}</div>` : '';
 
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:(isEE?1:1), isEE?'auto_awesome':'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
@@ -1255,22 +1246,19 @@ async function deleteAuEntry(charId) {
     } catch (e) { alert(`Error: ${e.message}`); }
 }
 
-// ─── Form (Characters/Fusions/EE) ────────────────────────────────────────────
+// ─── Form (Characters/Fusions) ───────────────────────────────────────────────
 function toggleFormFields() {
     const t = dom.itemTypeSelect.value;
     dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', t !== 'character');
     dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', t !== 'fusion');
     dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'fusion');
-    dom.addEditForm.querySelector('#easter-egg-fields').classList.toggle('hidden', t !== 'easterEgg');
     dom.addEditForm.querySelector('#main-image-container > label').textContent =
-        t === 'easterEgg' ? 'Easter Egg Image' : (t === 'fusion' ? 'Main Fusion Image (GIF – Optional)' : 'Main Image');
-    dom.promptSection.classList.toggle('hidden', t === 'easterEgg');
-    if (t !== 'easterEgg') {
-        const show1 = t==='character', showF = t==='fusion';
-        ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));
-        document.getElementById('prompt-block-FUSION').classList.toggle('hidden', !showF);
-        document.getElementById('prompt-block-EK').classList.remove('hidden');
-    }
+        t === 'fusion' ? 'Main Fusion Image (GIF – Optional)' : 'Main Image';
+    dom.promptSection.classList.remove('hidden');
+    const show1 = t==='character', showF = t==='fusion';
+    ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));
+    document.getElementById('prompt-block-FUSION').classList.toggle('hidden', !showF);
+    document.getElementById('prompt-block-EK').classList.remove('hidden');
 }
 
 function setupImageInputTogglers() {
@@ -1325,7 +1313,7 @@ function resetForm() {
 
 const loadItemForEdit = async (itemId, itemType) => {
     resetForm();
-    const item = [...characters, ...easterEggs, ...dismissed].find(i => i.id === itemId);
+    const item = [...characters, ...dismissed].find(i => i.id === itemId);
     if (!item) return alert("Record not found.");
     editingItemId = itemId; editingItemType = itemType;
     dom.formTitle.textContent = "Edit Record";
@@ -1360,7 +1348,6 @@ const loadItemForEdit = async (itemId, itemType) => {
         if(ip) ip.value=ch.id;
     };
     if (itemType==='fusion') { updateSel('fusionPartners_0', item.fusionPartners?.[0]); updateSel('fusionPartners_1', item.fusionPartners?.[1]); }
-    if (itemType==='easterEgg') updateSel('originalCharacterId', item.originalCharacterId);
 
     try {
         const snap = await db.collection('promptLibrary').where('charId','==',itemId).get();
@@ -1396,7 +1383,7 @@ const handleFormSubmit = async (e) => {
     try {
         const type = dom.itemTypeSelect.value;
         let data = { name: form.elements['name'].value.trim() };
-        const coll = type==='easterEgg' ? 'easterEggs' : 'characters';
+        const coll = 'characters';
         if (isEditing) {
             const dv = form.elements['eklenmeTarihi'].value;
             if (dv) { const [y,m,d]=dv.split('-').map(Number); data.eklenmeTarihi=firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d)); }
@@ -1415,10 +1402,6 @@ const handleFormSubmit = async (e) => {
             const [u1,u2] = await Promise.all([processImageInput('main-image-container'),processImageInput('preview-image-container')]);
             if (!u2&&!isEditing) throw new Error("Fusion preview image is required.");
             data.imageUrl=u1||null; data.previewUrl=u2||null;
-        } else if (type==='easterEgg') {
-            data.originalCharacterId=form.elements['originalCharacterId'].value.trim();
-            data.imageUrl=await processImageInput('main-image-container');
-            if (!data.imageUrl&&!isEditing) throw new Error("Easter Egg image is required.");
         }
 
         const batch = db.batch();
@@ -1451,8 +1434,8 @@ const handleFormSubmit = async (e) => {
 
 const deleteItem = async (itemId, itemType) => {
     const isRetired = dismissed.some(i=>i.id===itemId);
-    const coll = isRetired?'dismissed':(itemType==='easterEgg'?'easterEggs':'characters');
-    const item = [...characters,...easterEggs,...dismissed].find(i=>i.id===itemId);
+    const coll = isRetired?'dismissed':'characters';
+    const item = [...characters,...dismissed].find(i=>i.id===itemId);
     if (!item||!confirm(`${isRetired?'Permanently delete':'Delete'} "${item.name}"?`)) return;
     if (!firebase.auth().currentUser) return alert("Sign in first.");
     try { await db.collection(coll).doc(itemId).delete(); alert("Deleted."); await fetchItems(); }
@@ -1461,7 +1444,7 @@ const deleteItem = async (itemId, itemType) => {
 const retireItem = async (itemId, itemType) => {
     if (!confirm("Retire this record?")) return;
     if (!firebase.auth().currentUser) return alert("Sign in first.");
-    const coll = itemType==='easterEgg'?'easterEggs':'characters';
+    const coll = 'characters';
     const doc = await db.collection(coll).doc(itemId).get();
     if (!doc.exists) return alert("Record not found.");
     try {
@@ -1477,7 +1460,7 @@ const unretireItem = async (itemId) => {
     if (!doc.exists) return alert("Record not found.");
     let d = doc.data();
     const origType = d.type||'character';
-    const dest = origType==='easterEgg'?'easterEggs':'characters';
+    const dest = 'characters';
     delete d.type;
     try {
         await db.collection(dest).doc(itemId).set(d);
@@ -1539,7 +1522,7 @@ function updateAuthUI(user) {
 const fetchApiKeys = async () => {
     try {
         const doc = await db.collection('settings').doc('apiKeys').get();
-        if (doc.exists) { const d=doc.data(); apiKeys.imgbb_main_key=d.imgbb_main_key||null; apiKeys.imgbb2_key=d.imgbb2_key||d.imgbb_easteregg_key||null; apiKeys.vgy_user_key=d.vgy_user_key||null; return true; }
+        if (doc.exists) { const d=doc.data(); apiKeys.imgbb_main_key=d.imgbb_main_key||null; apiKeys.imgbb2_key=d.imgbb2_key||null; apiKeys.vgy_user_key=d.vgy_user_key||null; return true; }
         alert("Admin API keys not found."); return false;
     } catch(e) { alert("Failed to load API keys."); return false; }
 };
@@ -1547,14 +1530,12 @@ const fetchApiKeys = async () => {
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 const fetchItems = async () => {
     try {
-        const [cs,es,ds,aus] = await Promise.all([
+        const [cs,ds,aus] = await Promise.all([
             db.collection('characters').get(),
-            db.collection('easterEggs').get(),
             db.collection('dismissed').get(),
             db.collection('alternativeUniverses').get(),
         ]);
         characters = cs.docs.map(d=>({id:d.id,...d.data()}));
-        easterEggs = es.docs.map(d=>({id:d.id,...d.data()}));
         dismissed  = ds.docs.map(d=>({id:d.id,...d.data(),isRetired:true}));
         window.characters = characters;
         window.dismissed  = dismissed;
@@ -1603,7 +1584,7 @@ async function openQuickPromptModal(charId, charName) {
 function openExportModal() { dom.exportModal.classList.add('visible'); dom.exportModal.classList.remove('hidden'); dom.exportStatus.textContent=''; dom.exportBtn.disabled=false; }
 function closeExportModal() { dom.exportModal.classList.remove('visible'); dom.exportModal.classList.add('hidden'); }
 async function downloadPrompts() {
-    const incRetired = dom.exportIncludeRetired.checked, incEE = dom.exportIncludeEasterEggs.checked, incAU = dom.exportIncludeAu.checked;
+    const incRetired = dom.exportIncludeRetired.checked, incAU = dom.exportIncludeAu.checked;
     dom.exportBtn.disabled=true; dom.exportStatus.textContent='Fetching data...';
     try {
         const snap = await db.collection('promptLibrary').get();
@@ -1615,9 +1596,7 @@ async function downloadPrompts() {
             const charId=p.charId;
             let char=characters.find(c=>c.id===charId), type='active';
             if(!char){char=dismissed.find(c=>c.id===charId);type='retired';}
-            if(!char){char=easterEggs.find(c=>c.id===charId);type='easterEgg';}
             if(type==='retired'&&!incRetired) return;
-            if(type==='easterEgg'&&!incEE) return;
             if(!char&&!incRetired) return;
             let name=p.charName;
             if(char?.isFusion&&char.fusionPartners){
@@ -1729,6 +1708,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <span id="cache-toast-icon" class="material-symbols-outlined" style="font-size:18px">cloud_download</span>
     <span id="cache-toast-text">Starting…</span>
     <div class="toast-bar"><div class="toast-fill" id="cache-toast-fill" style="width:0%"></div></div>
+    <div id="cache-toast-detail" style="font-size:11px;color:#aaa;margin-top:2px;max-height:32px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
 </div>
 
 <script>
@@ -1737,19 +1717,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Collect all image URLs from the loaded data
     function collectImageUrls() {
         const urls = new Set();
+        // Include both active and dismissed characters
         const all = [...(window.characters||[]), ...(window.dismissed||[])];
 
         all.forEach(c => {
-            // 1★ main image
             if (c.imageUrl) urls.add(c.imageUrl);
-            // 2★ and 3★ evolutions
             (c.evolutions || []).forEach(e => { if (e.imageUrl) urls.add(e.imageUrl); });
-            // Fusion GIF + preview
             if (c.isFusion) {
                 if (c.imageUrl)   urls.add(c.imageUrl);
                 if (c.previewUrl) urls.add(c.previewUrl);
             }
-            // AU variants
             const auData = c.auData || {};
             Object.values(auData).forEach(entry => {
                 if (entry.star3ImageUrl)  urls.add(entry.star3ImageUrl);
@@ -1757,33 +1734,52 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Strip cache-bust params if any (_t=...)
-        return [...urls].map(u => u.replace(/[?&]_t=\d+/, ''));
+        return [...new Set([...urls].map(u => {
+            u = u.replace(/[?&]_t=\d+/g, '');
+            u = u.replace(/\?&/, '?');
+            u = u.replace(/\?$/, '');
+            return u;
+        }))];
     }
 
-    // Toast helpers
-    const toast      = document.getElementById('cache-toast');
-    const toastIcon  = document.getElementById('cache-toast-icon');
-    const toastText  = document.getElementById('cache-toast-text');
-    const toastFill  = document.getElementById('cache-toast-fill');
+    function formatDuration(ms) {
+        if (ms < 1000) return ms + 'ms';
+        const s = Math.round(ms / 1000);
+        if (s < 60) return s + 's';
+        const m = Math.floor(s / 60);
+        return m + 'm ' + (s % 60) + 's';
+    }
+
+    function shortName(url) {
+        try {
+            const path = new URL(url).pathname;
+            const parts = path.split('/');
+            return parts[parts.length - 1] || path;
+        } catch { return url.slice(-30); }
+    }
+
+    const toast       = document.getElementById('cache-toast');
+    const toastIcon   = document.getElementById('cache-toast-icon');
+    const toastText   = document.getElementById('cache-toast-text');
+    const toastFill   = document.getElementById('cache-toast-fill');
+    const toastDetail = document.getElementById('cache-toast-detail');
     let toastTimer;
 
-    function showToast(icon, text, pct, autohide) {
+    function showToast(icon, text, pct, autohide, detail) {
         clearTimeout(toastTimer);
         toastIcon.textContent = icon;
         toastText.textContent = text;
         toastFill.style.width = (pct ?? 0) + '%';
+        toastDetail.textContent = detail || '';
         toast.classList.remove('hidden');
-        if (autohide) toastTimer = setTimeout(() => toast.classList.add('hidden'), 3500);
+        if (autohide) toastTimer = setTimeout(() => toast.classList.add('hidden'), 4500);
     }
 
-    // Cache button state
     const cacheBtn     = document.getElementById('cache-btn');
     const cacheBtnIcon = document.getElementById('cache-btn-icon');
     const cacheBtnText = document.getElementById('cache-btn-text');
 
     function setBtnState(state) {
-        // state: 'idle' | 'loading' | 'done' | 'clearing'
         cacheBtn.disabled = state === 'loading' || state === 'clearing';
         if (state === 'idle')     { cacheBtnIcon.textContent = 'cloud_download'; cacheBtnText.textContent = 'Cache Images'; }
         if (state === 'loading')  { cacheBtnIcon.textContent = 'sync';           cacheBtnText.textContent = 'Caching…'; }
@@ -1791,57 +1787,124 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state === 'clearing') { cacheBtnIcon.textContent = 'sync';           cacheBtnText.textContent = 'Refreshing…'; }
     }
 
-    function sendToSW(type, urls) {
-        return navigator.serviceWorker.controller
-            ? navigator.serviceWorker.controller.postMessage({ type, urls })
-            : null;
+    // ── Ensure we have an active SW controller before sending messages ───────
+    async function getController() {
+        // If we already have one, use it
+        if (navigator.serviceWorker.controller) {
+            return navigator.serviceWorker.controller;
+        }
+        // Wait for the SW to claim this page (up to 5 seconds)
+        console.log('[Cache] No controller yet, waiting for SW to claim…');
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('SW controller not available after 5s'));
+            }, 5000);
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                clearTimeout(timeout);
+                console.log('[Cache] Controller acquired:', navigator.serviceWorker.controller?.scriptURL);
+                resolve(navigator.serviceWorker.controller);
+            }, { once: true });
+
+            // Also try registering fresh
+            navigator.serviceWorker.ready.then(reg => {
+                if (navigator.serviceWorker.controller) {
+                    clearTimeout(timeout);
+                    resolve(navigator.serviceWorker.controller);
+                }
+            });
+        });
     }
 
     // Listen for SW progress messages
     navigator.serviceWorker.addEventListener('message', e => {
-        const { type, done, total } = e.data || {};
-        if (type === 'CACHE_PROGRESS') {
+        const d = e.data || {};
+        console.log('[Cache] SW message:', d.type, d.done !== undefined ? `${d.done}/${d.total}` : '');
+
+        if (d.type === 'CACHE_PROGRESS') {
+            const { done, total, skipped, failedCount, elapsedMs, currentBatch, batchDurationMs } = d;
             const pct = Math.round((done / total) * 100);
-            showToast('cloud_download', `Caching… ${done} / ${total}`, pct);
+            const elapsed = formatDuration(elapsedMs || 0);
+
+            let failTxt = failedCount ? ` · ${failedCount} hata` : '';
+            let skipTxt = skipped ? ` · ${skipped} zaten var` : '';
+            showToast('cloud_download', `${done} / ${total}${skipTxt}${failTxt} — ${elapsed}`, pct, false,
+                currentBatch ? `${currentBatch.map(shortName).join(', ')}` :
+                batchDurationMs ? `Son batch: ${formatDuration(batchDurationMs)}` : '');
+
             cacheBtnText.textContent = `${pct}%`;
         }
-        if (type === 'CACHE_COMPLETE') {
-            showToast('cloud_done', `Done — ${total} images cached`, 100, true);
+        if (d.type === 'CACHE_COMPLETE') {
+            const { total, skipped, failed, elapsedMs } = d;
+            const elapsed = formatDuration(elapsedMs || 0);
+            const newDownloads = total - (skipped || 0) - (failed ? failed.length : 0);
+
+            if (failed && failed.length) {
+                const reasons = {};
+                failed.forEach(f => { reasons[f.reason] = (reasons[f.reason] || 0) + 1; });
+                const summary = Object.entries(reasons).map(([r,c]) => `${c}x ${r}`).join(', ');
+
+                showToast('warning',
+                    `${total - failed.length}/${total} cached, ${failed.length} hata — ${elapsed}`,
+                    100, false,
+                    summary);
+
+                console.group(`[Cache] ${failed.length} images failed:`);
+                failed.forEach(f => {
+                    const dur = f.durationMs ? ` (${formatDuration(f.durationMs)})` : '';
+                    console.warn(f.reason + dur, '→', f.url);
+                });
+                console.groupEnd();
+            } else {
+                const detail = skipped ? `${newDownloads} yeni, ${skipped} zaten vardı` : '';
+                showToast('cloud_done', `${total} resim cached — ${elapsed}`, 100, true, detail);
+            }
             setBtnState('done');
         }
-        if (type === 'CACHE_CLEARED') {
-            showToast('sync', 'Cache cleared — re-caching…', 0);
+        if (d.type === 'CACHE_CLEARED') {
+            showToast('sync', 'Cache temizlendi — yeniden indiriliyor…', 0);
         }
     });
 
-    // Click handler — first click caches, shift+click forces a full refresh
-    cacheBtn.addEventListener('click', e => {
-        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-            alert('Service worker not active. Try refreshing the page first.');
-            return;
-        }
+    // Click handler
+    cacheBtn.addEventListener('click', async e => {
         const urls = collectImageUrls();
+        console.log('[Cache] Collected URLs:', urls.length);
         if (!urls.length) {
             alert('No character data loaded yet. Wait for the page to finish loading.');
             return;
         }
 
+        let controller;
+        try {
+            controller = await getController();
+        } catch (err) {
+            console.error('[Cache]', err.message);
+            alert('Service worker not active. Try refreshing the page (Ctrl+Shift+R).');
+            return;
+        }
+
+        console.log('[Cache] Sending to SW:', controller.scriptURL);
+
         if (e.shiftKey) {
-            // Shift+click = clear + re-cache
-            if (!confirm(`Wipe the image cache and re-download all ${urls.length} images? This may take a moment.`)) return;
+            if (!confirm(`Wipe the image cache and re-download all ${urls.length} images?`)) return;
             setBtnState('clearing');
-            showToast('sync', 'Clearing cache…', 0);
-            sendToSW('CLEAR_IMAGE_CACHE', urls);
+            showToast('sync', 'Cache temizleniyor…', 0);
+            controller.postMessage({ type: 'CLEAR_IMAGE_CACHE', urls });
         } else {
-            // Normal click = cache missing images only
             setBtnState('loading');
-            showToast('cloud_download', `Caching ${urls.length} images…`, 0);
-            sendToSW('PRECACHE_IMAGES', urls);
+            showToast('cloud_download', `${urls.length} resim cache'leniyor…`, 0);
+            controller.postMessage({ type: 'PRECACHE_IMAGES', urls });
         }
     });
 
-    // Tooltip hint
     cacheBtn.title = 'Cache all images for fast loading • Shift+click to force refresh';
+
+    // Log SW state on load for debugging
+    console.log('[Cache] SW controller on load:', navigator.serviceWorker.controller?.scriptURL || 'NONE');
+    navigator.serviceWorker.ready.then(reg => {
+        console.log('[Cache] SW ready — active:', reg.active?.scriptURL, 'waiting:', reg.waiting?.scriptURL);
+    });
 })();
 </script>
 </body>
