@@ -115,11 +115,11 @@ async function precacheImages(urls, client) {
 
         // Report progress back to the requesting page
         if (client) {
-            try { client.postMessage({ type: 'CACHE_PROGRESS', done, total }); } catch(_) {}
+            client.postMessage({ type: 'CACHE_PROGRESS', done, total });
         }
     }
 
     if (client) {
-        try { client.postMessage({ type: 'CACHE_COMPLETE', total }); } catch(_) {}
+        client.postMessage({ type: 'CACHE_COMPLETE', total });
     }
 }
