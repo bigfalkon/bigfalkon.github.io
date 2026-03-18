@@ -1,11 +1,14 @@
-const CACHE_NAME        = 'karakter-galerisi-cache-v4';
-const IMAGE_CACHE_NAME  = 'karakter-images-v3';
+const CACHE_NAME        = 'karakter-galerisi-cache-v5';
+const IMAGE_CACHE_NAME  = 'karakter-images-v4';
 
 // Core app shell cached on install
 const urlsToCache = [
     './',
     './index.html',
     './index2.html',
+    './oyun.html',
+    './rastgelekarakter.html',
+    './links.html',
     './manifest.json'
 ];
 
@@ -51,7 +54,6 @@ self.addEventListener('fetch', event => {
                 imgCache.match(cleanUrl).then(cached => {
                     if (cached) return cached;
                     return fetch(event.request).then(networkResponse => {
-                        // Only cache valid, non-opaque responses
                         if (networkResponse.ok) {
                             imgCache.put(cleanUrl, networkResponse.clone());
                         }
@@ -81,48 +83,45 @@ self.addEventListener('fetch', event => {
     );
 });
 
+// ─── Broadcast to ALL clients (robust — doesn't rely on event.source) ───────
+async function broadcast(msg) {
+    const allClients = await self.clients.matchAll({ type: 'window' });
+    for (const client of allClients) {
+        try { client.postMessage(msg); } catch (_) {}
+    }
+}
+
 // ─── Messages from pages ──────────────────────────────────────────────────────
 self.addEventListener('message', event => {
     const { type, urls } = event.data || {};
 
-    // PRECACHE_IMAGES — store a batch of image URLs into IMAGE_CACHE_NAME
     if (type === 'PRECACHE_IMAGES') {
-        event.waitUntil(precacheImages(urls, event.source));
+        event.waitUntil(precacheImages(urls));
         return;
     }
 
-    // CLEAR_IMAGE_CACHE — wipe IMAGE_CACHE_NAME then optionally re-precache
     if (type === 'CLEAR_IMAGE_CACHE') {
         event.waitUntil(
             caches.delete(IMAGE_CACHE_NAME).then(() => {
-                if (event.source) {
-                    event.source.postMessage({ type: 'CACHE_CLEARED' });
-                }
-                // Re-precache if URLs were supplied
-                if (urls && urls.length) return precacheImages(urls, event.source);
+                broadcast({ type: 'CACHE_CLEARED' });
+                if (urls && urls.length) return precacheImages(urls);
             })
         );
         return;
     }
 });
 
-// ─── Fetch with timeout ──────────────────────────────────────────────────────
+// ─── Fetch with AbortController timeout ─────────────────────────────────────
 function fetchWithTimeout(url, options, timeoutMs) {
-    return new Promise((resolve, reject) => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-            controller.abort();
-            reject(new Error('timeout'));
-        }, timeoutMs);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-        fetch(url, { ...options, signal: controller.signal })
-            .then(res => { clearTimeout(timer); resolve(res); })
-            .catch(err => { clearTimeout(timer); reject(err); });
-    });
+    return fetch(url, { ...options, signal: controller.signal })
+        .finally(() => clearTimeout(timer));
 }
 
-// ─── Precache with timeout, stall detection, and detailed progress ──────────
-async function precacheImages(urls, client) {
+// ─── Precache — smaller batches, no opaque caching, inter-batch delay ───────
+async function precacheImages(urls) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
 
@@ -130,73 +129,71 @@ async function precacheImages(urls, client) {
     let skipped = 0;
     const total = urls.length;
     const failed = [];
-    const BATCH = 10;
-    const TIMEOUT_MS = 20000; // 20s per image
+
+    // ── Tuning ──────────────────────────────────────────────────────────────
+    const BATCH      = 4;       // reduced from 10 → avoids HTTP/2 stream congestion
+    const TIMEOUT_MS = 15000;   // 15 s per image (was 20 s)
+    const DELAY_MS   = 250;     // pause between batches so the browser can breathe
+
     const startTime = Date.now();
 
     function report(extra) {
-        if (!client) return;
-        try {
-            client.postMessage({
-                type: 'CACHE_PROGRESS',
-                done, total, skipped,
-                failedCount: failed.length,
-                elapsedMs: Date.now() - startTime,
-                ...extra
-            });
-        } catch (_) { /* client may have navigated away */ }
+        broadcast({
+            type: 'CACHE_PROGRESS',
+            done, total, skipped,
+            failedCount: failed.length,
+            elapsedMs: Date.now() - startTime,
+            ...extra
+        });
     }
 
     for (let i = 0; i < urls.length; i += BATCH) {
         const batch = urls.slice(i, i + BATCH);
         const batchStart = Date.now();
 
-        // Report which batch is starting
         report({ currentBatch: batch, batchIndex: i });
 
         await Promise.allSettled(batch.map(async url => {
             const fetchStart = Date.now();
             try {
-                // Skip if already cached with a valid response
+                // Skip if already cached with a valid (non-opaque) response
                 const existing = await cache.match(url);
-                if (existing && existing.status === 200) {
+                if (existing && existing.ok) {
                     done++;
                     skipped++;
                     return;
                 }
-                // Delete broken/opaque cached entries so we can re-fetch properly
+                // Delete stale or opaque cached entries before re-fetching
                 if (existing) {
                     await cache.delete(url);
                 }
 
-                // Try CORS first (proper response, real size in quota)
-                let response;
-                try {
-                    response = await fetchWithTimeout(url, {}, TIMEOUT_MS);
-                } catch (corsErr) {
-                    // CORS failed — fallback to no-cors (opaque, but better than nothing)
-                    response = await fetchWithTimeout(url, { mode: 'no-cors' }, TIMEOUT_MS);
-                }
+                const response = await fetchWithTimeout(url, {}, TIMEOUT_MS);
 
-                // Only cache valid responses
                 if (response.ok) {
-                    await cache.put(url, response);
-                    done++;
-                } else if (response.type === 'opaque') {
-                    // Opaque = can't verify, but still cache it as last resort
-                    await cache.put(url, response);
+                    // Read the *full body* before caching so a half-downloaded
+                    // response never gets stored and blocks future retries.
+                    const blob = await response.blob();
+                    const headers = new Headers(response.headers);
+                    await cache.put(url, new Response(blob, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers,
+                    }));
                     done++;
                 } else {
                     done++;
-                    const durationMs = Date.now() - fetchStart;
-                    failed.push({ url, reason: `HTTP ${response.status}`, durationMs });
+                    failed.push({ url, reason: `HTTP ${response.status}`, durationMs: Date.now() - fetchStart });
                     console.warn('[SW] Bad response:', url, response.status);
                 }
+                // *** REMOVED: no-cors opaque fallback ***
+                // Opaque responses consume ~7 MB of padded quota each and quickly
+                // fill storage. Firebase Storage supports CORS so this was unnecessary.
             } catch(e) {
                 done++;
                 let reason;
-                if (e.message === 'timeout' || e.name === 'AbortError') {
-                    reason = `timeout (${Math.round(TIMEOUT_MS/1000)}s)`;
+                if (e.name === 'AbortError') {
+                    reason = `timeout (${Math.round(TIMEOUT_MS / 1000)}s)`;
                 } else if (e.name === 'TypeError') {
                     reason = 'network error';
                 } else if (e.name === 'QuotaExceededError') {
@@ -204,24 +201,25 @@ async function precacheImages(urls, client) {
                 } else {
                     reason = e.message || e.name || 'unknown';
                 }
-                const durationMs = Date.now() - fetchStart;
-                failed.push({ url, reason, durationMs });
-                console.warn('[SW] Failed to cache:', url, reason, `(${durationMs}ms)`);
+                failed.push({ url, reason, durationMs: Date.now() - fetchStart });
+                console.warn('[SW] Failed to cache:', url, reason, `(${Date.now() - fetchStart}ms)`);
             }
         }));
 
         const batchDuration = Date.now() - batchStart;
         report({ batchDurationMs: batchDuration });
+
+        // Small delay between batches to prevent HTTP/2 stream congestion
+        // and give the browser's network stack time to clean up connections
+        if (i + BATCH < urls.length) {
+            await new Promise(r => setTimeout(r, DELAY_MS));
+        }
     }
 
-    if (client) {
-        try {
-            client.postMessage({
-                type: 'CACHE_COMPLETE',
-                total, skipped,
-                failed,
-                elapsedMs: Date.now() - startTime
-            });
-        } catch (_) { /* client may have navigated away */ }
-    }
+    broadcast({
+        type: 'CACHE_COMPLETE',
+        total, skipped,
+        failed,
+        elapsedMs: Date.now() - startTime
+    });
 }
