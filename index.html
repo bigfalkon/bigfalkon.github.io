@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Gallery</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#443a74"/>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(r => console.log('SW registered:', r.scope))
+                    .catch(e => console.log('SW failed:', e));
+            });
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root {
+            --primary-rgb: 189, 179, 255;
+            --primary: rgb(var(--primary-rgb));
+            --on-primary: #2d235c;
+            --primary-container: #443a74;
+            --on-primary-container: #e6deff;
+            --fusion-rgb: 224, 179, 255;
+            --fusion: rgb(var(--fusion-rgb));
+            --on-fusion: #490071;
+            --fusion-container: #63009b;
+            --on-fusion-container: #f4d9ff;
+            --dismissed: #796677;
+            --on-dismissed: #e5e1e6;
+            --dismissed-container: #48454e;
+            --on-dismissed-container: #c8c4d0;
+            --au-rgb: 100, 220, 180;
+            --au: rgb(var(--au-rgb));
+            --au-container: #0a4f3a;
+            --on-au-container: #a0f5d8;
+            --bg: #131318;
+            --on-bg: #e5e1e6;
+            --surface: #201f25;
+            --surface-high: #2a2830;
+            --on-surface: #e5e1e6;
+            --on-surface-var: #c8c4d0;
+            --outline-var: #48454e;
+        }
+        body.modal-open { overflow: hidden; }
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: var(--bg);
+            color: var(--on-bg);
+            overflow-x: hidden;
+            transition: --primary 0.4s ease;
+        }
+        /* AU theme override: overrides primary-related accent colors */
+        body.au-theme-active {
+            --primary-rgb: var(--au-theme-rgb);
+            --primary: rgb(var(--au-theme-rgb));
+            --on-primary: var(--au-theme-on);
+            --primary-container: var(--au-theme-container);
+            --on-primary-container: var(--au-theme-on-container);
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(circle at 15% 25%, rgba(var(--primary-rgb), 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 65%, rgba(var(--fusion-rgb), 0.12) 0%, transparent 45%);
+            z-index: -1;
+            animation: aurora 20s infinite alternate ease-in-out;
+        }
+        @keyframes aurora {
+            from { transform: translate(0, 0) rotate(0deg) scale(1.2); }
+            to   { transform: translate(5vw, -5vh) rotate(10deg) scale(1.2); }
+        }
+
+        /* AU mode body tint */
+        body.au-mode::before {
+            background:
+                radial-gradient(circle at 20% 30%, rgba(var(--au-rgb), 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(var(--primary-rgb), 0.08) 0%, transparent 45%);
+        }
+
+        /* Control panel */
+        .control-panel {
+            background-color: rgba(27, 27, 32, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(146, 143, 153, 0.2);
+        }
+        .chip {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 8px 16px; border-radius: 20px;
+            font-weight: 600;
+            border: 1px solid var(--outline-var);
+            background-color: var(--surface-high);
+            color: var(--on-surface-var);
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .chip:hover { background-color: rgba(255,255,255,0.08); }
+        .chip.selected { background-color: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 700; }
+        .chip.dismissed-selected { background-color: var(--dismissed); color: var(--on-dismissed); border-color: var(--dismissed); font-weight: 700; }
+        .chip.au-selected { background-color: var(--au); color: #0a2e22; border-color: var(--au); font-weight: 700; }
+
+        /* AU mode chip in filter */
+        .au-mode-btn.active { background-color: var(--au); color: #0a2e22; border-color: var(--au); }
+        .chip.au-selected { background-color: var(--au-container); color: var(--on-au-container); border-color: var(--au); font-weight: 700; }
+
+        /* Compare mode: pair cards visually */
+        .compare-pair-left { border-radius: 18px 4px 4px 18px; margin-right: -2px; }
+        .compare-pair-right { border-radius: 4px 18px 18px 4px; margin-left: -2px; }
+
+        /* Grid */
+        #character-grid { display: grid; gap: 1.5rem; justify-content: center; }
+
+        /* Cards */
+        .character-card {
+            background-color: var(--surface);
+            border-radius: 18px;
+            border: 1px solid var(--outline-var);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            overflow: hidden; position: relative;
+            opacity: 0; transform: translateY(30px) scale(0.98);
+            animation: card-in 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+            transition: transform 0.35s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.35s ease, border-color 0.3s ease;
+            will-change: transform;
+        }
+        @keyframes card-in { to { opacity: 1; transform: translateY(0) scale(1); } }
+        .character-card:hover {
+            box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+            border-color: rgba(var(--primary-rgb), 0.45);
+        }
+        .fusion-card:hover { border-color: rgba(var(--fusion-rgb), 0.5) !important; box-shadow: 0 12px 28px rgba(var(--fusion-rgb), 0.15); }
+        .dismissed-card:hover { border-color: var(--dismissed) !important; }
+        .character-card-image-wrapper { aspect-ratio: 2/3; width: 100%; overflow: hidden; border-radius: 18px 18px 0 0; }
+        .character-card-image { object-fit: cover; width: 100%; height: 100%; transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1); display: block; }
+        .character-card:hover .character-card-image { transform: scale(1.06); }
+        .character-name { color: var(--on-surface); }
+        .fusion-card .character-name { color: var(--on-fusion-container); }
+        .dismissed-card .character-name { color: var(--on-dismissed-container); }
+        .font-fantastical { font-family: 'Metamorphous', serif; }
+
+        /* Card info strip */
+        .card-info {
+            padding: 10px 14px 12px;
+            background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.18));
+        }
+        .card-info .character-name { font-size: .95rem; font-weight: 700; line-height: 1.3; }
+        .card-info .star-row { margin-top: 4px; display: flex; align-items: center; gap: 2px; }
+
+        /* AU badge on card */
+        .au-badge {
+            position: absolute; top: 8px; right: 8px;
+            background: rgba(10,79,58,0.85);
+            border: 1px solid var(--au);
+            color: var(--au); font-size: 0.65rem; font-weight: 700;
+            padding: 2px 7px; border-radius: 99px;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* AU mode card glow */
+        body.au-mode .character-card.has-au { border: 1px solid rgba(var(--au-rgb), 0.35); }
+
+        /* Menu */
+        .menu-item {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; text-align: left; padding: 6px 12px;
+            border-radius: 8px; font-size: 0.875rem; font-weight: 500;
+            transition: background-color 0.2s; cursor: pointer;
+        }
+        .menu-item:hover { background-color: rgba(255,255,255,0.08); }
+        .menu-item > div { display: flex; align-items: center; gap: 0.75rem; }
+        .menu-item .material-symbols-outlined { font-size: 20px; }
+        .menu-item .check-icon { visibility: hidden; color: var(--primary); }
+        .menu-item.active .check-icon { visibility: visible; }
+        .menu-divider { border-top: 1px solid var(--outline-var); margin: 6px 0; }
+
+        /* AU submenu */
+        .au-menu-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; cursor: pointer; }
+        .au-menu-item:hover { background-color: rgba(var(--au-rgb), 0.1); }
+        .au-menu-item.active { background-color: rgba(var(--au-rgb), 0.15); color: var(--au); }
+        .au-menu-item .au-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* Modals */
+        .m3-backdrop { z-index: 1000; }
+        .m3-dialog {
+            background-color: rgba(32, 31, 37, 0.88);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(146, 143, 153, 0.2);
+            border-radius: 28px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            height: 100%; max-height: 90vh; max-width: 95vw; width: 1200px;
+            display: flex; flex-direction: column;
+            opacity: 0; transform: scale(0.96) translateY(12px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            position: relative;
+        }
+        .m3-dialog.visible { opacity: 1; transform: scale(1) translateY(0); }
+        .m3-dialog-content { overflow-y: auto; min-height: 0; }
+        .m3-dialog-footer { display: flex; justify-content: space-between; align-items: center; }
+        .modal-transform-paused { transform: none !important; }
+        @media (min-width: 1000px) { .m3-dialog { width: 1400px; max-height: 100vh; } }
+
+        /* Nav buttons */
+        .modal-nav-btn { display: flex; align-items: center; gap: 8px; color: var(--on-surface-var); border-radius: 99px; padding: 4px 8px; cursor: pointer; transition: background-color 0.2s; }
+        .modal-nav-btn:hover { background-color: rgba(255,255,255,0.07); }
+        .modal-nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+        /* Fusion modal */
+        .fusion-modal-bg { position: relative; overflow: hidden; }
+        .fusion-modal-bg::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 100%, rgba(var(--fusion-rgb), 0.55) 0%, transparent 70%);
+            animation: prism 5s infinite alternate ease-in-out; z-index: -1;
+        }
+        @keyframes prism { from { transform: scale(2); } to { transform: scale(1.5); } }
+        .fusion-partner-card { border: 2px solid var(--fusion); }
+
+        /* Enlarged image */
+        .enlarged-overlay { z-index: 1100; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.88); }
+        .enlarged-img { max-width: 96%; max-height: 96%; object-fit: contain; }
+
+        /* Icon button */
+        .icon-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: transparent; color: var(--on-surface-var); cursor: pointer; transition: all 0.2s; }
+        .icon-btn:hover { background-color: rgba(var(--primary-rgb), 0.1); }
+
+        /* Ripple */
+        .ripple-effect { position: relative; overflow: hidden; }
+        .ripple { position: absolute; border-radius: 50%; background-color: rgba(255,255,255,0.28); transform: scale(0); animation: ripple-anim 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94); pointer-events: none; }
+        @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+
+        /* Fit-to-screen toggle */
+        #fitToScreenBtn.active { background-color: var(--primary-container); color: var(--on-primary-container); }
+        #fitToScreenBtn.active:hover { background-color: var(--primary); }
+
+        /* Grid fade */
+        #character-grid.fade-out { opacity: 0; transition: opacity 0.18s ease-out; }
+
+        /* Search */
+        .search-result-card { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-radius: 12px; background-color: var(--surface); transition: all 0.2s ease-in-out; cursor: pointer; }
+        .search-result-card:hover { background-color: var(--surface-high); transform: translateY(-2px); box-shadow: 4px 8px 16px rgba(0,0,0,0.3); }
+        #search-input:focus { border-color: var(--primary); }
+
+        /* Scrollbar */
+        .m3-dialog-content::-webkit-scrollbar, #search-results-container::-webkit-scrollbar { width: 6px; }
+        .m3-dialog-content::-webkit-scrollbar-track, #search-results-container::-webkit-scrollbar-track { background: transparent; }
+        .m3-dialog-content::-webkit-scrollbar-thumb, #search-results-container::-webkit-scrollbar-thumb { background-color: var(--outline-var); border-radius: 4px; }
+        .m3-dialog-content::-webkit-scrollbar-thumb:hover, #search-results-container::-webkit-scrollbar-thumb:hover { background-color: var(--primary); }
+        .m3-dialog-content, #search-results-container { scrollbar-width: thin; scrollbar-color: var(--outline-var) transparent; }
+
+        /* Locked AU in menu */
+        .au-menu-item.locked { opacity: 0.5; }
+        .au-menu-item.locked .au-lock-icon { display: inline; }
+        .au-lock-icon { display: none; font-size: 14px; margin-left: auto; }
+
+        /* Modal AU icon buttons in header */
+        .modal-au-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 1px solid rgba(var(--au-rgb), 0.5);
+            background: rgba(var(--au-rgb), 0.08);
+            color: var(--au); cursor: pointer;
+            transition: all 0.2s; flex-shrink: 0;
+        }
+        .modal-au-btn:hover { background: var(--au); color: #0a2e22; }
+        .modal-au-btn.active-au { background: var(--au); color: #0a2e22; box-shadow: 0 0 0 2px var(--au); }
+        .modal-au-btn .material-symbols-outlined { font-size: 20px; }
+
+        /* AU switch btn (old bottom row — keep small variant) */
+        .au-switch-btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.7rem; font-weight: 700; padding: 3px 10px;
+            border-radius: 99px; cursor: pointer; transition: all 0.2s;
+            border: 1px solid rgba(var(--au-rgb), 0.5);
+            background: rgba(var(--au-rgb), 0.1); color: var(--au);
+            margin-top: 4px;
+        }
+        .au-switch-btn:hover { background: var(--au); color: #0a2e22; }
+
+        /* AU version card in modal */
+        .au-evo-card {
+            border: 2px solid rgba(var(--au-rgb), 0.6);
+            background: rgba(255,255,255,0.04);
+        }
+
+        /* Fusion AU card in modal */
+        .au-fusion-card {
+            border: 2px solid rgba(var(--au-rgb), 0.6);
+            background: rgba(255,255,255,0.04);
+        }
+
+        /* Reachable AU filter badge */
+        .reachable-au-badge {
+            font-size: 0.6rem; font-weight: 700; padding: 1px 5px;
+            border-radius: 4px; background: rgba(var(--au-rgb),0.15);
+            color: var(--au); border: 1px solid rgba(var(--au-rgb),0.3);
+            white-space: nowrap;
+        }
+
+        /* AU indicator banner */
+        #au-mode-banner {
+            display: none;
+            background: linear-gradient(90deg, rgba(10,79,58,0.8) 0%, rgba(10,79,58,0.4) 100%);
+            border: 1px solid rgba(var(--au-rgb), 0.4);
+            border-radius: 12px;
+            padding: 8px 16px;
+            margin-bottom: 1rem;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--au);
+            backdrop-filter: blur(8px);
+        }
+        #au-mode-banner.visible { display: flex; }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+<div id="app" class="max-w-screen-2xl mx-auto">
+    <header class="mb-8 text-center" style="border-color: var(--outline-var);">
+        <div>
+            <h1 id="gallery-title" class="text-4xl md:text-5xl font-extrabold" style="color: var(--primary); font-family: 'Metamorphous', serif; cursor: pointer;">
+                Character Gallery
+            </h1>
+            <p id="description-menu-trigger" class="text-base mt-1 inline-flex items-center gap-1 cursor-pointer transition-colors duration-200 hover:text-white" style="color: var(--on-surface-var);">
+                Discover the Heroes of the Universe
+            </p>
+        </div>
+
+    </header>
+
+    <!-- AU mode banner -->
+    <div id="au-mode-banner">
+        <span class="material-symbols-outlined" style="font-size:18px">auto_fix_high</span>
+        <span id="au-banner-text">Viewing: <strong id="au-banner-name"></strong> Universe</span>
+        <button id="au-banner-exit" class="ml-auto inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border border-current opacity-80 hover:opacity-100 transition-all hover:bg-white/10">
+            <span class="material-symbols-outlined" style="font-size:14px">close</span>Exit
+        </button>
+    </div>
+
+    <div class="control-panel sticky top-4 z-50 flex items-center justify-center gap-2 mb-8 px-3 py-2.5 rounded-2xl shadow-lg flex-wrap">
+
+        <!-- Left group: Search + Filter + AU -->
+        <div class="flex items-center gap-2">
+            <!-- Search -->
+            <button id="open-search-btn" class="chip ripple-effect" aria-label="Search" style="padding:8px 12px;">
+                <span class="material-symbols-outlined" style="font-size:20px;">search</span>
+            </button>
+
+            <!-- Filter dropdown -->
+            <div class="relative" id="filter-container">
+                <button id="filter-toggle-btn" class="chip ripple-effect selected" style="padding:8px 12px; gap:4px;">
+                    <span id="filter-label-icon" class="material-symbols-outlined" style="font-size:20px;">apps</span>
+                    <span id="filter-label-text" class="text-sm font-semibold hidden sm:inline">All</span>
+                </button>
+                <div id="filter-menu" class="hidden absolute top-full left-0 mt-2 w-52 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+                    <button class="menu-item" data-filter="all"><div><span class="material-symbols-outlined">apps</span><span>All</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-filter="1-star"><div><span class="material-symbols-outlined text-orange-400">filter_1</span><span>1 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-filter="2-star"><div><span class="material-symbols-outlined text-slate-400">filter_2</span><span>2 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-filter="3-star"><div><span class="material-symbols-outlined text-amber-400">filter_3</span><span>3 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-filter="fusion"><div><span class="material-symbols-outlined text-fuchsia-400">filter_4</span><span>4 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" id="dismissed-filter-btn" data-filter="dismissed"><div><span class="material-symbols-outlined">badge</span><span>Retired</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <hr class="menu-divider">
+                    <p class="px-3 py-1 text-xs font-bold uppercase tracking-wider" style="color: var(--on-surface-var);">Sort</p>
+                    <button class="menu-item" data-sort="name"><div><span class="material-symbols-outlined">sort_by_alpha</span><span>Name (A–Z)</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-sort="date_desc"><div><span class="material-symbols-outlined">arrow_downward</span><span>Newest</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-sort="date_asc"><div><span class="material-symbols-outlined">arrow_upward</span><span>Oldest</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                </div>
+            </div>
+
+            <!-- AU Dropdown -->
+            <div class="relative" id="au-container">
+                <button id="au-toggle-btn" class="chip ripple-effect hidden" style="padding:8px 12px; gap:4px;" aria-label="Alt. Universes">
+                    <span class="material-symbols-outlined" style="font-size:20px;">auto_fix_high</span>
+                    <span id="au-label-text" class="text-sm font-semibold hidden sm:inline">AU</span>
+                </button>
+                <div id="au-menu" class="hidden absolute top-full left-0 mt-2 w-56 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+                    <div id="au-select-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="width:1px; height:28px; background:var(--outline-var); flex-shrink:0;"></div>
+
+        <!-- Right group: Zoom + Fit -->
+        <div class="flex items-center gap-2">
+            <!-- Zoom controls -->
+            <div class="flex items-center rounded-full overflow-hidden" style="border: 1px solid var(--outline-var); background-color: var(--surface-high);">
+                <button id="zoom-out-btn" class="ripple-effect transition-colors hover:bg-white/10" style="padding:8px;" aria-label="Zoom out">
+                    <span class="material-symbols-outlined" style="font-size:20px;display:flex;">zoom_out</span>
+                </button>
+                <span id="size-label" class="px-2 text-sm font-bold border-x" style="border-color: var(--outline-var);">M</span>
+                <button id="zoom-in-btn" class="ripple-effect transition-colors hover:bg-white/10" style="padding:8px;" aria-label="Zoom in">
+                    <span class="material-symbols-outlined" style="font-size:20px;display:flex;">zoom_in</span>
+                </button>
+            </div>
+
+            <!-- Fit to screen -->
+            <button id="fitToScreenBtn" class="chip ripple-effect" aria-label="Fit to screen mode" style="padding:8px 12px; gap:4px;">
+                <span class="material-symbols-outlined" style="font-size:20px;">auto_awesome_mosaic</span>
+                <span class="hidden sm:inline text-sm font-semibold">Fit</span>
+            </button>
+        </div>
+    </div>
+
+    <main id="character-grid"></main>
+</div>
+
+<!-- CHARACTER MODAL -->
+<div id="character-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" onclick="closeCharacterModal()">
+    <div class="m3-dialog" id="character-modal-content" onclick="event.stopPropagation()">
+        <div class="absolute top-3 right-3 z-10 flex items-center gap-1" id="char-modal-header-btns">
+            <!-- AU icon buttons injected here dynamically -->
+            <button class="icon-btn" onclick="closeCharacterModal()"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <header class="p-4 flex-shrink-0">
+            <h2 id="modal-char-name" class="text-3xl font-bold"></h2>
+        </header>
+        <div class="m3-dialog-content px-4 py-6 flex-grow flex flex-col items-center">
+            <div id="modal-evolutions" class="grid gap-4 justify-center w-full"></div>
+            <div id="modal-fusions" class="hidden w-full mt-8">
+                <h3 class="text-xl font-bold mb-4 text-center" style="color: var(--fusion);">Fusions</h3>
+                <div id="fusion-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-center"></div>
+            </div>
+        </div>
+        <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--outline-var);">
+            <button id="prev-char-btn" class="modal-nav-btn ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-char-name" class="font-semibold"></span></button>
+            <button id="next-char-btn" class="modal-nav-btn ripple-effect"><span id="next-char-name" class="font-semibold"></span><span class="material-symbols-outlined">arrow_forward</span></button>
+        </footer>
+    </div>
+</div>
+
+<!-- FUSION MODAL -->
+<div id="fusion-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" onclick="closeFusionModal()">
+    <div class="m3-dialog fusion-modal-bg" id="fusion-modal-content" onclick="event.stopPropagation()">
+        <div class="absolute top-3 right-3 z-10 flex items-center gap-1" id="fusion-modal-header-btns">
+            <!-- AU icon buttons injected here dynamically -->
+            <button class="icon-btn" onclick="closeFusionModal()"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <header class="p-4 flex-shrink-0">
+            <h2 id="modal-fusion-name" class="text-3xl font-bold font-fantastical" style="color: var(--fusion);"></h2>
+        </header>
+        <div class="m3-dialog-content px-4 py-6 flex-grow">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-6">
+                <div id="fusion-partner-left" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
+                    <img id="modal-fusion-left-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <p id="modal-fusion-left-name" class="mt-2 text-lg font-semibold"></p>
+                    <p id="modal-fusion-left-star" class="text-lg font-medium"></p>
+                </div>
+                <div id="fusion-main-img-wrap" class="flex flex-col items-center text-center">
+                    <img id="modal-fusion-img" src="" alt="" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl">
+                    <p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p>
+                </div>
+                <div id="fusion-partner-right" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
+                    <img id="modal-fusion-right-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <p id="modal-fusion-right-name" class="mt-2 text-lg font-semibold"></p>
+                    <p id="modal-fusion-right-star" class="text-lg font-medium"></p>
+                </div>
+            </div>
+        </div>
+        <footer class="m3-dialog-footer p-2 flex-shrink-0 border-t" style="border-color: var(--outline-var);">
+            <button id="prev-fusion-btn" class="modal-nav-btn ripple-effect"><span class="material-symbols-outlined">arrow_back</span><span id="prev-fusion-name" class="font-semibold"></span></button>
+            <button id="next-fusion-btn" class="modal-nav-btn ripple-effect"><span id="next-fusion-name" class="font-semibold"></span><span class="material-symbols-outlined">arrow_forward</span></button>
+        </footer>
+    </div>
+</div>
+
+<!-- SEARCH MODAL -->
+<div id="search-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" onclick="closeSearchModal()">
+    <div class="m3-dialog" id="search-modal-content" onclick="event.stopPropagation()">
+        <button class="icon-btn absolute top-4 right-4 z-10" onclick="closeSearchModal()"><span class="material-symbols-outlined">close</span></button>
+        <header class="p-4 flex-shrink-0"><h2 class="text-3xl font-bold">Character Search</h2></header>
+        <div class="m3-dialog-content px-4 pb-4 flex flex-col">
+            <div class="mb-4 flex-shrink-0">
+                <input type="text" id="search-input" placeholder="Enter character name or ID..." class="w-full px-4 py-3 rounded-full border-2 outline-none transition-colors" style="background-color: var(--surface); border-color: var(--outline-var); color: var(--on-surface);">
+            </div>
+            <div id="search-results-container" class="flex-grow overflow-y-auto pr-2">
+                <p id="search-placeholder" class="text-center text-lg mt-8" style="color: var(--on-surface-var);">Type a name or ID above to search.</p>
+                <div id="search-results-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ENLARGED IMAGE -->
+<div id="enlarged-overlay" class="enlarged-overlay hidden" onclick="closeEnlargedImage()">
+    <button class="icon-btn absolute top-4 right-4 text-white z-10" onclick="closeEnlargedImage(event)"><span class="material-symbols-outlined" style="font-size:36px;">close</span></button>
+    <img id="enlarged-img" src="" alt="" class="enlarged-img">
+</div>
+
+<!-- SETTINGS MENU -->
+<div id="settings-menu" class="hidden fixed w-52 rounded-xl shadow-lg p-2 z-[100]" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+    <a href="index2.html" class="menu-item"><div><span class="material-symbols-outlined">admin_panel_settings</span><span>Admin Panel</span></div></a>
+    <a href="links.html" class="menu-item"><div><span class="material-symbols-outlined">link</span><span>Links</span></div></a>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+    authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+    projectId: "karaktergalerisi-dc337",
+    storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+    messagingSenderId: "486669559067",
+    appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let characters = [], dismissedCharacters = [], alternativeUniverses = [];
+const dom = {};
+
+const state = {
+    galleryMode: 'all',
+    imageSizeIndex: 2,
+    isFitToScreenMode: true,
+    currentModalCharId: null,
+    currentModalType: null,
+    sortBy: 'name',
+    activeAuId: null,         // null = normal; string = active AU id
+    unlockedAuIds: new Set(),
+};
+
+const sizeProfiles = [
+    { name: 'XS', minCardWidth: '240px' },
+    { name: 'S',  minCardWidth: '270px' },
+    { name: 'M',  minCardWidth: '300px' },
+    { name: 'L',  minCardWidth: '330px' },
+    { name: 'XL', minCardWidth: '360px' },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const getStarEmojis = (isFusion, isDismissed, starCount, iconName = 'star') => {
+    if (!starCount || starCount < 1) starCount = 1;
+    if (isDismissed) {
+        return `<div class="flex dismissed-stars"><span class="material-symbols-outlined text-gray-400" style="font-variation-settings:'FILL' 1;">badge</span></div>`;
+    }
+    const colors = { 1: 'text-orange-400', 2: 'text-slate-400', 3: 'text-amber-400', 4: 'text-fuchsia-400' };
+    const key = Math.min(starCount, 4);
+    const icon = `<span class="material-symbols-outlined ${colors[key]}" style="font-variation-settings:'FILL' 1;">${iconName}</span>`;
+    return `<div class="flex ${isFusion ? 'fusion-stars' : ''}">${Array(starCount).fill(icon).join('')}</div>`;
+};
+
+const get3StarImageUrl = (charId, useAu = false) => {
+    const char = characters.find(c => c.id === charId && !c.isFusion);
+    if (!char) return '';
+    if (useAu && state.activeAuId) {
+        const auImg = char.auData?.[state.activeAuId]?.star3ImageUrl;
+        if (auImg) return auImg;
+    }
+    return char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl || '';
+};
+
+const getCharacterImageUrlByStar = (charId, star, useAu = false) => {
+    const char = characters.find(c => c.id === charId && !c.isFusion)
+               || dismissedCharacters.find(c => c.id === charId && !c.isFusion);
+    if (!char) return '';
+    if (useAu && state.activeAuId && star === 3) {
+        const auImg = char.auData?.[state.activeAuId]?.star3ImageUrl;
+        if (auImg) return auImg;
+    }
+    if (star === 1) return char.imageUrl || '';
+    return char.evolutions?.find(e => e.star === star)?.imageUrl || '';
+};
+
+/** Returns the AU image if active AU has one, else original */
+const resolveCardImage = (char) => {
+    if (!state.activeAuId) return char.displayImageUrl || char.imageUrl || '';
+    const au = char.auData?.[state.activeAuId];
+    if (!au) return char.displayImageUrl || char.imageUrl || '';
+    if (char.isFusion) return au.fusionImageUrl || char.displayImageUrl || char.imageUrl || '';
+    if (char.displayStar === 3) return au.star3ImageUrl || char.displayImageUrl || '';
+    return char.displayImageUrl || char.imageUrl || '';
+};
+
+/** Check if a character/fusion has any entry in a given AU */
+const hasAuEntry = (char, auId) => {
+    if (!char.auData) return false;
+    const au = char.auData[auId];
+    if (!au) return false;
+    return !!(char.isFusion ? au.fusionImageUrl : au.star3ImageUrl);
+};
+
+/** Check if an AU is accessible (not locked, or user has unlocked it) */
+const isAuReachable = (au) => {
+    if (!au.locked) return true;
+    return state.unlockedAuIds.has(au.id);
+};
+
+/** Get all reachable AUs */
+const getReachableAus = () => alternativeUniverses.filter(isAuReachable);
+
+/** Check if char has entry in at least one reachable AU */
+const hasReachableAuEntry = (char) => getReachableAus().some(au => hasAuEntry(char, au.id));
+
+// ─── Image Observer (lazy GIF swap) ──────────────────────────────────────────
+let observer;
+function setupImageObserver() {
+    observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const img = entry.target;
+            img.src = entry.isIntersecting ? img.dataset.gifSrc : img.dataset.previewSrc;
+        });
+    }, { threshold: 0.75 });
+}
+function observeImages() {
+    if (observer) observer.disconnect();
+    document.querySelectorAll('img[data-gif-src]').forEach(img => observer.observe(img));
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+let renderTimer = null;
+function renderCharacters() {
+    dom.characterGrid.classList.add('fade-out');
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(_doRender, 180);
+}
+
+function _doRender() {
+    dom.characterGrid.innerHTML = '';
+    dom.characterGrid.classList.remove('fade-out');
+
+    const cardW = parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth, 10);
+    if (state.isFitToScreenMode) {
+        const gap = 24;
+        const base = Math.floor((dom.characterGrid.offsetWidth + gap) / (cardW + gap)) || 1;
+        const cols = Math.max(2, Math.ceil(base * 1.5));
+        dom.characterGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    } else {
+        dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
+    }
+
+    const visibleDismissed = dismissedCharacters.filter(c => c.type !== 'easterEgg');
+
+    const sortFn = (a, b) => {
+        if (state.sortBy === 'date_desc') return (b.eklenmeTarihi?.toDate() || 0) - (a.eklenmeTarihi?.toDate() || 0);
+        if (state.sortBy === 'date_asc')  return (a.eklenmeTarihi?.toDate() || 0) - (b.eklenmeTarihi?.toDate() || 0);
+        return a.name.localeCompare(b.name, 'en');
+    };
+
+    let items = [];
+    const activeChars = state.galleryMode === 'dismissed' ? visibleDismissed : characters;
+
+    if (state.galleryMode === 'fusion') {
+        items = activeChars.filter(c => c.isFusion)
+            .map(c => ({ ...c, displayStar: 4, displayImageUrl: c.imageUrl }))
+            .sort(sortFn);
+    } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
+        activeChars.filter(c => !c.isFusion).sort(sortFn).forEach(char => {
+            items.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+            char.evolutions?.forEach(evo => items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
+        });
+        activeChars.filter(c => c.isFusion).sort(sortFn).forEach(char => {
+            items.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+        });
+    } else if (state.galleryMode === 'reachable-au') {
+        // Show all items (all stars) that have at least one reachable AU entry
+        characters.filter(c => !c.isFusion).sort(sortFn).forEach(char => {
+            items.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+            char.evolutions?.forEach(evo => items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
+        });
+        characters.filter(c => c.isFusion).sort(sortFn).forEach(char => {
+            items.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+        });
+        // Keep only entries where the base character has a reachable AU
+        items = items.filter(item => hasReachableAuEntry(item));
+    } else {
+        const starFilter = parseInt(state.galleryMode);
+        if (!isNaN(starFilter)) {
+            activeChars.filter(c => !c.isFusion).sort(sortFn).forEach(char => {
+                if (starFilter === 1) {
+                    items.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+                } else {
+                    const evo = char.evolutions?.find(e => e.star === starFilter);
+                    if (evo) items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
+                }
+            });
+        }
+    }
+
+    // AU Only mode: filter to entries with AU data, show only their AU images (3★ for chars, fusion for fusions)
+    if (state.activeAuId) {
+        items = items.filter(item => hasAuEntry(item, state.activeAuId));
+        const auOnlyItems = [];
+        const seen = new Set();
+        items.forEach(item => {
+            if (item.isFusion) {
+                if (!seen.has(item.id)) {
+                    seen.add(item.id);
+                    const auImg = item.auData?.[state.activeAuId]?.fusionImageUrl;
+                    auOnlyItems.push({ ...item, displayStar: 4, displayImageUrl: auImg || item.imageUrl });
+                }
+            } else if (item.displayStar === 3) {
+                const auImg = item.auData?.[state.activeAuId]?.star3ImageUrl;
+                auOnlyItems.push({ ...item, displayImageUrl: auImg || item.displayImageUrl });
+            }
+        });
+        items = auOnlyItems;
+    }
+
+    const frag = document.createDocumentFragment();
+    items.forEach((char, index) => {
+        const card = _buildCard(char, index);
+        frag.appendChild(card);
+    });
+    dom.characterGrid.appendChild(frag);
+
+    addInteractiveEffects();
+    observeImages();
+}
+
+function _buildCard(char, index) {
+    const card = document.createElement('div');
+    const isFusion   = !!char.isFusion;
+    const isDismissed= !!char.isDismissed || (dismissedCharacters.some(d => d.id === char.id));
+    // EE cards are never shown in gallery anymore
+    const hasReachableAu = state.activeAuId
+        ? hasAuEntry(char, state.activeAuId)
+        : hasReachableAuEntry(char);
+
+    let cls = 'character-card';
+    if (isFusion)       cls += ' fusion-card';
+    if (isDismissed)    cls += ' dismissed-card';
+    if (hasReachableAu) cls += ' has-au';
+
+    card.className = cls;
+    card.dataset.id = char.id;
+    card.style.animationDelay = `${index * 35}ms`;
+
+    if (isFusion)         card.onclick = () => openFusionModal(char.id);
+    else if (isDismissed) card.onclick = () => openCharacterModal(char.id, true);
+    else                  card.onclick = () => openCharacterModal(char.id, false);
+
+    const nameClass = (isFusion || isDismissed) ? 'font-fantastical' : '';
+    const stars = isDismissed
+        ? getStarEmojis(false, true, 1, 'badge')
+        : getStarEmojis(isFusion, false, char.displayStar || char.star);
+
+    // AU badge
+    let auBadgeHtml = '';
+    if (state.activeAuId && hasAuEntry(char, state.activeAuId)) {
+        const auDef = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const color = auDef?.color || '#64dcb4';
+        auBadgeHtml = `<div class="au-badge" style="border-color:${color};color:${color};">${auDef?.name || 'AU'}</div>`;
+    } else if (!state.activeAuId) {
+        const reachable = getReachableAus().filter(au => hasAuEntry(char, au.id));
+        if (reachable.length > 0) {
+            const dots = reachable.map(au =>
+                `<span title="${au.name}" style="width:8px;height:8px;border-radius:50%;background:${au.color||'#64dcb4'};display:inline-block;border:1px solid rgba(255,255,255,0.2);"></span>`
+            ).join('');
+            auBadgeHtml = `<div style="position:absolute;top:8px;right:8px;display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">${dots}</div>`;
+        }
+    }
+
+    const resolvedImgUrl = resolveCardImage(char);
+    let imageHtml;
+    if (isFusion && char.imageUrl && char.previewUrl) {
+        const auFusionImg = state.activeAuId ? char.auData?.[state.activeAuId]?.fusionImageUrl : null;
+        const previewSrc = auFusionImg || char.previewUrl;
+        const gifSrc     = auFusionImg || char.imageUrl;
+        imageHtml = `<img src="${previewSrc}" data-gif-src="${gifSrc}" data-preview-src="${previewSrc}" alt="${char.name}" class="character-card-image">`;
+    } else {
+        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy">`;
+    }
+
+    card.innerHTML = `
+        <div class="character-card-image-wrapper">${imageHtml}</div>
+        ${auBadgeHtml}
+        <div class="card-info">
+            <h3 class="character-name truncate ${nameClass}">${char.name}</h3>
+            <div class="star-row">${stars}</div>
+        </div>
+    `;
+    return card;
+}
+
+// ─── AU dropdown builder ──────────────────────────────────────────────────────
+function buildAuDropdown() {
+    const toggleBtn  = document.getElementById('au-toggle-btn');
+    const selectList = document.getElementById('au-select-list');
+    const auLabelText  = document.getElementById('au-label-text');
+    const auToggleIcon = toggleBtn?.querySelector('.material-symbols-outlined');
+
+    const visibleAus = alternativeUniverses.filter(au => isAuReachable(au));
+    if (!visibleAus.length) { toggleBtn.classList.add('hidden'); return; }
+    toggleBtn.classList.remove('hidden');
+
+    selectList.innerHTML = '';
+
+    // "None" option
+    const noneItem = document.createElement('div');
+    noneItem.className = `au-menu-item ${!state.activeAuId ? 'active' : ''}`;
+    noneItem.innerHTML = `<div class="au-dot" style="background:transparent;border-color:var(--outline-var);"></div><span style="flex:1;">None</span>${!state.activeAuId ? '<span class="material-symbols-outlined" style="font-size:16px;">check</span>' : ''}`;
+    noneItem.onclick = () => { state.activeAuId = null; _applyAuMode(); document.getElementById('au-menu').classList.add('hidden'); };
+    selectList.appendChild(noneItem);
+
+    visibleAus.forEach(au => {
+        const isSelected = state.activeAuId === au.id;
+        const item = document.createElement('div');
+        item.className = `au-menu-item ${isSelected ? 'active' : ''}`;
+        item.style.color = isSelected ? (au.color || 'var(--au)') : '';
+        item.innerHTML = `
+            <div class="au-dot" style="background:${au.color||'#64dcb4'};"></div>
+            <span class="material-symbols-outlined" style="font-size:16px;flex-shrink:0;color:${au.color||'#64dcb4'}">${au.icon||'auto_fix_high'}</span>
+            <span style="flex:1;">${au.name}</span>
+            ${isSelected ? `<span class="material-symbols-outlined" style="font-size:16px;color:${au.color||'#64dcb4'};">check</span>` : ''}
+        `;
+        item.onclick = () => {
+            state.activeAuId = isSelected ? null : au.id;
+            _applyAuMode();
+            document.getElementById('au-menu').classList.add('hidden');
+        };
+        selectList.appendChild(item);
+    });
+
+    // Update toggle button appearance
+    if (state.activeAuId) {
+        const auDef = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const color = auDef?.color || '#64dcb4';
+        auLabelText.textContent = auDef?.name || 'AU';
+        if (auToggleIcon && auDef?.icon) auToggleIcon.textContent = auDef.icon;
+        toggleBtn.style.borderColor = color + '99';
+        toggleBtn.style.color = color;
+        toggleBtn.classList.add('au-selected');
+    } else {
+        auLabelText.textContent = 'AU';
+        if (auToggleIcon) auToggleIcon.textContent = 'auto_fix_high';
+        toggleBtn.style.borderColor = '';
+        toggleBtn.style.color = '';
+        toggleBtn.classList.remove('au-selected');
+    }
+}
+
+// ─── Secret unlock for locked AUs (5 clicks on gallery title) ────────────────
+function setupSecretUnlock() {
+    const title = document.getElementById('gallery-title');
+    let clicks = 0, timer = null;
+    title.addEventListener('click', () => {
+        clicks++;
+        clearTimeout(timer);
+        timer = setTimeout(() => { clicks = 0; }, 1500);
+        if (clicks >= 5) {
+            clicks = 0;
+            const lockedAus = alternativeUniverses.filter(au => au.locked && !state.unlockedAuIds.has(au.id));
+            if (!lockedAus.length) return;
+            const pw = prompt('✨ Enter the secret...');
+            if (pw === null) return;
+            if (pw === '1234') {
+                lockedAus.forEach(au => state.unlockedAuIds.add(au.id));
+                buildAuDropdown();
+                renderCharacters();
+            }
+        }
+    });
+}
+
+function _applyAuMode() {
+    document.body.classList.toggle('au-mode', !!state.activeAuId);
+    const banner     = document.getElementById('au-mode-banner');
+    const auToggleBtn = document.getElementById('au-toggle-btn');
+
+    document.getElementById('au-dynamic-style')?.remove();
+
+    if (state.activeAuId) {
+        const def  = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const hex  = def?.color || '#64dcb4';
+        document.getElementById('au-banner-name').textContent = def ? def.name : state.activeAuId;
+        banner.classList.add('visible');
+
+        // Parse hex → rgb
+        const h = hex.replace('#','');
+        const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+
+        // Derive a second accent by rotating hue ~60°
+        const toHsl = (r,g,b) => { r/=255;g/=255;b/=255; const max=Math.max(r,g,b),min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}h/=6;} return [h*360,s*100,l*100]; };
+        const hslToHex = (h,s,l) => { s/=100;l/=100; const a=s*Math.min(l,1-l); const f=n=>{const k=(n+h/30)%12; const color=l-a*Math.max(Math.min(k-3,9-k,1),-1); return Math.round(255*color).toString(16).padStart(2,'0'); }; return `#${f(0)}${f(8)}${f(4)}`; };
+        const [hh,hs,hl] = toHsl(r,g,b);
+        const accent2 = hslToHex((hh+60)%360, hs, Math.min(hl+10,90));
+        const accent3 = hslToHex((hh+180)%360, hs*0.6, Math.min(hl+5,80));
+        const containerHex = hslToHex(hh, hs*0.8, Math.max(hl*0.25, 8));
+        const onContainerHex = hslToHex(hh, hs*0.5, Math.min(hl+45, 92));
+
+        const styleEl = document.createElement('style');
+        styleEl.id = 'au-dynamic-style';
+        styleEl.textContent = `
+            body.au-theme-active {
+                --primary-rgb: ${r}, ${g}, ${b};
+                --primary: ${hex};
+                --on-primary: #050f09;
+                --primary-container: ${containerHex};
+                --on-primary-container: ${onContainerHex};
+                --au-rgb: ${r}, ${g}, ${b};
+                --au: ${hex};
+                --au-container: ${containerHex};
+                --on-au-container: ${onContainerHex};
+            }
+            /* Deep background aurora with AU colors */
+            body.au-theme-active::before {
+                background:
+                    radial-gradient(ellipse at 10% 20%, ${hex}30 0%, transparent 45%),
+                    radial-gradient(ellipse at 90% 75%, ${accent2}22 0%, transparent 50%),
+                    radial-gradient(ellipse at 50% 100%, ${accent3}18 0%, transparent 40%);
+                animation: aurora 18s infinite alternate ease-in-out, au-pulse 6s infinite alternate ease-in-out;
+            }
+            @keyframes au-pulse {
+                0%   { opacity: 0.85; }
+                50%  { opacity: 1; }
+                100% { opacity: 0.9; }
+            }
+            /* Control panel border glow */
+            body.au-theme-active .control-panel {
+                border-color: ${hex}44;
+                box-shadow: 0 0 24px ${hex}18, 0 0 0 1px ${hex}22;
+                transition: border-color 0.6s ease, box-shadow 0.6s ease;
+            }
+            /* Card hover glow */
+            body.au-theme-active .character-card:hover {
+                border-color: ${hex}66 !important;
+                box-shadow: 0 12px 32px ${hex}28, 0 0 0 1px ${hex}33 !important;
+            }
+            /* Selected chip */
+            body.au-theme-active .chip.selected {
+                background-color: ${hex};
+                border-color: ${hex};
+                box-shadow: 0 0 12px ${hex}55;
+            }
+            /* Scrollbar */
+            body.au-theme-active .m3-dialog-content::-webkit-scrollbar-thumb { background-color: ${hex}88; }
+            /* Modal border glow */
+            body.au-theme-active .m3-dialog {
+                border-color: ${hex}44;
+                box-shadow: 0 8px 48px ${hex}22, 0 0 0 1px ${hex}22;
+            }
+            /* Sparkle particles */
+            body.au-theme-active::after {
+                content: '';
+                position: fixed; inset: 0; pointer-events: none; z-index: 0;
+                background-image:
+                    radial-gradient(circle, ${hex}cc 1px, transparent 1px),
+                    radial-gradient(circle, ${accent2}99 1px, transparent 1px),
+                    radial-gradient(circle, ${hex}88 1.5px, transparent 1.5px);
+                background-size: 180px 180px, 260px 260px, 340px 340px;
+                background-position: 20px 40px, 90px 130px, 60px 200px;
+                animation: sparkle-drift 12s infinite linear;
+                opacity: 0.35;
+            }
+            @keyframes sparkle-drift {
+                0%   { transform: translate(0, 0)   rotate(0deg); }
+                33%  { transform: translate(8px, -12px) rotate(3deg); }
+                66%  { transform: translate(-6px, 8px) rotate(-2deg); }
+                100% { transform: translate(0, 0)   rotate(0deg); }
+            }
+            /* Banner */
+            #au-mode-banner {
+                background: linear-gradient(90deg, ${hex}44 0%, ${accent2}22 60%, ${hex}18 100%) !important;
+                border-color: ${hex}77 !important;
+                color: ${hex} !important;
+                box-shadow: 0 0 20px ${hex}22;
+            }
+            /* Gallery title glow */
+            body.au-theme-active #gallery-title {
+                color: ${hex} !important;
+                text-shadow: 0 0 30px ${hex}66, 0 0 60px ${hex}33;
+            }
+            /* Search input focus */
+            body.au-theme-active #search-input:focus { border-color: ${hex} !important; box-shadow: 0 0 0 3px ${hex}33; }
+        `;
+        document.head.appendChild(styleEl);
+        document.body.classList.add('au-theme-active');
+
+    } else {
+        banner.classList.remove('visible');
+        document.body.classList.remove('au-theme-active');
+        if (auToggleBtn) { auToggleBtn.style.borderColor = ''; auToggleBtn.style.color = ''; }
+    }
+
+    buildAuDropdown();
+    updateUI();
+    renderCharacters();
+}
+
+// ─── UI update ────────────────────────────────────────────────────────────────
+function updateUI() {
+    dom.sizeLabel.textContent = sizeProfiles[state.imageSizeIndex].name;
+    dom.zoomOutBtn.disabled = state.imageSizeIndex === 0;
+    dom.zoomInBtn.disabled  = state.imageSizeIndex === sizeProfiles.length - 1;
+    dom.fitScreenBtn.classList.toggle('active', state.isFitToScreenMode);
+    _updateMenuSelection();
+}
+
+function _updateMenuSelection() {
+    document.querySelectorAll('#filter-menu .menu-item').forEach(btn => {
+        const isF = btn.dataset.filter === state.galleryMode;
+        const isS = btn.dataset.sort   === state.sortBy;
+        btn.classList.toggle('active', isF || isS);
+    });
+    const active = document.querySelector(`#filter-menu button[data-filter="${state.galleryMode}"]`);
+    if (active) {
+        const icon = active.querySelector('div > .material-symbols-outlined')?.textContent || 'apps';
+        const text = active.querySelector('div > span:last-child')?.textContent || 'All';
+        dom.filterIcon.textContent = icon;
+        dom.filterText.textContent = text;
+        dom.filterToggleBtn.classList.toggle('dismissed-selected', state.galleryMode === 'dismissed');
+        dom.filterToggleBtn.classList.toggle('selected', state.galleryMode !== 'dismissed');
+    }
+}
+
+// ─── Modal helpers ────────────────────────────────────────────────────────────
+function openModal(el, content) {
+    document.body.classList.add('modal-open');
+    el.classList.remove('hidden'); el.classList.add('flex');
+    requestAnimationFrame(() => requestAnimationFrame(() => content.classList.add('visible')));
+}
+function closeModal(el, content) {
+    document.body.classList.remove('modal-open');
+    content.classList.remove('visible');
+    setTimeout(() => { el.classList.add('hidden'); el.classList.remove('flex'); }, 280);
+    state.currentModalCharId = null; state.currentModalType = null;
+}
+
+// ─── Character modal ──────────────────────────────────────────────────────────
+function _buildModalAuBtns(containerId, reachableAusWithEntry, cardSelector) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.querySelectorAll('.modal-au-btn').forEach(b => b.remove());
+    const closeBtn = container.querySelector('.icon-btn');
+
+    reachableAusWithEntry.forEach(au => {
+        const btn = document.createElement('button');
+        btn.className = 'modal-au-btn';
+        btn.title = au.name;
+        btn.dataset.auId = au.id;
+        btn.dataset.auColor = au.color || 'var(--au)';
+        btn.style.borderColor = (au.color || '#64dcb4') + '99';
+        btn.style.color = au.color || 'var(--au)';
+        btn.innerHTML = `<span class="material-symbols-outlined">${au.icon || 'auto_fix_high'}</span>`;
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const isActive = btn.classList.contains('active-au');
+            // Deactivate all AU btns in this container
+            container.querySelectorAll('.modal-au-btn').forEach(b => {
+                b.classList.remove('active-au');
+                b.style.background = '';
+                b.style.color = b.dataset.auColor;
+                b.style.boxShadow = '';
+            });
+            // Hide all AU cards
+            document.querySelectorAll(cardSelector).forEach(card => { card.style.display = 'none'; });
+            if (!isActive) {
+                btn.classList.add('active-au');
+                btn.style.background = au.color || 'var(--au)';
+                btn.style.color = '#0a2e22';
+                btn.style.boxShadow = `0 0 0 2px ${au.color || 'var(--au)'}`;
+                const card = document.querySelector(`${cardSelector}[data-au-id="${au.id}"]`);
+                if (card) card.style.display = '';
+            }
+        };
+        container.insertBefore(btn, closeBtn);
+    });
+}
+
+function openCharacterModal(charId, isDismissed = false) {
+    const list = isDismissed ? dismissedCharacters : characters;
+    const char = list.find(c => c.id === charId && !c.isFusion);
+    if (!char) return;
+    const m = dom.charModal;
+    m.name.textContent = char.name;
+    m.evolutions.style.gridTemplateColumns = `repeat(auto-fit, ${sizeProfiles[state.imageSizeIndex].minCardWidth})`;
+    m.evolutions.innerHTML = '';
+
+    const isAuOnlyMode = !!state.activeAuId;
+    const reachableAusWithEntry = getReachableAus().filter(au => char.auData?.[au.id]?.star3ImageUrl);
+
+    if (isAuOnlyMode) {
+        // AU Only mode: show AU image + 3★ original side by side
+        const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const auEntry = char.auData?.[state.activeAuId];
+        const star3Img = char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl;
+        const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
+        const color = auDef?.color || '#64dcb4';
+
+        const makeCard = (imgSrc, labelHtml, cardColor) => {
+            const div = document.createElement('div');
+            div.className = `flex flex-col items-center p-3 rounded-2xl ${cardColor ? 'au-evo-card' : ''}`;
+            div.style.cssText = cardColor
+                ? `border-color:${cardColor}88; background:linear-gradient(135deg,${cardColor}18 0%,rgba(32,31,37,0.95) 100%);`
+                : 'background-color:var(--surface);';
+            div.innerHTML = `
+                <div style="width:${w}"><img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div>
+                <p class="text-sm font-bold flex items-center gap-1" style="color:${cardColor||'var(--on-surface-var)'};">${labelHtml}</p>
+            `;
+            return div;
+        };
+
+        if (auEntry?.star3ImageUrl) {
+            m.evolutions.appendChild(makeCard(auEntry.star3ImageUrl,
+                `<span class="material-symbols-outlined" style="font-size:15px;">${auDef?.icon||'auto_fix_high'}</span>${auDef?.name||'AU'} Version`,
+                color));
+        }
+        m.evolutions.appendChild(makeCard(star3Img,
+            `<span class="material-symbols-outlined" style="font-size:15px;">star</span>3★ Original`, null));
+
+        document.getElementById('char-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
+
+    } else {
+        // Normal mode: show all evolutions
+        const allEvos = [{ star: 1, imageUrl: char.imageUrl }, ...(char.evolutions || [])];
+        allEvos.forEach(evo => {
+            const div = document.createElement('div');
+            div.className = 'flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--surface-high)]';
+            div.style.backgroundColor = 'var(--surface)';
+            const wrap = document.createElement('div');
+            wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
+            wrap.innerHTML = `<img src="${evo.imageUrl || char.imageUrl}" alt="${char.name} ${evo.star}★" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            const p = document.createElement('p');
+            p.className = 'text-lg font-medium';
+            p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
+            div.appendChild(wrap); div.appendChild(p);
+            m.evolutions.appendChild(div);
+        });
+
+        // AU cards (hidden by default, toggled via header buttons)
+        reachableAusWithEntry.forEach(au => {
+            const auEntry = char.auData[au.id];
+            const div = document.createElement('div');
+            div.className = 'flex flex-col items-center p-3 rounded-2xl au-evo-card modal-au-card';
+            div.dataset.auId = au.id;
+            div.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
+            const wrap = document.createElement('div');
+            wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
+            wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            const p = document.createElement('p');
+            p.className = 'text-sm font-bold flex items-center gap-1';
+            p.style.color = au.color || 'var(--au)';
+            p.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}`;
+            div.appendChild(wrap); div.appendChild(p);
+            m.evolutions.appendChild(div);
+        });
+
+        _buildModalAuBtns('char-modal-header-btns', reachableAusWithEntry, '.modal-au-card');
+    }
+
+    // Fusions
+    const fusions = characters.filter(f => f.isFusion && f.fusionPartners?.includes(char.id));
+    m.fusionsContainer.classList.toggle('hidden', fusions.length === 0);
+    if (fusions.length) {
+        m.fusionList.innerHTML = '';
+        fusions.forEach(fusion => {
+            const fc = document.createElement('div');
+            fc.className = 'rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105';
+            fc.style.backgroundColor = 'var(--fusion-container)';
+            fc.onclick = e => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
+            fc.innerHTML = `<img src="${fusion.imageUrl || fusion.previewUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center font-fantastical" style="color:var(--on-fusion-container);">${fusion.name}</p>`;
+            m.fusionList.appendChild(fc);
+        });
+    }
+
+    openModal(m.el, m.content);
+    updateModalNav(charId, 'character');
+}
+function closeCharacterModal() { closeModal(dom.charModal.el, dom.charModal.content); }
+
+// ─── Fusion modal ─────────────────────────────────────────────────────────────
+function openFusionModal(fusionId) {
+    const fusion = characters.find(c => c.id === fusionId && c.isFusion)
+                || dismissedCharacters.find(c => c.id === fusionId && c.isFusion);
+    if (!fusion) return;
+    const m = dom.fusionModal;
+    const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
+
+    m.name.textContent = fusion.name;
+    m.imgWrap.style.width = w;
+    // ── Clean old AU cards ──
+    document.querySelectorAll('.fusion-au-extra-card').forEach(el => el.remove());
+
+    const isAuOnlyMode = !!state.activeAuId;
+    const reachableAusWithEntry = getReachableAus().filter(au => fusion.auData?.[au.id]?.fusionImageUrl);
+
+    if (isAuOnlyMode) {
+        // AU Only mode: AU image main + original as extra card
+        const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
+        const auImg  = fusion.auData?.[state.activeAuId]?.fusionImageUrl;
+        const color  = auDef?.color || '#64dcb4';
+
+        m.img.src = auImg || fusion.imageUrl || '';
+        m.img.setAttribute('onclick', `enlargeImage('${m.img.src}')`);
+        m.star.innerHTML = auDef
+            ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${color}"><span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version</span>`
+            : getStarEmojis(true, false, 4);
+
+        // Original as extra card
+        const origCard = document.createElement('div');
+        origCard.className = 'fusion-au-extra-card flex flex-col items-center text-center rounded-2xl p-4';
+        origCard.style.cssText = `width:${w}; border:1px solid var(--outline-var); display:block;`;
+        origCard.innerHTML = `
+            <p class="text-xs font-bold mb-2 flex items-center gap-1 justify-center" style="color:var(--on-surface-var);">
+                <span class="material-symbols-outlined" style="font-size:14px;">star</span>Original
+            </p>
+            <img src="${fusion.imageUrl||''}" alt="${fusion.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+        `;
+        m.imgWrap.insertAdjacentElement('afterend', origCard);
+
+        m.left.container.style.display = 'none';
+        m.right.container.style.display = 'none';
+        document.getElementById('fusion-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
+    } else {
+        // Normal mode
+        m.img.src = fusion.imageUrl || '';
+        m.img.setAttribute('onclick', `enlargeImage('${fusion.imageUrl||''}')`);
+        m.star.innerHTML = getStarEmojis(true, false, 4);
+        m.left.container.style.display = '';
+        m.right.container.style.display = '';
+
+        const getOriginal3Star = (charId) => {
+            const c = characters.find(x => x.id === charId && !x.isFusion)
+                   || dismissedCharacters.find(x => x.id === charId && !x.isFusion);
+            return c ? (c.evolutions?.find(e => e.star === 3)?.imageUrl || c.imageUrl || '') : '';
+        };
+        const [p1, p2] = (fusion.fusionPartners || []).map(id =>
+            characters.find(c => c.id === id) || dismissedCharacters.find(c => c.id === id));
+        const setPartner = (side, pChar) => {
+            if (!pChar) return;
+            side.img.src = getOriginal3Star(pChar.id);
+            side.container.style.width = `${parseInt(w) * 0.75}px`;
+            side.name.textContent = pChar.name;
+            side.container.dataset.characterId = pChar.id;
+            side.star.innerHTML = getStarEmojis(false, false, 3);
+        };
+        setPartner(m.left, p1);
+        setPartner(m.right, p2);
+
+        reachableAusWithEntry.forEach(au => {
+            const auEntry = fusion.auData[au.id];
+            const auCard = document.createElement('div');
+            auCard.className = 'fusion-au-extra-card flex flex-col items-center text-center au-fusion-card rounded-2xl p-4';
+            auCard.dataset.auId = au.id;
+            auCard.style.cssText = `width:${w}; border-color:${au.color||'#64dcb4'}88; display:none;`;
+            auCard.innerHTML = `
+                <p class="text-sm font-bold mb-2 flex items-center gap-1" style="color:${au.color||'var(--au)'}">
+                    <span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}
+                </p>
+                <img src="${auEntry.fusionImageUrl}" alt="${fusion.name} ${au.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+            `;
+            m.imgWrap.insertAdjacentElement('afterend', auCard);
+        });
+        _buildModalAuBtns('fusion-modal-header-btns', reachableAusWithEntry, '.fusion-au-extra-card');
+    }
+
+    openModal(m.el, m.content);
+    updateModalNav(fusionId, 'fusion');
+}
+function closeFusionModal() {
+    document.querySelectorAll('.fusion-au-extra-card').forEach(el => el.remove());
+    closeModal(dom.fusionModal.el, dom.fusionModal.content);
+}
+
+// ─── Search modal ─────────────────────────────────────────────────────────────
+function openSearchModal() {
+    openModal(dom.searchModal.el, dom.searchModal.content);
+    dom.searchModal.input.value = '';
+    renderSearchResults();
+    dom.searchModal.input.focus();
+}
+function closeSearchModal() { closeModal(dom.searchModal.el, dom.searchModal.content); }
+
+function renderSearchResults() {
+    const grid = dom.searchModal.grid;
+    const ph   = dom.searchModal.placeholder;
+    grid.innerHTML = '';
+    const term = dom.searchModal.input.value.toLowerCase().trim();
+    if (!term) { ph.textContent = 'Type a name or ID above to search.'; ph.classList.remove('hidden'); return; }
+
+    // Search pool: active characters + dismissed (no EEs shown)
+    const pool = [...characters, ...dismissedCharacters.filter(c => c.type !== 'easterEgg')];
+
+    const results = [];
+    pool.forEach(char => {
+        if (!char.name.toLowerCase().includes(term) && !char.id.toLowerCase().includes(term)) return;
+        if (char.isFusion) {
+            results.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+        } else {
+            results.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
+            char.evolutions?.forEach(evo => results.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
+        }
+    });
+
+    if (!results.length) { ph.textContent = `No results for "${dom.searchModal.input.value}".`; ph.classList.remove('hidden'); return; }
+    ph.classList.add('hidden');
+    results.forEach(item => grid.appendChild(_buildSearchCard(item)));
+}
+
+function _buildSearchCard(item) {
+    const card = document.createElement('div');
+    card.className = 'search-result-card';
+    const action = item.isFusion
+        ? `closeSearchModal(); setTimeout(()=>openFusionModal('${item.id}'),310);`
+        : `closeSearchModal(); setTimeout(()=>openCharacterModal('${item.id}',${!!item.isDismissed}),310);`;
+    card.setAttribute('onclick', action);
+    const nc = (item.isFusion || item.isDismissed) ? 'font-fantastical' : '';
+    card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0" loading="lazy">
+        <div class="flex flex-col gap-1">
+            <h4 class="text-lg font-bold ${nc}">${item.name}</h4>
+            <div>${getStarEmojis(item.isFusion, item.isDismissed, item.displayStar)}</div>
+            <p class="text-xs font-mono" style="color:var(--on-surface-var);">ID: ${item.id}</p>
+        </div>`;
+    return card;
+}
+
+// ─── Enlarged image ───────────────────────────────────────────────────────────
+function enlargeImage(src) {
+    const open = document.querySelector('.m3-dialog.visible');
+    if (open) open.classList.add('modal-transform-paused');
+    dom.enlargedImg.src = src;
+    dom.enlargedOverlay.classList.remove('hidden');
+}
+function closeEnlargedImage(e) {
+    if (e) e.stopPropagation();
+    const paused = document.querySelector('.modal-transform-paused');
+    if (paused) paused.classList.remove('modal-transform-paused');
+    dom.enlargedOverlay.classList.add('hidden');
+}
+
+// ─── Modal navigation ─────────────────────────────────────────────────────────
+function updateModalNav(id, type) {
+    state.currentModalCharId = id;
+    state.currentModalType = type;
+
+    const isDis = dismissedCharacters.some(c => c.id === id);
+    const pool = isDis ? dismissedCharacters : characters;
+
+    // Build nav list matching current gallery filter
+    let nav = [];
+    const sortFn = (a, b) => {
+        if (state.sortBy === 'date_desc') return (b.eklenmeTarihi?.toDate() || 0) - (a.eklenmeTarihi?.toDate() || 0);
+        if (state.sortBy === 'date_asc')  return (a.eklenmeTarihi?.toDate() || 0) - (b.eklenmeTarihi?.toDate() || 0);
+        return a.name.localeCompare(b.name, 'en');
+    };
+
+    const mode = state.galleryMode;
+
+    if (mode === 'fusion') {
+        nav = pool.filter(c => c.isFusion).sort(sortFn);
+    } else if (mode === 'all' || mode === 'dismissed') {
+        nav = [
+            ...pool.filter(c => !c.isFusion && c.type !== 'easterEgg').sort(sortFn),
+            ...pool.filter(c => c.isFusion).sort(sortFn),
+        ];
+    } else if (mode === 'reachable-au') {
+        nav = [
+            ...pool.filter(c => !c.isFusion && c.type !== 'easterEgg' && hasReachableAuEntry(c)).sort(sortFn),
+            ...pool.filter(c => c.isFusion && hasReachableAuEntry(c)).sort(sortFn),
+        ];
+    } else {
+        const starFilter = parseInt(mode);
+        if (!isNaN(starFilter)) {
+            if (starFilter === 4) {
+                nav = pool.filter(c => c.isFusion).sort(sortFn);
+            } else {
+                nav = pool.filter(c => !c.isFusion && c.type !== 'easterEgg').sort(sortFn);
+            }
+        } else {
+            // fallback: all
+            nav = [...pool.filter(c => !c.isFusion).sort(sortFn), ...pool.filter(c => c.isFusion).sort(sortFn)];
+        }
+    }
+
+    // Filter by active AU
+    if (state.activeAuId) {
+        nav = nav.filter(c => hasAuEntry(c, state.activeAuId));
+    }
+
+    // Deduplicate by id
+    const seen = new Set();
+    nav = nav.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
+
+    const idx = nav.findIndex(i => i.id === id);
+    const prev = idx > 0 ? nav[idx - 1] : null;
+    const next = idx < nav.length - 1 ? nav[idx + 1] : null;
+
+    const openItem = item => {
+        closeCharacterModal(); closeFusionModal();
+        setTimeout(() => {
+            if (item.isFusion) openFusionModal(item.id);
+            else openCharacterModal(item.id, !!item.isDismissed);
+        }, 310);
+    };
+
+    const setup = (btn, nameEl, item) => {
+        btn.disabled = !item;
+        btn.onclick = item ? e => { e.stopPropagation(); openItem(item); } : null;
+        if (nameEl) {
+            nameEl.textContent = item ? item.name : (btn.id.startsWith('prev') ? 'Start' : 'End');
+            nameEl.onclick = item ? e => { e.stopPropagation(); openItem(item); } : null;
+            nameEl.style.cursor = item ? 'pointer' : 'default';
+        }
+    };
+
+    setup(dom.charModal.prevBtn,   dom.charModal.prevName,   prev);
+    setup(dom.charModal.nextBtn,   dom.charModal.nextName,   next);
+    setup(dom.fusionModal.prevBtn, dom.fusionModal.prevName, prev);
+    setup(dom.fusionModal.nextBtn, dom.fusionModal.nextName, next);
+}
+
+// ─── Interactive effects ──────────────────────────────────────────────────────
+function addInteractiveEffects() {
+    document.querySelectorAll('.ripple-effect:not([data-ripple])').forEach(el => {
+        el.dataset.ripple = '1';
+        el.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px;`;
+            this.querySelector('.ripple')?.remove();
+            this.appendChild(ripple);
+        });
+    });
+    document.querySelectorAll('.character-card:not([data-hover])').forEach(card => {
+        card.dataset.hover = '1';
+        card.addEventListener('mouseenter', () => { card.style.transform = 'scale(1.04)'; });
+        card.addEventListener('mouseleave', () => { card.style.transform = 'scale(1)'; });
+    });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function initApp() {
+    setupImageObserver();
+    try {
+        const [charsSnap, dismissedSnap, auSnap] = await Promise.all([
+            db.collection('characters').get(),
+            db.collection('dismissed').get(),
+            db.collection('alternativeUniverses').get(),
+        ]);
+        characters          = charsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        dismissedCharacters = dismissedSnap.docs.map(d => ({ id: d.id, ...d.data(), isDismissed: true }));
+        alternativeUniverses= auSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        Object.assign(dom, {
+            characterGrid: document.getElementById('character-grid'),
+            charModal: {
+                el: document.getElementById('character-modal'),
+                content: document.getElementById('character-modal-content'),
+                name: document.getElementById('modal-char-name'),
+                evolutions: document.getElementById('modal-evolutions'),
+                fusionsContainer: document.getElementById('modal-fusions'),
+                fusionList: document.getElementById('fusion-list'),
+                prevBtn: document.getElementById('prev-char-btn'),
+                nextBtn: document.getElementById('next-char-btn'),
+                prevName: document.getElementById('prev-char-name'),
+                nextName: document.getElementById('next-char-name'),
+            },
+            fusionModal: {
+                el: document.getElementById('fusion-modal'),
+                content: document.getElementById('fusion-modal-content'),
+                name: document.getElementById('modal-fusion-name'),
+                img: document.getElementById('modal-fusion-img'),
+                imgWrap: document.getElementById('fusion-main-img-wrap'),
+                star: document.getElementById('modal-fusion-star'),
+                left: {
+                    img: document.getElementById('modal-fusion-left-img'),
+                    name: document.getElementById('modal-fusion-left-name'),
+                    star: document.getElementById('modal-fusion-left-star'),
+                    container: document.getElementById('fusion-partner-left'),
+                },
+                right: {
+                    img: document.getElementById('modal-fusion-right-img'),
+                    name: document.getElementById('modal-fusion-right-name'),
+                    star: document.getElementById('modal-fusion-right-star'),
+                    container: document.getElementById('fusion-partner-right'),
+                },
+                prevBtn: document.getElementById('prev-fusion-btn'),
+                nextBtn: document.getElementById('next-fusion-btn'),
+                prevName: document.getElementById('prev-fusion-name'),
+                nextName: document.getElementById('next-fusion-name'),
+            },
+            searchModal: {
+                el: document.getElementById('search-modal'),
+                content: document.getElementById('search-modal-content'),
+                input: document.getElementById('search-input'),
+                grid: document.getElementById('search-results-grid'),
+                placeholder: document.getElementById('search-placeholder'),
+            },
+            enlargedOverlay: document.getElementById('enlarged-overlay'),
+            enlargedImg: document.getElementById('enlarged-img'),
+            zoomOutBtn: document.getElementById('zoom-out-btn'),
+            zoomInBtn: document.getElementById('zoom-in-btn'),
+            sizeLabel: document.getElementById('size-label'),
+            fitScreenBtn: document.getElementById('fitToScreenBtn'),
+            filterToggleBtn: document.getElementById('filter-toggle-btn'),
+            filterIcon: document.getElementById('filter-label-icon'),
+            filterText: document.getElementById('filter-label-text'),
+            filterMenu: document.getElementById('filter-menu'),
+        });
+
+        // Event listeners
+        dom.filterToggleBtn.addEventListener('click', e => { e.stopPropagation(); dom.filterMenu.classList.toggle('hidden'); document.getElementById('au-menu').classList.add('hidden'); });
+        dom.filterMenu.addEventListener('click', e => {
+            const btn = e.target.closest('.menu-item');
+            if (!btn) return;
+            if (btn.dataset.filter) state.galleryMode = btn.dataset.filter;
+            if (btn.dataset.sort)   state.sortBy = btn.dataset.sort;
+            dom.filterMenu.classList.add('hidden');
+            updateUI(); renderCharacters();
+        });
+
+        // AU dropdown
+        const auToggleBtn = document.getElementById('au-toggle-btn');
+        const auMenu = document.getElementById('au-menu');
+        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
+
+        document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
+        dom.searchModal.input.addEventListener('input', renderSearchResults);
+        window.addEventListener('click', e => {
+            if (!dom.filterMenu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
+                dom.filterMenu.classList.add('hidden');
+            }
+            if (!auMenu.classList.contains('hidden') && !e.target.closest('#au-container')) {
+                auMenu.classList.add('hidden');
+            }
+        });
+        dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); }});
+        dom.zoomOutBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); }});
+        dom.fitScreenBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
+        document.getElementById('au-banner-exit').addEventListener('click', () => { state.activeAuId = null; _applyAuMode(); });
+
+        buildAuDropdown();
+        setupSecretUnlock();
+        updateUI();
+        renderCharacters();
+    } catch (err) {
+        console.error("App init error:", err);
+        alert("Failed to load. Please try again later.");
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const trigger = document.getElementById('description-menu-trigger');
+    const menu    = document.getElementById('settings-menu');
+    if (trigger) {
+        trigger.addEventListener('click', e => {
+            e.stopPropagation();
+            if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); return; }
+            menu.style.visibility = 'hidden';
+            menu.classList.remove('hidden');
+            const mRect = menu.getBoundingClientRect();
+            menu.classList.add('hidden');
+            menu.style.visibility = 'visible';
+            const tRect = trigger.getBoundingClientRect();
+            menu.style.top = `${tRect.bottom + 8}px`;
+            let left = tRect.left + tRect.width / 2 - mRect.width / 2;
+            left = Math.max(8, Math.min(left, window.innerWidth - mRect.width - 8));
+            menu.style.left = `${left}px`;
+            menu.classList.remove('hidden');
+        });
+    }
+    window.addEventListener('click', e => {
+        if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !e.target.closest('#description-menu-trigger')) {
+            menu.classList.add('hidden');
+        }
+    });
+    initApp();
+});
+</script>
+</body>
+</html>
