@@ -1,7 +1,6 @@
 const CACHE_NAME        = 'karakter-app-v1';
 const IMAGE_CACHE_NAME  = 'karakter-images-v1';
 
-// Core app shell cached on install
 const urlsToCache = [
     './',
     './index.html',
@@ -21,7 +20,7 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ─── Activate — clean up legacy caches from old versions, keep current ──────
+// ─── Activate — clean up legacy caches, keep current ────────────────────────
 self.addEventListener('activate', event => {
     const keep = new Set([CACHE_NAME, IMAGE_CACHE_NAME]);
     event.waitUntil(
@@ -33,7 +32,7 @@ self.addEventListener('activate', event => {
     );
 });
 
-// ─── URL normalization helper ────────────────────────────────────────────────
+// ─── URL normalization ──────────────────────────────────────────────────────
 function stripCacheBust(rawUrl) {
     return rawUrl
         .replace(/[?&]_t=\d+/g, '')
@@ -41,21 +40,17 @@ function stripCacheBust(rawUrl) {
         .replace(/\?$/, '');
 }
 
-// ─── Fetch — cache-first for images, network-first for pages ────────────────
+// ─── Fetch handler ──────────────────────────────────────────────────────────
 self.addEventListener('fetch', event => {
-    // Image requests: cache-first
     if (event.request.destination === 'image') {
         const cleanUrl = stripCacheBust(event.request.url);
-
         event.respondWith(
             caches.open(IMAGE_CACHE_NAME).then(imgCache =>
                 imgCache.match(cleanUrl).then(cached => {
                     if (cached) return cached;
-                    return fetch(event.request).then(networkResponse => {
-                        if (networkResponse.ok) {
-                            imgCache.put(cleanUrl, networkResponse.clone());
-                        }
-                        return networkResponse;
+                    return fetch(event.request).then(res => {
+                        if (res.ok) imgCache.put(cleanUrl, res.clone());
+                        return res;
                     }).catch(() => cached || new Response('', { status: 404 }));
                 })
             )
@@ -63,41 +58,35 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Navigation requests: network-first with cache fallback
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            fetch(event.request).then(response => {
-                const clone = response.clone();
-                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-                return response;
+            fetch(event.request).then(res => {
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, res.clone()));
+                return res;
             }).catch(() => caches.match(event.request))
         );
         return;
     }
 
-    // Everything else: cache → network
     event.respondWith(
-        caches.match(event.request).then(response => response || fetch(event.request))
+        caches.match(event.request).then(res => res || fetch(event.request))
     );
 });
 
-// ─── Broadcast to ALL clients ───────────────────────────────────────────────
+// ─── Broadcast ──────────────────────────────────────────────────────────────
 async function broadcast(msg) {
     const allClients = await self.clients.matchAll({ type: 'window' });
-    for (const client of allClients) {
-        try { client.postMessage(msg); } catch (_) {}
+    for (const c of allClients) {
+        try { c.postMessage(msg); } catch (_) {}
     }
 }
 
-// ─── Messages from pages ──────────────────────────────────────────────────────
+// ─── Messages ───────────────────────────────────────────────────────────────
 self.addEventListener('message', event => {
     const { type, urls } = event.data || {};
-
     if (type === 'PRECACHE_IMAGES') {
         event.waitUntil(precacheImages(urls));
-        return;
     }
-
     if (type === 'CLEAR_IMAGE_CACHE') {
         event.waitUntil(
             caches.delete(IMAGE_CACHE_NAME).then(() => {
@@ -105,32 +94,21 @@ self.addEventListener('message', event => {
                 if (urls && urls.length) return precacheImages(urls);
             })
         );
-        return;
     }
 });
 
-// ─── Fetch with AbortController timeout ─────────────────────────────────────
-function fetchWithTimeout(url, options, timeoutMs) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-    return fetch(url, { ...options, signal: controller.signal })
-        .finally(() => clearTimeout(timer));
-}
-
-// ─── Precache — fast parallel batches, skips already-cached images ──────────
+// ─── Precache — 10 parallel, 3s timeout, skip & move on ────────────────────
 async function precacheImages(urls) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
 
-    let done = 0;
-    let skipped = 0;
+    let done = 0, skipped = 0;
     const total = urls.length;
     const failed = [];
 
-    const BATCH      = 10;     // imgbb CDN handles concurrency well
-    const TIMEOUT_MS = 12000;  // 12s per image
-    const DELAY_MS   = 100;    // minimal pause between batches
+    const BATCH      = 10;
+    const TIMEOUT_MS = 3000;   // 3 seconds — can't load in 3s? skip it
+    const DELAY_MS   = 50;
 
     const startTime = Date.now();
 
@@ -147,16 +125,12 @@ async function precacheImages(urls) {
     for (let i = 0; i < urls.length; i += BATCH) {
         const batch = urls.slice(i, i + BATCH);
         const batchStart = Date.now();
-
         report({ currentBatch: batch, batchIndex: i });
 
         await Promise.allSettled(batch.map(async url => {
-            const fetchStart = Date.now();
+            const t0 = Date.now();
             try {
-                // ── Skip if already cached ──────────────────────────────
-                // cache.match returns undefined if not found, or a Response.
-                // For imgbb images, response.ok will be true (status 200).
-                // We accept any cached entry (ok OR opaque) as valid.
+                // Already cached? Skip instantly
                 const existing = await cache.match(url);
                 if (existing) {
                     done++;
@@ -164,34 +138,41 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                // ── Download and cache ──────────────────────────────────
-                const response = await fetchWithTimeout(url, {}, TIMEOUT_MS);
+                // Fetch with hard timeout
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-                if (response.ok) {
-                    // Read full body before caching to avoid partial entries
-                    const blob = await response.blob();
-                    await cache.put(url, new Response(blob, {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: response.headers,
-                    }));
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timer);
+
+                if (!res.ok) {
                     done++;
-                } else {
-                    done++;
-                    failed.push({ url, reason: `HTTP ${response.status}`, durationMs: Date.now() - fetchStart });
+                    failed.push({ url, reason: `HTTP ${res.status}`, durationMs: Date.now() - t0 });
+                    return;
                 }
+
+                // Read body with its own timeout guard
+                const blob = await Promise.race([
+                    res.blob(),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('body timeout')), TIMEOUT_MS)
+                    )
+                ]);
+
+                await cache.put(url, new Response(blob, {
+                    status: res.status,
+                    statusText: res.statusText,
+                    headers: res.headers,
+                }));
+                done++;
+
             } catch (e) {
                 done++;
-                let reason;
-                if (e.name === 'AbortError') {
-                    reason = `timeout (${Math.round(TIMEOUT_MS / 1000)}s)`;
-                } else if (e.name === 'QuotaExceededError') {
-                    reason = 'storage full';
-                } else {
-                    reason = e.message || e.name || 'network error';
-                }
-                failed.push({ url, reason, durationMs: Date.now() - fetchStart });
-                console.warn('[SW] Failed:', url, reason);
+                const reason = e.name === 'AbortError' ? 'skipped (>3s)'
+                    : e.message === 'body timeout' ? 'skipped (download slow)'
+                    : e.name === 'QuotaExceededError' ? 'storage full'
+                    : (e.message || 'error');
+                failed.push({ url, reason, durationMs: Date.now() - t0 });
             }
         }));
 
@@ -204,8 +185,7 @@ async function precacheImages(urls) {
 
     broadcast({
         type: 'CACHE_COMPLETE',
-        total, skipped,
-        failed,
+        total, skipped, failed,
         elapsedMs: Date.now() - startTime
     });
 }
