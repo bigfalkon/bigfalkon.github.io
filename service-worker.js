@@ -102,21 +102,29 @@ async function precacheImages(urls, client) {
     let done = 0;
     const total = urls.length;
 
+    function fetchWithTimeout(url, ms) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), ms);
+        return fetch(url, { mode: 'no-cors', signal: controller.signal })
+            .finally(() => clearTimeout(timer));
+    }
+
     // Fetch in parallel batches of 6 to avoid overwhelming the network
     const BATCH = 6;
     for (let i = 0; i < urls.length; i += BATCH) {
         const batch = urls.slice(i, i + BATCH);
         await Promise.allSettled(batch.map(async url => {
-            // Skip if already cached
-            const existing = await cache.match(url);
-            if (existing) { done++; return; }
             try {
-                const response = await fetch(url, { mode: 'no-cors' });
+                // Skip if already cached
+                const existing = await cache.match(url);
+                if (existing) return;
+                const response = await fetchWithTimeout(url, 15000);
                 await cache.put(url, response);
             } catch(e) {
-                console.warn('[SW] Failed to cache:', url, e);
+                console.warn('[SW] Failed to cache:', url, e.message);
+            } finally {
+                done++;
             }
-            done++;
         }));
 
         // Report progress back to the requesting page
