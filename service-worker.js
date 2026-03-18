@@ -32,17 +32,27 @@ self.addEventListener('activate', event => {
     );
 });
 
+// ─── URL normalization ───────────────────────────────────────────────────────
+function stripCacheBust(rawUrl) {
+    return rawUrl
+        .replace(/[?&]_t=\d+/g, '')
+        .replace(/\?&/, '?')
+        .replace(/\?$/, '');
+}
+
 // ─── Fetch — cache-first for images ──────────────────────────────────────────
 self.addEventListener('fetch', event => {
     if (event.request.destination === 'image') {
+        const cleanUrl = stripCacheBust(event.request.url);
         event.respondWith(
             caches.open(IMAGE_CACHE_NAME).then(imgCache =>
-                imgCache.match(event.request).then(cached => {
+                imgCache.match(cleanUrl).then(cached => {
                     if (cached) return cached;
                     return fetch(event.request).then(res => {
-                        // Cache both normal (ok) and opaque (type=opaque, status=0) responses
+                        // Cache both normal (ok) and opaque (type=opaque, status=0) responses.
+                        // Use cleanUrl as key so cache-busted URLs share the same cache entry.
                         if (res.ok || res.type === 'opaque') {
-                            imgCache.put(event.request, res.clone());
+                            imgCache.put(cleanUrl, res.clone());
                         }
                         return res;
                     }).catch(() => cached || new Response('', { status: 404 }));
@@ -101,20 +111,25 @@ async function precacheImages(urls) {
     let done = 0, skipped = 0;
     const total = urls.length;
     const failed = [];
-    const BATCH = 6;
+    const BATCH    = 6;
+    const DELAY_MS = 50;
     const startTime = Date.now();
 
     for (let i = 0; i < urls.length; i += BATCH) {
         const batch = urls.slice(i, i + BATCH);
+        const batchStart = Date.now();
 
         broadcast({
             type: 'CACHE_PROGRESS',
             done, total, skipped,
             failedCount: failed.length,
-            elapsedMs: Date.now() - startTime
+            elapsedMs: Date.now() - startTime,
+            currentBatch: batch,
+            batchIndex: i
         });
 
         await Promise.allSettled(batch.map(async url => {
+            const t0 = Date.now();
             try {
                 // Skip if already cached
                 const existing = await cache.match(url);
@@ -124,7 +139,7 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                // Fetch with no-cors so cross-origin images work
+                // Fetch with no-cors so cross-origin images (ImgBB, VGY.ME) work
                 const res = await fetch(url, { mode: 'no-cors' });
 
                 // Convert to blob and store as a real Response.
@@ -136,14 +151,28 @@ async function precacheImages(urls) {
                         headers: { 'Content-Type': blob.type || 'image/png' }
                     }));
                 } else {
-                    failed.push({ url, reason: 'empty response' });
+                    failed.push({ url, reason: 'empty response', durationMs: Date.now() - t0 });
                 }
                 done++;
             } catch (e) {
                 done++;
-                failed.push({ url, reason: e.message || 'error' });
+                const reason = e.name === 'QuotaExceededError' ? 'storage full'
+                    : (e.message || 'error');
+                failed.push({ url, reason, durationMs: Date.now() - t0 });
             }
         }));
+
+        broadcast({
+            type: 'CACHE_PROGRESS',
+            done, total, skipped,
+            failedCount: failed.length,
+            elapsedMs: Date.now() - startTime,
+            batchDurationMs: Date.now() - batchStart
+        });
+
+        if (i + BATCH < urls.length) {
+            await new Promise(r => setTimeout(r, DELAY_MS));
+        }
     }
 
     broadcast({
