@@ -899,7 +899,7 @@ function renderAdminPanel() {
         }).map(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             return `<span title="${def?.name||auId}" style="width:8px;height:8px;border-radius:50%;background:${def?.color||'#64dcb4'};display:inline-block;border:1px solid rgba(255,255,255,0.2);"></span>`;
-        }).join('');
+        }).join('') : '';
         const auDotsHtml = auDots ? `<div class="flex gap-1 flex-wrap mt-1 items-center"><span class="text-xs text-gray-500 mr-1">AU:</span>${auDots}</div>` : '';
 
         card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
