@@ -1,79 +1,21 @@
 {
   "name": "Karakter Evreni",
   "short_name": "Karakterler",
-  "description": "Karakter galerisi, turnuva ve rastgele seçici",
-  "start_url": "/index.html?source=pwa",
-  "scope": "/",
-  "id": "/",
-  "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone"],
+  "start_url": "index.html",
+  "display": "standalone",
   "background_color": "#131318",
   "theme_color": "#443a74",
   "orientation": "portrait-primary",
-  "categories": ["entertainment"],
-  "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "favicon-16x16.png",
-      "type": "image/png",
-      "sizes": "16x16"
-    },
-    {
-      "src": "favicon-32x32.png",
-      "type": "image/png",
-      "sizes": "32x32"
-    },
-    {
-      "src": "apple-touch-icon.png",
-      "type": "image/png",
-      "sizes": "180x180"
-    },
     {
       "src": "icon-192.png",
       "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any"
+      "sizes": "192x192"
     },
     {
       "src": "icon-512.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-maskable-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon-maskable-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Galeri",
-      "short_name": "Galeri",
-      "description": "Karakter galerisini aç",
-      "url": "/index.html?source=pwa&shortcut=galeri",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Turnuva",
-      "short_name": "Turnuva",
-      "description": "Turnuvayı başlat",
-      "url": "/index2.html?source=pwa&shortcut=turnuva",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Rastgele Karakter",
-      "short_name": "Rastgele",
-      "description": "Rastgele karakter seç",
-      "url": "/rastgelekarakter.html?source=pwa&shortcut=rastgele",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+      "sizes": "512x512"
     }
   ]
 }

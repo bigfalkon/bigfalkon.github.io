@@ -1,19 +1,10 @@
-const CACHE_NAME        = 'karakter-galerisi-cache-v3';
+const CACHE_NAME        = 'karakter-galerisi-cache-v2';
 const IMAGE_CACHE_NAME  = 'karakter-images-v1';
 
 // Core app shell cached on install
 const urlsToCache = [
     '/',
-    './index.html',
-    './manifest.json',
-    './favicon.ico',
-    './favicon-16x16.png',
-    './favicon-32x32.png',
-    './apple-touch-icon.png',
-    './icon-192.png',
-    './icon-512.png',
-    './icon-maskable-192.png',
-    './icon-maskable-512.png'
+    './index.html'
 ];
 
 // ─── Install ──────────────────────────────────────────────────────────────────
@@ -25,16 +16,9 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ─── Activate — clean up old caches ───────────────────────────────────────────
+// ─── Activate ─────────────────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(
-                keys.filter(key => key !== CACHE_NAME && key !== IMAGE_CACHE_NAME)
-                    .map(key => caches.delete(key))
-            )
-        ).then(() => clients.claim())
-    );
+    event.waitUntil(clients.claim());
 });
 
 // ─── Fetch — cache-first for images ──────────────────────────────────────────
