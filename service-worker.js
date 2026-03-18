@@ -1,14 +1,10 @@
-const CACHE_NAME        = 'karakter-app-v1';
+const CACHE_NAME        = 'karakter-galerisi-cache-v2';
 const IMAGE_CACHE_NAME  = 'karakter-images-v1';
 
+// Core app shell cached on install
 const urlsToCache = [
-    './',
-    './index.html',
-    './index2.html',
-    './oyun.html',
-    './rastgelekarakter.html',
-    './links.html',
-    './manifest.json'
+    '/',
+    './index.html'
 ];
 
 // ─── Install ──────────────────────────────────────────────────────────────────
@@ -20,172 +16,94 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ─── Activate — clean up legacy caches, keep current ────────────────────────
+// ─── Activate ─────────────────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
-    const keep = new Set([CACHE_NAME, IMAGE_CACHE_NAME]);
-    event.waitUntil(
-        caches.keys().then(names =>
-            Promise.all(
-                names.filter(n => !keep.has(n)).map(n => caches.delete(n))
-            )
-        ).then(() => clients.claim())
-    );
+    event.waitUntil(clients.claim());
 });
 
-// ─── URL normalization ──────────────────────────────────────────────────────
-function stripCacheBust(rawUrl) {
-    return rawUrl
-        .replace(/[?&]_t=\d+/g, '')
-        .replace(/\?&/, '?')
-        .replace(/\?$/, '');
-}
-
-// ─── Fetch handler ──────────────────────────────────────────────────────────
+// ─── Fetch — cache-first for images ──────────────────────────────────────────
 self.addEventListener('fetch', event => {
     if (event.request.destination === 'image') {
-        const cleanUrl = stripCacheBust(event.request.url);
         event.respondWith(
+            // Check image cache first, then app cache, then network
             caches.open(IMAGE_CACHE_NAME).then(imgCache =>
-                imgCache.match(cleanUrl).then(cached => {
+                imgCache.match(event.request).then(cached => {
                     if (cached) return cached;
-                    return fetch(event.request).then(res => {
-                        if (res.ok) imgCache.put(cleanUrl, res.clone());
-                        return res;
-                    }).catch(() => cached || new Response('', { status: 404 }));
+                    return caches.match(event.request).then(appCached => {
+                        if (appCached) return appCached;
+                        return fetch(event.request).then(networkResponse => {
+                            imgCache.put(event.request, networkResponse.clone());
+                            return networkResponse;
+                        });
+                    });
                 })
             )
         );
         return;
     }
 
-    if (event.request.mode === 'navigate') {
-        event.respondWith(
-            fetch(event.request).then(res => {
-                caches.open(CACHE_NAME).then(cache => cache.put(event.request, res.clone()));
-                return res;
-            }).catch(() => caches.match(event.request))
-        );
-        return;
-    }
-
+    // Non-image: app cache → network
     event.respondWith(
-        caches.match(event.request).then(res => res || fetch(event.request))
+        caches.match(event.request).then(response => response || fetch(event.request))
     );
 });
 
-// ─── Broadcast ──────────────────────────────────────────────────────────────
-async function broadcast(msg) {
-    const allClients = await self.clients.matchAll({ type: 'window' });
-    for (const c of allClients) {
-        try { c.postMessage(msg); } catch (_) {}
-    }
-}
-
-// ─── Messages ───────────────────────────────────────────────────────────────
+// ─── Messages from pages ──────────────────────────────────────────────────────
 self.addEventListener('message', event => {
     const { type, urls } = event.data || {};
+
+    // PRECACHE_IMAGES — store a batch of image URLs into IMAGE_CACHE_NAME
     if (type === 'PRECACHE_IMAGES') {
-        event.waitUntil(precacheImages(urls));
+        event.waitUntil(precacheImages(urls, event.source));
+        return;
     }
+
+    // CLEAR_IMAGE_CACHE — wipe IMAGE_CACHE_NAME then optionally re-precache
     if (type === 'CLEAR_IMAGE_CACHE') {
         event.waitUntil(
             caches.delete(IMAGE_CACHE_NAME).then(() => {
-                broadcast({ type: 'CACHE_CLEARED' });
-                if (urls && urls.length) return precacheImages(urls);
+                if (event.source) {
+                    event.source.postMessage({ type: 'CACHE_CLEARED' });
+                }
+                // Re-precache if URLs were supplied
+                if (urls && urls.length) return precacheImages(urls, event.source);
             })
         );
+        return;
     }
 });
 
-// ─── Precache — 10 parallel, 3s timeout, skip & move on ────────────────────
-async function precacheImages(urls) {
+async function precacheImages(urls, client) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
 
-    let done = 0, skipped = 0;
+    let done = 0;
     const total = urls.length;
-    const failed = [];
 
-    const BATCH      = 10;
-    const TIMEOUT_MS = 3000;   // 3 seconds — can't load in 3s? skip it
-    const DELAY_MS   = 50;
-
-    const startTime = Date.now();
-
-    function report(extra) {
-        broadcast({
-            type: 'CACHE_PROGRESS',
-            done, total, skipped,
-            failedCount: failed.length,
-            elapsedMs: Date.now() - startTime,
-            ...extra
-        });
-    }
-
+    // Fetch in parallel batches of 6 to avoid overwhelming the network
+    const BATCH = 6;
     for (let i = 0; i < urls.length; i += BATCH) {
         const batch = urls.slice(i, i + BATCH);
-        const batchStart = Date.now();
-        report({ currentBatch: batch, batchIndex: i });
-
         await Promise.allSettled(batch.map(async url => {
-            const t0 = Date.now();
+            // Skip if already cached (set-and-forget: don't re-fetch)
+            const existing = await cache.match(url);
+            if (existing) { done++; return; }
             try {
-                // Already cached? Skip instantly
-                const existing = await cache.match(url);
-                if (existing) {
-                    done++;
-                    skipped++;
-                    return;
-                }
-
-                // Fetch with hard timeout
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-                const res = await fetch(url, { signal: controller.signal });
-                clearTimeout(timer);
-
-                if (!res.ok) {
-                    done++;
-                    failed.push({ url, reason: `HTTP ${res.status}`, durationMs: Date.now() - t0 });
-                    return;
-                }
-
-                // Read body with its own timeout guard
-                const blob = await Promise.race([
-                    res.blob(),
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('body timeout')), TIMEOUT_MS)
-                    )
-                ]);
-
-                await cache.put(url, new Response(blob, {
-                    status: res.status,
-                    statusText: res.statusText,
-                    headers: res.headers,
-                }));
-                done++;
-
-            } catch (e) {
-                done++;
-                const reason = e.name === 'AbortError' ? 'skipped (>3s)'
-                    : e.message === 'body timeout' ? 'skipped (download slow)'
-                    : e.name === 'QuotaExceededError' ? 'storage full'
-                    : (e.message || 'error');
-                failed.push({ url, reason, durationMs: Date.now() - t0 });
+                const response = await fetch(url, { mode: 'no-cors' });
+                await cache.put(url, response);
+            } catch(e) {
+                console.warn('[SW] Failed to cache:', url, e);
             }
+            done++;
         }));
 
-        report({ batchDurationMs: Date.now() - batchStart });
-
-        if (i + BATCH < urls.length) {
-            await new Promise(r => setTimeout(r, DELAY_MS));
+        // Report progress back to the requesting page
+        if (client) {
+            client.postMessage({ type: 'CACHE_PROGRESS', done, total });
         }
     }
 
-    broadcast({
-        type: 'CACHE_COMPLETE',
-        total, skipped, failed,
-        elapsedMs: Date.now() - startTime
-    });
+    if (client) {
+        client.postMessage({ type: 'CACHE_COMPLETE', total });
+    }
 }
