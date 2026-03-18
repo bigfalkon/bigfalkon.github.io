@@ -20,7 +20,7 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ─── Activate ───────────────────────────────────────────────────────────────
+// ─── Activate ─────────────────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
     const keep = new Set([CACHE_NAME, IMAGE_CACHE_NAME]);
     event.waitUntil(
@@ -32,24 +32,18 @@ self.addEventListener('activate', event => {
     );
 });
 
-// ─── URL normalization ──────────────────────────────────────────────────────
-function stripCacheBust(rawUrl) {
-    return rawUrl
-        .replace(/[?&]_t=\d+/g, '')
-        .replace(/\?&/, '?')
-        .replace(/\?$/, '');
-}
-
-// ─── Fetch handler ──────────────────────────────────────────────────────────
+// ─── Fetch — cache-first for images ──────────────────────────────────────────
 self.addEventListener('fetch', event => {
     if (event.request.destination === 'image') {
-        const cleanUrl = stripCacheBust(event.request.url);
         event.respondWith(
             caches.open(IMAGE_CACHE_NAME).then(imgCache =>
-                imgCache.match(cleanUrl).then(cached => {
+                imgCache.match(event.request).then(cached => {
                     if (cached) return cached;
                     return fetch(event.request).then(res => {
-                        if (res.ok) imgCache.put(cleanUrl, res.clone());
+                        // Cache both normal (ok) and opaque (type=opaque, status=0) responses
+                        if (res.ok || res.type === 'opaque') {
+                            imgCache.put(event.request, res.clone());
+                        }
                         return res;
                     }).catch(() => cached || new Response('', { status: 404 }));
                 })
@@ -97,31 +91,9 @@ self.addEventListener('message', event => {
     }
 });
 
-// ─── Smart timeout: 3s connect + dynamic body time based on size ────────────
-//
-//  Strategy:
-//    1. fetch() with 3s abort — if server doesn't respond in 3s, skip
-//    2. Once headers arrive, check Content-Length
-//    3. Give body download time based on size:
-//         - < 500 KB  →  5s
-//         - < 2 MB    → 10s
-//         - < 5 MB    → 20s
-//         - > 5 MB    → 30s
-//         - unknown   → 15s
-//    4. If body doesn't finish in time, skip that one image
-//
-//  This way small PNGs cache fast, big GIFs get enough time,
-//  and truly stuck connections don't block everything.
-// ─────────────────────────────────────────────────────────────────────────────
-
-function bodyTimeout(contentLength) {
-    if (contentLength == null) return 15000;      // unknown size → 15s
-    if (contentLength < 500 * 1024) return 5000;  // < 500 KB → 5s
-    if (contentLength < 2 * 1024 * 1024) return 10000;  // < 2 MB → 10s
-    if (contentLength < 5 * 1024 * 1024) return 20000;  // < 5 MB → 20s
-    return 30000;                                  // > 5 MB → 30s
-}
-
+// ─── Precache images ────────────────────────────────────────────────────────
+// Uses no-cors to handle cross-origin images, then converts opaque responses
+// to real blob-based responses to avoid the ~7MB-per-opaque-response quota issue.
 async function precacheImages(urls) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
@@ -129,32 +101,22 @@ async function precacheImages(urls) {
     let done = 0, skipped = 0;
     const total = urls.length;
     const failed = [];
-
-    const BATCH       = 6;     // slightly less parallel to give big files breathing room
-    const CONNECT_MS  = 3000;  // 3s to get headers back
-    const DELAY_MS    = 50;
-
+    const BATCH = 6;
     const startTime = Date.now();
 
-    function report(extra) {
+    for (let i = 0; i < urls.length; i += BATCH) {
+        const batch = urls.slice(i, i + BATCH);
+
         broadcast({
             type: 'CACHE_PROGRESS',
             done, total, skipped,
             failedCount: failed.length,
-            elapsedMs: Date.now() - startTime,
-            ...extra
+            elapsedMs: Date.now() - startTime
         });
-    }
-
-    for (let i = 0; i < urls.length; i += BATCH) {
-        const batch = urls.slice(i, i + BATCH);
-        const batchStart = Date.now();
-        report({ currentBatch: batch, batchIndex: i });
 
         await Promise.allSettled(batch.map(async url => {
-            const t0 = Date.now();
             try {
-                // ── Already cached? Skip ────────────────────────────────
+                // Skip if already cached
                 const existing = await cache.match(url);
                 if (existing) {
                     done++;
@@ -162,58 +124,26 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                // ── Phase 1: Connect (3s timeout) ───────────────────────
-                const controller = new AbortController();
-                const connectTimer = setTimeout(() => controller.abort(), CONNECT_MS);
+                // Fetch with no-cors so cross-origin images work
+                const res = await fetch(url, { mode: 'no-cors' });
 
-                const res = await fetch(url, { signal: controller.signal });
-                clearTimeout(connectTimer);
-
-                if (!res.ok) {
-                    done++;
-                    failed.push({ url, reason: `HTTP ${res.status}`, durationMs: Date.now() - t0 });
-                    return;
+                // Convert to blob and store as a real Response.
+                // This avoids the browser counting opaque responses as ~7MB each
+                // against the storage quota.
+                const blob = await res.blob();
+                if (blob.size > 0) {
+                    await cache.put(url, new Response(blob, {
+                        headers: { 'Content-Type': blob.type || 'image/png' }
+                    }));
+                } else {
+                    failed.push({ url, reason: 'empty response' });
                 }
-
-                // ── Phase 2: Download body (dynamic timeout) ────────────
-                const size = parseInt(res.headers.get('content-length'), 10) || null;
-                const bodyMs = bodyTimeout(size);
-
-                const blob = await Promise.race([
-                    res.blob(),
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('body_timeout')), bodyMs)
-                    )
-                ]);
-
-                await cache.put(url, new Response(blob, {
-                    status: res.status,
-                    statusText: res.statusText,
-                    headers: res.headers,
-                }));
                 done++;
-
             } catch (e) {
                 done++;
-                let reason;
-                if (e.name === 'AbortError') {
-                    reason = 'connect timeout (3s)';
-                } else if (e.message === 'body_timeout') {
-                    reason = 'download too slow';
-                } else if (e.name === 'QuotaExceededError') {
-                    reason = 'storage full';
-                } else {
-                    reason = e.message || 'error';
-                }
-                failed.push({ url, reason, durationMs: Date.now() - t0 });
+                failed.push({ url, reason: e.message || 'error' });
             }
         }));
-
-        report({ batchDurationMs: Date.now() - batchStart });
-
-        if (i + BATCH < urls.length) {
-            await new Promise(r => setTimeout(r, DELAY_MS));
-        }
     }
 
     broadcast({
