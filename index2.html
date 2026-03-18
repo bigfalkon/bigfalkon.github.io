@@ -1708,6 +1708,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <span id="cache-toast-icon" class="material-symbols-outlined" style="font-size:18px">cloud_download</span>
     <span id="cache-toast-text">Starting…</span>
     <div class="toast-bar"><div class="toast-fill" id="cache-toast-fill" style="width:0%"></div></div>
+    <div id="cache-toast-detail" style="font-size:11px;color:#aaa;margin-top:2px;max-height:32px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
 </div>
 
 <script>
@@ -1740,20 +1741,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return [...urls].map(u => u.replace(/[?&]_t=\d+/, ''));
     }
 
+    // Format milliseconds to human-readable duration
+    function formatDuration(ms) {
+        if (ms < 1000) return ms + 'ms';
+        const s = Math.round(ms / 1000);
+        if (s < 60) return s + 's';
+        const m = Math.floor(s / 60);
+        return m + 'm ' + (s % 60) + 's';
+    }
+
+    // Extract short filename from URL for display
+    function shortName(url) {
+        try {
+            const path = new URL(url).pathname;
+            const parts = path.split('/');
+            return parts[parts.length - 1] || path;
+        } catch { return url.slice(-30); }
+    }
+
     // Toast helpers
-    const toast      = document.getElementById('cache-toast');
-    const toastIcon  = document.getElementById('cache-toast-icon');
-    const toastText  = document.getElementById('cache-toast-text');
-    const toastFill  = document.getElementById('cache-toast-fill');
+    const toast       = document.getElementById('cache-toast');
+    const toastIcon   = document.getElementById('cache-toast-icon');
+    const toastText   = document.getElementById('cache-toast-text');
+    const toastFill   = document.getElementById('cache-toast-fill');
+    const toastDetail = document.getElementById('cache-toast-detail');
     let toastTimer;
 
-    function showToast(icon, text, pct, autohide) {
+    function showToast(icon, text, pct, autohide, detail) {
         clearTimeout(toastTimer);
         toastIcon.textContent = icon;
         toastText.textContent = text;
         toastFill.style.width = (pct ?? 0) + '%';
+        toastDetail.textContent = detail || '';
         toast.classList.remove('hidden');
-        if (autohide) toastTimer = setTimeout(() => toast.classList.add('hidden'), 3500);
+        if (autohide) toastTimer = setTimeout(() => toast.classList.add('hidden'), 4500);
     }
 
     // Cache button state
@@ -1778,26 +1799,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for SW progress messages
     navigator.serviceWorker.addEventListener('message', e => {
-        const { type, done, total, failedCount, failed } = e.data || {};
-        if (type === 'CACHE_PROGRESS') {
+        const d = e.data || {};
+        if (d.type === 'CACHE_PROGRESS') {
+            const { done, total, failedCount, elapsedMs, currentBatch, batchDurationMs } = d;
             const pct = Math.round((done / total) * 100);
-            const failTxt = failedCount ? ` (${failedCount} failed)` : '';
-            showToast('cloud_download', `Caching… ${done} / ${total}${failTxt}`, pct);
+            const elapsed = formatDuration(elapsedMs || 0);
+
+            // Main status line
+            let failTxt = failedCount ? ` · ${failedCount} hata` : '';
+            showToast('cloud_download', `${done} / ${total}${failTxt} — ${elapsed}`, pct, false,
+                currentBatch ? `Batch: ${currentBatch.map(shortName).join(', ')}` :
+                batchDurationMs ? `Son batch: ${formatDuration(batchDurationMs)}` : '');
+
             cacheBtnText.textContent = `${pct}%`;
         }
-        if (type === 'CACHE_COMPLETE') {
+        if (d.type === 'CACHE_COMPLETE') {
+            const { total, failed, elapsedMs } = d;
+            const elapsed = formatDuration(elapsedMs || 0);
+
             if (failed && failed.length) {
-                showToast('warning', `Done — ${total - failed.length}/${total} cached, ${failed.length} failed`, 100, false);
+                // Build detailed failure summary
+                const reasons = {};
+                failed.forEach(f => { reasons[f.reason] = (reasons[f.reason] || 0) + 1; });
+                const summary = Object.entries(reasons).map(([r,c]) => `${c}x ${r}`).join(', ');
+
+                showToast('warning',
+                    `${total - failed.length}/${total} cached, ${failed.length} hata — ${elapsed}`,
+                    100, false,
+                    summary);
+
                 console.group(`[Cache] ${failed.length} images failed:`);
-                failed.forEach(f => console.warn(f.reason, '→', f.url));
+                failed.forEach(f => {
+                    const dur = f.durationMs ? ` (${formatDuration(f.durationMs)})` : '';
+                    console.warn(f.reason + dur, '→', f.url);
+                });
                 console.groupEnd();
             } else {
-                showToast('cloud_done', `Done — ${total} images cached`, 100, true);
+                showToast('cloud_done', `${total} resim cached — ${elapsed}`, 100, true);
             }
             setBtnState('done');
         }
-        if (type === 'CACHE_CLEARED') {
-            showToast('sync', 'Cache cleared — re-caching…', 0);
+        if (d.type === 'CACHE_CLEARED') {
+            showToast('sync', 'Cache temizlendi — yeniden indiriliyor…', 0);
         }
     });
 
@@ -1817,12 +1860,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Shift+click = clear + re-cache
             if (!confirm(`Wipe the image cache and re-download all ${urls.length} images? This may take a moment.`)) return;
             setBtnState('clearing');
-            showToast('sync', 'Clearing cache…', 0);
+            showToast('sync', 'Cache temizleniyor…', 0);
             sendToSW('CLEAR_IMAGE_CACHE', urls);
         } else {
             // Normal click = cache missing images only
             setBtnState('loading');
-            showToast('cloud_download', `Caching ${urls.length} images…`, 0);
+            showToast('cloud_download', `${urls.length} resim cache\'leniyor…`, 0);
             sendToSW('PRECACHE_IMAGES', urls);
         }
     });
