@@ -1786,10 +1786,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const cacheBtn     = document.getElementById('cache-btn');
     const cacheBtnIcon = document.getElementById('cache-btn-icon');
     const cacheBtnText = document.getElementById('cache-btn-text');
+    let isCaching = false;
 
     function setBtnState(state) {
         // state: 'idle' | 'loading' | 'done' | 'clearing'
-        cacheBtn.disabled = state === 'loading' || state === 'clearing';
+        isCaching = (state === 'loading' || state === 'clearing');
+        cacheBtn.disabled = isCaching;
         if (state === 'idle')     { cacheBtnIcon.textContent = 'cloud_download'; cacheBtnText.textContent = 'Cache Images'; }
         if (state === 'loading')  { cacheBtnIcon.textContent = 'sync';           cacheBtnText.textContent = 'Caching…'; }
         if (state === 'done')     { cacheBtnIcon.textContent = 'cloud_done';     cacheBtnText.textContent = 'Cache Images'; }
@@ -1802,37 +1804,54 @@ document.addEventListener('DOMContentLoaded', () => {
             : null;
     }
 
-    // Listen for SW progress messages
+    // ── Stall watchdog ──────────────────────────────────────────────────────
+    // If we don't hear from the SW for 45 seconds while caching, assume it stalled
+    let stallTimer = null;
+    let lastProgress = 0;
+    const STALL_TIMEOUT = 45000;
+
+    function resetStallTimer() {
+        clearTimeout(stallTimer);
+        if (!isCaching) return;
+        stallTimer = setTimeout(() => {
+            if (!isCaching) return;
+            showToast('error', 'Cache appears stuck — try again', lastProgress, false,
+                'The service worker stopped responding. Refresh the page and retry.');
+            setBtnState('done');
+        }, STALL_TIMEOUT);
+    }
+
+    // Listen for SW progress messages (now via broadcast from clients API)
     navigator.serviceWorker.addEventListener('message', e => {
         const d = e.data || {};
         if (d.type === 'CACHE_PROGRESS') {
             const { done, total, skipped, failedCount, elapsedMs, currentBatch, batchDurationMs } = d;
             const pct = Math.round((done / total) * 100);
+            lastProgress = pct;
             const elapsed = formatDuration(elapsedMs || 0);
-            const newDownloads = done - (skipped || 0);
 
-            // Main status line
-            let failTxt = failedCount ? ` · ${failedCount} hata` : '';
-            let skipTxt = skipped ? ` · ${skipped} zaten var` : '';
+            let failTxt = failedCount ? ` · ${failedCount} failed` : '';
+            let skipTxt = skipped ? ` · ${skipped} cached` : '';
             showToast('cloud_download', `${done} / ${total}${skipTxt}${failTxt} — ${elapsed}`, pct, false,
                 currentBatch ? `${currentBatch.map(shortName).join(', ')}` :
-                batchDurationMs ? `Son batch: ${formatDuration(batchDurationMs)}` : '');
+                batchDurationMs ? `Batch: ${formatDuration(batchDurationMs)}` : '');
 
             cacheBtnText.textContent = `${pct}%`;
+            resetStallTimer();
         }
         if (d.type === 'CACHE_COMPLETE') {
+            clearTimeout(stallTimer);
             const { total, skipped, failed, elapsedMs } = d;
             const elapsed = formatDuration(elapsedMs || 0);
             const newDownloads = total - (skipped || 0) - (failed ? failed.length : 0);
 
             if (failed && failed.length) {
-                // Build detailed failure summary
                 const reasons = {};
                 failed.forEach(f => { reasons[f.reason] = (reasons[f.reason] || 0) + 1; });
-                const summary = Object.entries(reasons).map(([r,c]) => `${c}x ${r}`).join(', ');
+                const summary = Object.entries(reasons).map(([r,c]) => `${c}× ${r}`).join(', ');
 
                 showToast('warning',
-                    `${total - failed.length}/${total} cached, ${failed.length} hata — ${elapsed}`,
+                    `${total - failed.length}/${total} cached, ${failed.length} failed — ${elapsed}`,
                     100, false,
                     summary);
 
@@ -1843,13 +1862,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.groupEnd();
             } else {
-                const detail = skipped ? `${newDownloads} yeni, ${skipped} zaten vardı` : '';
-                showToast('cloud_done', `${total} resim cached — ${elapsed}`, 100, true, detail);
+                const detail = skipped ? `${newDownloads} new, ${skipped} already cached` : '';
+                showToast('cloud_done', `${total} images cached — ${elapsed}`, 100, true, detail);
             }
             setBtnState('done');
         }
         if (d.type === 'CACHE_CLEARED') {
-            showToast('sync', 'Cache temizlendi — yeniden indiriliyor…', 0);
+            showToast('sync', 'Cache cleared — re-downloading…', 0);
+            resetStallTimer();
         }
     });
 
@@ -1866,20 +1886,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (e.shiftKey) {
-            // Shift+click = clear + re-cache
             if (!confirm(`Wipe the image cache and re-download all ${urls.length} images? This may take a moment.`)) return;
             setBtnState('clearing');
-            showToast('sync', 'Cache temizleniyor…', 0);
+            lastProgress = 0;
+            showToast('sync', 'Clearing cache…', 0);
             sendToSW('CLEAR_IMAGE_CACHE', urls);
+            resetStallTimer();
         } else {
-            // Normal click = cache missing images only
             setBtnState('loading');
-            showToast('cloud_download', `${urls.length} resim cache\'leniyor…`, 0);
+            lastProgress = 0;
+            showToast('cloud_download', `Caching ${urls.length} images…`, 0);
             sendToSW('PRECACHE_IMAGES', urls);
+            resetStallTimer();
         }
     });
 
-    // Tooltip hint
     cacheBtn.title = 'Cache all images for fast loading • Shift+click to force refresh';
 })();
 </script>
