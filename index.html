@@ -2,15 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Character Gallery</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00000000"/>
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Karakterler">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <meta name="description" content="Karakter galerisi ve yönetim paneli">
+    <meta name="theme-color" content="#443a74"/>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -62,10 +57,6 @@
             color: var(--on-bg);
             overflow-x: hidden;
             transition: --primary 0.4s ease;
-            /* Yanlara ve alta güvenli boşluk */
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
         }
         /* AU theme override: overrides primary-related accent colors */
         body.au-theme-active {
@@ -336,7 +327,7 @@
 <body class="p-4 sm:p-6 md:p-8">
 
 <div id="app" class="max-w-screen-2xl mx-auto">
-    <header class="mb-8 text-center" style="border-color: var(--outline-var); padding-top: calc(env(safe-area-inset-top) + 1rem);">
+    <header class="mb-8 text-center" style="border-color: var(--outline-var);">
         <div>
             <h1 id="gallery-title" class="text-4xl md:text-5xl font-extrabold" style="color: var(--primary); font-family: 'Metamorphous', serif; cursor: pointer;">
                 Character Gallery
@@ -357,7 +348,7 @@
         </button>
     </div>
 
-    <div class="control-panel sticky z-50 flex items-center justify-center gap-2 mb-8 px-3 py-2.5 rounded-2xl shadow-lg flex-wrap" style="top: max(1rem, calc(env(safe-area-inset-top) + 2.5rem));">
+    <div class="control-panel sticky top-4 z-50 flex items-center justify-center gap-2 mb-8 px-3 py-2.5 rounded-2xl shadow-lg flex-wrap">
 
         <!-- Left group: Search + Filter + AU -->
         <div class="flex items-center gap-2">
@@ -733,6 +724,7 @@ function _buildCard(char, index) {
     const card = document.createElement('div');
     const isFusion   = !!char.isFusion;
     const isDismissed= !!char.isDismissed || (dismissedCharacters.some(d => d.id === char.id));
+    // EE cards are never shown in gallery anymore
     const hasReachableAu = state.activeAuId
         ? hasAuEntry(char, state.activeAuId)
         : hasReachableAuEntry(char);
@@ -1289,6 +1281,7 @@ function renderSearchResults() {
     const term = dom.searchModal.input.value.toLowerCase().trim();
     if (!term) { ph.textContent = 'Type a name or ID above to search.'; ph.classList.remove('hidden'); return; }
 
+    // Search pool: active characters + dismissed (no EEs shown)
     const pool = [...characters, ...dismissedCharacters.filter(c => c.type !== 'easterEgg')];
 
     const results = [];
@@ -1360,12 +1353,12 @@ function updateModalNav(id, type) {
         nav = pool.filter(c => c.isFusion).sort(sortFn);
     } else if (mode === 'all' || mode === 'dismissed') {
         nav = [
-            ...pool.filter(c => !c.isFusion).sort(sortFn),
+            ...pool.filter(c => !c.isFusion && c.type !== 'easterEgg').sort(sortFn),
             ...pool.filter(c => c.isFusion).sort(sortFn),
         ];
     } else if (mode === 'reachable-au') {
         nav = [
-            ...pool.filter(c => !c.isFusion && hasReachableAuEntry(c)).sort(sortFn),
+            ...pool.filter(c => !c.isFusion && c.type !== 'easterEgg' && hasReachableAuEntry(c)).sort(sortFn),
             ...pool.filter(c => c.isFusion && hasReachableAuEntry(c)).sort(sortFn),
         ];
     } else {
@@ -1374,7 +1367,7 @@ function updateModalNav(id, type) {
             if (starFilter === 4) {
                 nav = pool.filter(c => c.isFusion).sort(sortFn);
             } else {
-                nav = pool.filter(c => !c.isFusion).sort(sortFn);
+                nav = pool.filter(c => !c.isFusion && c.type !== 'easterEgg').sort(sortFn);
             }
         } else {
             // fallback: all
