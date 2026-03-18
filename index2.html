@@ -887,7 +887,7 @@ function renderAdminPanel() {
         }).join('');
         const auDotsHtml = auDots ? `<div class="flex gap-1 flex-wrap mt-1 items-center"><span class="text-xs text-gray-500 mr-1">AU:</span>${auDots}</div>` : '';
 
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:(isEE?1:1), isEE?'auto_awesome':'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
