@@ -95,6 +95,22 @@ self.addEventListener('message', event => {
     }
 });
 
+// ─── Fetch with timeout ──────────────────────────────────────────────────────
+function fetchWithTimeout(url, options, timeoutMs) {
+    return new Promise((resolve, reject) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+            controller.abort();
+            reject(new Error('timeout'));
+        }, timeoutMs);
+
+        fetch(url, { ...options, signal: controller.signal })
+            .then(res => { clearTimeout(timer); resolve(res); })
+            .catch(err => { clearTimeout(timer); reject(err); });
+    });
+}
+
+// ─── Precache with timeout, stall detection, and detailed progress ──────────
 async function precacheImages(urls, client) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
@@ -102,37 +118,68 @@ async function precacheImages(urls, client) {
     let done = 0;
     const total = urls.length;
     const failed = [];
+    const BATCH = 10;
+    const TIMEOUT_MS = 20000; // 20s per image
+    const startTime = Date.now();
 
-    // Fetch in parallel batches of 6 to avoid overwhelming the network
-    const BATCH = 6;
+    function report(extra) {
+        if (!client) return;
+        client.postMessage({
+            type: 'CACHE_PROGRESS',
+            done, total,
+            failedCount: failed.length,
+            elapsedMs: Date.now() - startTime,
+            ...extra
+        });
+    }
+
     for (let i = 0; i < urls.length; i += BATCH) {
         const batch = urls.slice(i, i + BATCH);
+        const batchStart = Date.now();
+
+        // Report which batch is starting
+        report({ currentBatch: batch, batchIndex: i });
+
         await Promise.allSettled(batch.map(async url => {
+            const fetchStart = Date.now();
             try {
                 // Skip if already cached
                 const existing = await cache.match(url);
                 if (existing) { done++; return; }
 
-                const response = await fetch(url, { mode: 'no-cors' });
+                const response = await fetchWithTimeout(url, { mode: 'no-cors' }, TIMEOUT_MS);
                 await cache.put(url, response);
                 done++;
             } catch(e) {
                 done++;
-                const reason = e.name === 'TypeError' ? 'network error'
-                    : e.name === 'QuotaExceededError' ? 'storage full'
-                    : e.message || e.name || 'unknown';
-                failed.push({ url, reason });
-                console.warn('[SW] Failed to cache:', url, reason);
+                let reason;
+                if (e.message === 'timeout') {
+                    reason = `timeout (${Math.round(TIMEOUT_MS/1000)}s)`;
+                } else if (e.name === 'AbortError') {
+                    reason = `timeout (${Math.round(TIMEOUT_MS/1000)}s)`;
+                } else if (e.name === 'TypeError') {
+                    reason = 'network error';
+                } else if (e.name === 'QuotaExceededError') {
+                    reason = 'storage full';
+                } else {
+                    reason = e.message || e.name || 'unknown';
+                }
+                const durationMs = Date.now() - fetchStart;
+                failed.push({ url, reason, durationMs });
+                console.warn('[SW] Failed to cache:', url, reason, `(${durationMs}ms)`);
             }
         }));
 
-        // Report progress back to the requesting page
-        if (client) {
-            client.postMessage({ type: 'CACHE_PROGRESS', done, total, failedCount: failed.length });
-        }
+        const batchDuration = Date.now() - batchStart;
+        report({ batchDurationMs: batchDuration });
     }
 
     if (client) {
-        client.postMessage({ type: 'CACHE_COMPLETE', total, failed });
+        client.postMessage({
+            type: 'CACHE_COMPLETE',
+            total,
+            failed,
+            elapsedMs: Date.now() - startTime
+        });
     }
 }
