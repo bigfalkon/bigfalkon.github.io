@@ -1778,14 +1778,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for SW progress messages
     navigator.serviceWorker.addEventListener('message', e => {
-        const { type, done, total } = e.data || {};
+        const { type, done, total, failedCount, failed } = e.data || {};
         if (type === 'CACHE_PROGRESS') {
             const pct = Math.round((done / total) * 100);
-            showToast('cloud_download', `Caching… ${done} / ${total}`, pct);
+            const failTxt = failedCount ? ` (${failedCount} failed)` : '';
+            showToast('cloud_download', `Caching… ${done} / ${total}${failTxt}`, pct);
             cacheBtnText.textContent = `${pct}%`;
         }
         if (type === 'CACHE_COMPLETE') {
-            showToast('cloud_done', `Done — ${total} images cached`, 100, true);
+            if (failed && failed.length) {
+                showToast('warning', `Done — ${total - failed.length}/${total} cached, ${failed.length} failed`, 100, false);
+                console.group(`[Cache] ${failed.length} images failed:`);
+                failed.forEach(f => console.warn(f.reason, '→', f.url));
+                console.groupEnd();
+            } else {
+                showToast('cloud_done', `Done — ${total} images cached`, 100, true);
+            }
             setBtnState('done');
         }
         if (type === 'CACHE_CLEARED') {
