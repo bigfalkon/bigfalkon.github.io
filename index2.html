@@ -1806,21 +1806,24 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.addEventListener('message', e => {
         const d = e.data || {};
         if (d.type === 'CACHE_PROGRESS') {
-            const { done, total, failedCount, elapsedMs, currentBatch, batchDurationMs } = d;
+            const { done, total, skipped, failedCount, elapsedMs, currentBatch, batchDurationMs } = d;
             const pct = Math.round((done / total) * 100);
             const elapsed = formatDuration(elapsedMs || 0);
+            const newDownloads = done - (skipped || 0);
 
             // Main status line
             let failTxt = failedCount ? ` · ${failedCount} hata` : '';
-            showToast('cloud_download', `${done} / ${total}${failTxt} — ${elapsed}`, pct, false,
-                currentBatch ? `Batch: ${currentBatch.map(shortName).join(', ')}` :
+            let skipTxt = skipped ? ` · ${skipped} zaten var` : '';
+            showToast('cloud_download', `${done} / ${total}${skipTxt}${failTxt} — ${elapsed}`, pct, false,
+                currentBatch ? `${currentBatch.map(shortName).join(', ')}` :
                 batchDurationMs ? `Son batch: ${formatDuration(batchDurationMs)}` : '');
 
             cacheBtnText.textContent = `${pct}%`;
         }
         if (d.type === 'CACHE_COMPLETE') {
-            const { total, failed, elapsedMs } = d;
+            const { total, skipped, failed, elapsedMs } = d;
             const elapsed = formatDuration(elapsedMs || 0);
+            const newDownloads = total - (skipped || 0) - (failed ? failed.length : 0);
 
             if (failed && failed.length) {
                 // Build detailed failure summary
@@ -1840,7 +1843,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.groupEnd();
             } else {
-                showToast('cloud_done', `${total} resim cached — ${elapsed}`, 100, true);
+                const detail = skipped ? `${newDownloads} yeni, ${skipped} zaten vardı` : '';
+                showToast('cloud_done', `${total} resim cached — ${elapsed}`, 100, true, detail);
             }
             setBtnState('done');
         }
