@@ -35,14 +35,20 @@ self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
     // Image requests: cache-first
+    // Normalize URL by stripping _t cache-bust param so precached keys match
     if (event.request.destination === 'image') {
+        const cleanUrl = event.request.url
+            .replace(/[?&]_t=\d+/g, '')
+            .replace(/\?&/, '?')
+            .replace(/\?$/, '');
+
         event.respondWith(
             caches.open(IMAGE_CACHE_NAME).then(imgCache =>
-                imgCache.match(event.request).then(cached => {
+                imgCache.match(cleanUrl).then(cached => {
                     if (cached) return cached;
                     return fetch(event.request).then(networkResponse => {
                         if (networkResponse.ok || networkResponse.type === 'opaque') {
-                            imgCache.put(event.request, networkResponse.clone());
+                            imgCache.put(cleanUrl, networkResponse.clone());
                         }
                         return networkResponse;
                     }).catch(() => cached || new Response('', { status: 404 }));

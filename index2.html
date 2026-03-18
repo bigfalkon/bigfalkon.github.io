@@ -1737,8 +1737,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Strip cache-bust params if any (_t=...)
-        return [...urls].map(u => u.replace(/[?&]_t=\d+/, ''));
+        // Strip cache-bust params, clean up malformed query strings, then re-deduplicate
+        return [...new Set([...urls].map(u => {
+            u = u.replace(/[?&]_t=\d+/g, '');    // remove _t param
+            u = u.replace(/\?&/, '?');            // fix ?& → ?
+            u = u.replace(/\?$/, '');             // remove trailing ?
+            return u;
+        }))];
     }
 
     // Format milliseconds to human-readable duration
