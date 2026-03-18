@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.bigfalkon.twa",
+    "sha256_cert_fingerprints": [
+      "81:3D:9D:C5:79:88:FB:A8:90:96:7C:88:64:74:E1:EB:FD:53:6D:1D:31:E7:17:65:53:A1:FE:41:67:47:14:BE"
+    ]
+  }
+}]
