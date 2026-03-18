@@ -1,21 +1,38 @@
 {
   "name": "Karakter Evreni",
   "short_name": "Karakterler",
-  "start_url": "index.html",
+  "description": "Karakter galerisi ve yönetim paneli",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#131318",
   "theme_color": "#443a74",
   "orientation": "portrait-primary",
+  "categories": ["entertainment"],
   "icons": [
     {
       "src": "icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ]
 }
