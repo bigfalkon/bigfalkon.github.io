@@ -1793,20 +1793,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for SW progress messages
     navigator.serviceWorker.addEventListener('message', e => {
-        const { type, done, total, failed } = e.data || {};
+        const { type, done, total } = e.data || {};
         if (type === 'CACHE_PROGRESS') {
             const pct = Math.round((done / total) * 100);
             showToast('cloud_download', `Caching… ${done} / ${total}`, pct);
             cacheBtnText.textContent = `${pct}%`;
         }
         if (type === 'CACHE_COMPLETE') {
-            const ok = total - (failed?.length || 0);
-            if (failed?.length) {
-                console.warn('[Cache] Failed URLs:', failed);
-                showToast('cloud_done', `Done — ${ok}/${total} cached, ${failed.length} failed`, 100, true);
-            } else {
-                showToast('cloud_done', `Done — ${total} images cached`, 100, true);
-            }
+            showToast('cloud_done', `Done — ${total} images cached`, 100, true);
             setBtnState('done');
         }
         if (type === 'CACHE_CLEARED') {

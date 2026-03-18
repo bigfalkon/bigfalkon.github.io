@@ -89,23 +89,12 @@ self.addEventListener('message', event => {
     }
 });
 
-async function fetchWithTimeout(url, ms = 15000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), ms);
-    try {
-        return await fetch(url, { signal: controller.signal });
-    } finally {
-        clearTimeout(timer);
-    }
-}
-
 async function precacheImages(urls, client) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
 
     let done = 0;
     const total = urls.length;
-    const failed = [];
 
     // Fetch in parallel batches of 6 to avoid overwhelming the network
     const BATCH = 6;
@@ -117,12 +106,10 @@ async function precacheImages(urls, client) {
                 try {
                     const existing = await cache.match(url);
                     if (existing) { done++; return; }
-                    const response = await fetchWithTimeout(url);
+                    const response = await fetch(url);
                     await cache.put(url, response);
                 } catch(e) {
-                    const reason = e.name === 'AbortError' ? 'timeout' : e.message;
-                    console.warn('[SW] Failed to cache:', url, reason);
-                    failed.push({ url, reason });
+                    console.warn('[SW] Failed to cache:', url, e);
                 }
                 done++;
             }));
@@ -137,6 +124,6 @@ async function precacheImages(urls, client) {
     }
 
     if (client) {
-        try { client.postMessage({ type: 'CACHE_COMPLETE', total, failed }); } catch(_) {}
+        try { client.postMessage({ type: 'CACHE_COMPLETE', total }); } catch(_) {}
     }
 }
