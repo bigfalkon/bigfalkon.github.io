@@ -323,12 +323,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="easter-egg-fields" class="hidden flex flex-col gap-3">
-                    <div class="character-selector-wrapper">
-                        <label class="block text-sm font-medium mb-1">Original Character</label>
-                        <div class="flex items-center gap-2"><div id="originalCharacterId_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Not selected</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('originalCharacterId')">Select</button><input type="hidden" name="originalCharacterId"></div>
-                    </div>
-                </div>
+
 
                 <div id="prompt-management-section" class="hidden">
                     <h3 class="prompt-section-header">Prompt Management</h3>
@@ -482,10 +477,7 @@
                 <input type="checkbox" id="export-include-retired" class="w-5 h-5 accent-[var(--primary)]">
                 <span class="text-sm font-medium">Include Retired</span>
             </label>
-            <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
-                <input type="checkbox" id="export-include-eastereggs" class="w-5 h-5 accent-[var(--primary)]">
-                <span class="text-sm font-medium">Include Easter Eggs</span>
-            </label>
+
             <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
                 <input type="checkbox" id="export-include-au" class="w-5 h-5 accent-[var(--au)]">
                 <span class="text-sm font-medium" style="color: var(--on-au-container);">Include AU Prompts</span>
@@ -625,7 +617,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let apiKeys = { imgbb_main_key: null, imgbb2_key: null, vgy_user_key: null };
-let characters = [], easterEggs = [], dismissed = [];
+let characters = [], dismissed = [];
 let alternativeUniverses = [];
 let editingItemId = null, editingItemType = null, selectorTargetInput = null, existingPrompts = {};
 
@@ -679,7 +671,7 @@ Object.assign(dom, {
     qpEmpty:            document.getElementById('qp-empty'),
     exportModal:        document.getElementById('export-modal'),
     exportIncludeRetired: document.getElementById('export-include-retired'),
-    exportIncludeEasterEggs: document.getElementById('export-include-eastereggs'),
+
     exportIncludeAu:    document.getElementById('export-include-au'),
     exportStatus:       document.getElementById('export-status'),
     exportBtn:          document.getElementById('export-action-btn'),
@@ -844,7 +836,7 @@ function renderAdminPanel() {
 
     dom.adminGrid.innerHTML = '';
     const q = dom.searchInput.value.toLowerCase().trim();
-    let items = [...characters, ...easterEggs, ...dismissed];
+    let items = [...characters, ...dismissed];
     if (viewState.filter === 'available') {
         const pIds = new Set(characters.filter(c=>c.isFusion).flatMap(f=>f.fusionPartners||[]));
         items = characters.filter(c=>!c.isFusion && !pIds.has(c.id));
@@ -861,12 +853,12 @@ function renderAdminPanel() {
         const card = document.createElement('div');
         const isRetired = !!item.isRetired;
         card.className = `item-card ${isRetired?'retired':''}`;
-        const isFusion = item.isFusion, isEE = !!item.originalCharacterId;
-        const nameClass = (isFusion||isEE) ? 'font-fantastical' : '';
+        const isFusion = item.isFusion;
+        const nameClass = isFusion ? 'font-fantastical' : '';
 
         let imgBlock;
-        if (isFusion||isEE) {
-            const url = (isFusion ? item.previewUrl : item.imageUrl) || '';
+        if (isFusion) {
+            const url = item.previewUrl || '';
             imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${url}')"><img src="${url}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy"></div>`;
         } else {
             const e2 = item.evolutions?.find(e=>e.star===2), e3 = item.evolutions?.find(e=>e.star===3);
@@ -886,9 +878,8 @@ function renderAdminPanel() {
                 <button class="icon-button retire-button" data-id="${item.id}" data-type="${item.type}" data-action="unretire" title="Restore"><span class="material-symbols-outlined">settings_backup_restore</span></button>
                 <button class="icon-button delete-button" data-id="${item.id}" data-type="${item.type}" title="Delete Permanently"><span class="material-symbols-outlined">delete_forever</span></button>`;
         } else {
-            const type = isFusion ? 'fusion' : (isEE ? 'easterEgg' : 'character');
-            // AU button only for non-EE
-            const auBtn = !isEE ? `<button class="icon-button au-button" data-id="${item.id}" data-type="${type}" title="Manage AU"><span class="material-symbols-outlined">auto_fix_high</span></button>` : '';
+            const type = isFusion ? 'fusion' : 'character';
+            const auBtn = `<button class="icon-button au-button" data-id="${item.id}" data-type="${type}" title="Manage AU"><span class="material-symbols-outlined">auto_fix_high</span></button>`;
             actionBtns = `
                 <button class="icon-button view-prompt-button" data-id="${item.id}" data-name="${item.name}" title="View Prompts"><span class="material-symbols-outlined" style="color:var(--primary);">description</span></button>
                 ${auBtn}
@@ -901,7 +892,7 @@ function renderAdminPanel() {
         const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${getDate(item).toLocaleDateString('en-US')}</p>` : '<p class="text-xs text-red-400 mt-1">No date</p>';
 
         // AU coverage dots
-        const auDots = !isEE ? Object.keys(item.auData||{}).filter(auId => {
+        const auDots = Object.keys(item.auData||{}).filter(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             const auEntry = item.auData[auId];
             return def && (isFusion ? auEntry?.fusionImageUrl : auEntry?.star3ImageUrl);
@@ -911,7 +902,7 @@ function renderAdminPanel() {
         }).join('') : '';
         const auDotsHtml = auDots ? `<div class="flex gap-1 flex-wrap mt-1 items-center"><span class="text-xs text-gray-500 mr-1">AU:</span>${auDots}</div>` : '';
 
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:(isEE?1:1), isEE?'auto_awesome':'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
@@ -1186,7 +1177,7 @@ function closeAuEntryModal() {
 
 function renderAuEntrySelector(q) {
     dom.auEntrySelectorGrid.innerHTML = '';
-    const pool = [...characters, ...dismissed].filter(c => !c.originalCharacterId); // no EEs
+    const pool = [...characters, ...dismissed];
     const filtered = pool.filter(c => c.name.toLowerCase().includes(q.toLowerCase()) || c.id.toLowerCase().includes(q.toLowerCase()));
     filtered.forEach(char => {
         const item = document.createElement('div');
@@ -1276,16 +1267,13 @@ function toggleFormFields() {
     dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', t !== 'character');
     dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', t !== 'fusion');
     dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'fusion');
-    dom.addEditForm.querySelector('#easter-egg-fields').classList.toggle('hidden', t !== 'easterEgg');
     dom.addEditForm.querySelector('#main-image-container > label').textContent =
-        t === 'easterEgg' ? 'Easter Egg Image' : (t === 'fusion' ? 'Main Fusion Image (GIF – Optional)' : 'Main Image');
-    dom.promptSection.classList.toggle('hidden', t === 'easterEgg');
-    if (t !== 'easterEgg') {
-        const show1 = t==='character', showF = t==='fusion';
-        ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));
-        document.getElementById('prompt-block-FUSION').classList.toggle('hidden', !showF);
-        document.getElementById('prompt-block-EK').classList.remove('hidden');
-    }
+        t === 'fusion' ? 'Main Fusion Image (GIF – Optional)' : 'Main Image';
+    dom.promptSection.classList.remove('hidden');
+    const show1 = t==='character', showF = t==='fusion';
+    ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));
+    document.getElementById('prompt-block-FUSION').classList.toggle('hidden', !showF);
+    document.getElementById('prompt-block-EK').classList.remove('hidden');
 }
 
 function setupImageInputTogglers() {
@@ -1329,7 +1317,7 @@ function resetForm() {
         document.querySelector(`#prompt-block-${l} .saved-indicator`)?.classList.remove('active');
     });
     dom.dateEditContainer.classList.add('hidden');
-    ['fusionPartners_0','fusionPartners_1','originalCharacterId'].forEach(id => {
+    ['fusionPartners_0','fusionPartners_1'].forEach(id => {
         const dp = document.getElementById(`${id}_display`);
         const ip = document.querySelector(`[name="${id}"]`);
         if(dp) { dp.textContent = 'Not selected'; dp.classList.add('italic','text-gray-400'); }
@@ -1340,7 +1328,7 @@ function resetForm() {
 
 const loadItemForEdit = async (itemId, itemType) => {
     resetForm();
-    const item = [...characters, ...easterEggs, ...dismissed].find(i => i.id === itemId);
+    const item = [...characters, ...dismissed].find(i => i.id === itemId);
     if (!item) return alert("Record not found.");
     editingItemId = itemId; editingItemType = itemType;
     dom.formTitle.textContent = "Edit Record";
@@ -1375,7 +1363,7 @@ const loadItemForEdit = async (itemId, itemType) => {
         if(ip) ip.value=ch.id;
     };
     if (itemType==='fusion') { updateSel('fusionPartners_0', item.fusionPartners?.[0]); updateSel('fusionPartners_1', item.fusionPartners?.[1]); }
-    if (itemType==='easterEgg') updateSel('originalCharacterId', item.originalCharacterId);
+
 
     try {
         const snap = await db.collection('promptLibrary').where('charId','==',itemId).get();
@@ -1411,7 +1399,7 @@ const handleFormSubmit = async (e) => {
     try {
         const type = dom.itemTypeSelect.value;
         let data = { name: form.elements['name'].value.trim() };
-        const coll = type==='easterEgg' ? 'easterEggs' : 'characters';
+        const coll = 'characters';
         if (isEditing) {
             const dv = form.elements['eklenmeTarihi'].value;
             if (dv) { const [y,m,d]=dv.split('-').map(Number); data.eklenmeTarihi=firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d)); }
@@ -1430,10 +1418,6 @@ const handleFormSubmit = async (e) => {
             const [u1,u2] = await Promise.all([processImageInput('main-image-container'),processImageInput('preview-image-container')]);
             if (!u2&&!isEditing) throw new Error("Fusion preview image is required.");
             data.imageUrl=u1||null; data.previewUrl=u2||null;
-        } else if (type==='easterEgg') {
-            data.originalCharacterId=form.elements['originalCharacterId'].value.trim();
-            data.imageUrl=await processImageInput('main-image-container');
-            if (!data.imageUrl&&!isEditing) throw new Error("Easter Egg image is required.");
         }
 
         const batch = db.batch();
@@ -1466,8 +1450,8 @@ const handleFormSubmit = async (e) => {
 
 const deleteItem = async (itemId, itemType) => {
     const isRetired = dismissed.some(i=>i.id===itemId);
-    const coll = isRetired?'dismissed':(itemType==='easterEgg'?'easterEggs':'characters');
-    const item = [...characters,...easterEggs,...dismissed].find(i=>i.id===itemId);
+    const coll = isRetired ? 'dismissed' : 'characters';
+    const item = [...characters,...dismissed].find(i=>i.id===itemId);
     if (!item||!confirm(`${isRetired?'Permanently delete':'Delete'} "${item.name}"?`)) return;
     if (!firebase.auth().currentUser) return alert("Sign in first.");
     try { await db.collection(coll).doc(itemId).delete(); alert("Deleted."); await fetchItems(); }
@@ -1476,7 +1460,7 @@ const deleteItem = async (itemId, itemType) => {
 const retireItem = async (itemId, itemType) => {
     if (!confirm("Retire this record?")) return;
     if (!firebase.auth().currentUser) return alert("Sign in first.");
-    const coll = itemType==='easterEgg'?'easterEggs':'characters';
+    const coll = 'characters';
     const doc = await db.collection(coll).doc(itemId).get();
     if (!doc.exists) return alert("Record not found.");
     try {
@@ -1491,8 +1475,7 @@ const unretireItem = async (itemId) => {
     const doc = await db.collection('dismissed').doc(itemId).get();
     if (!doc.exists) return alert("Record not found.");
     let d = doc.data();
-    const origType = d.type||'character';
-    const dest = origType==='easterEgg'?'easterEggs':'characters';
+    const dest = 'characters';
     delete d.type;
     try {
         await db.collection(dest).doc(itemId).set(d);
@@ -1562,14 +1545,12 @@ const fetchApiKeys = async () => {
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 const fetchItems = async () => {
     try {
-        const [cs,es,ds,aus] = await Promise.all([
+        const [cs,ds,aus] = await Promise.all([
             db.collection('characters').get(),
-            db.collection('easterEggs').get(),
             db.collection('dismissed').get(),
             db.collection('alternativeUniverses').get(),
         ]);
         characters = cs.docs.map(d=>({id:d.id,...d.data()}));
-        easterEggs = es.docs.map(d=>({id:d.id,...d.data()}));
         dismissed  = ds.docs.map(d=>({id:d.id,...d.data(),isRetired:true}));
         window.characters = characters;
         window.dismissed  = dismissed;
@@ -1618,7 +1599,7 @@ async function openQuickPromptModal(charId, charName) {
 function openExportModal() { dom.exportModal.classList.add('visible'); dom.exportModal.classList.remove('hidden'); dom.exportStatus.textContent=''; dom.exportBtn.disabled=false; }
 function closeExportModal() { dom.exportModal.classList.remove('visible'); dom.exportModal.classList.add('hidden'); }
 async function downloadPrompts() {
-    const incRetired = dom.exportIncludeRetired.checked, incEE = dom.exportIncludeEasterEggs.checked, incAU = dom.exportIncludeAu.checked;
+    const incRetired = dom.exportIncludeRetired.checked, incAU = dom.exportIncludeAu.checked;
     dom.exportBtn.disabled=true; dom.exportStatus.textContent='Fetching data...';
     try {
         const snap = await db.collection('promptLibrary').get();
@@ -1630,9 +1611,7 @@ async function downloadPrompts() {
             const charId=p.charId;
             let char=characters.find(c=>c.id===charId), type='active';
             if(!char){char=dismissed.find(c=>c.id===charId);type='retired';}
-            if(!char){char=easterEggs.find(c=>c.id===charId);type='easterEgg';}
             if(type==='retired'&&!incRetired) return;
-            if(type==='easterEgg'&&!incEE) return;
             if(!char&&!incRetired) return;
             let name=p.charName;
             if(char?.isFusion&&char.fusionPartners){
@@ -1752,7 +1731,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Collect all image URLs from the loaded data
     function collectImageUrls() {
         const urls = new Set();
-        const all = [...(window.characters||[]), ...(window.dismissed||[])];
+        const all = [...(window.characters||[])];
 
         all.forEach(c => {
             // 1★ main image
