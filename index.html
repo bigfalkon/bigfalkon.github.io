@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Karakter Evreni</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#443a74"/>
+    <meta name="theme-color" content="#00000000"/>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Karakterler">
@@ -62,6 +62,10 @@
             color: var(--on-bg);
             overflow-x: hidden;
             transition: --primary 0.4s ease;
+            /* Yanlara ve alta güvenli boşluk */
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
         /* AU theme override: overrides primary-related accent colors */
         body.au-theme-active {
@@ -332,7 +336,7 @@
 <body class="p-4 sm:p-6 md:p-8">
 
 <div id="app" class="max-w-screen-2xl mx-auto">
-    <header class="mb-8 text-center" style="border-color: var(--outline-var);">
+    <header class="mb-8 text-center" style="border-color: var(--outline-var); padding-top: calc(env(safe-area-inset-top) + 1rem);">
         <div>
             <h1 id="gallery-title" class="text-4xl md:text-5xl font-extrabold" style="color: var(--primary); font-family: 'Metamorphous', serif; cursor: pointer;">
                 Character Gallery
@@ -353,7 +357,7 @@
         </button>
     </div>
 
-    <div class="control-panel sticky top-4 z-50 flex items-center justify-center gap-2 mb-8 px-3 py-2.5 rounded-2xl shadow-lg flex-wrap">
+    <div class="control-panel sticky z-50 flex items-center justify-center gap-2 mb-8 px-3 py-2.5 rounded-2xl shadow-lg flex-wrap" style="top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem));">
 
         <!-- Left group: Search + Filter + AU -->
         <div class="flex items-center gap-2">
