@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character Gallery</title>
+    <title>Karakter Evreni</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#443a74"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Karakterler">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="description" content="Karakter galerisi ve yönetim paneli">
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -641,7 +646,7 @@ function _doRender() {
         dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
     }
 
-    const visibleDismissed = dismissedCharacters.filter(c => c.type !== 'easterEgg');
+    const visibleDismissed = dismissedCharacters;
 
     const sortFn = (a, b) => {
         if (state.sortBy === 'date_desc') return (b.eklenmeTarihi?.toDate() || 0) - (a.eklenmeTarihi?.toDate() || 0);
@@ -724,7 +729,6 @@ function _buildCard(char, index) {
     const card = document.createElement('div');
     const isFusion   = !!char.isFusion;
     const isDismissed= !!char.isDismissed || (dismissedCharacters.some(d => d.id === char.id));
-    // EE cards are never shown in gallery anymore
     const hasReachableAu = state.activeAuId
         ? hasAuEntry(char, state.activeAuId)
         : hasReachableAuEntry(char);
@@ -1281,8 +1285,7 @@ function renderSearchResults() {
     const term = dom.searchModal.input.value.toLowerCase().trim();
     if (!term) { ph.textContent = 'Type a name or ID above to search.'; ph.classList.remove('hidden'); return; }
 
-    // Search pool: active characters + dismissed (no EEs shown)
-    const pool = [...characters, ...dismissedCharacters.filter(c => c.type !== 'easterEgg')];
+    const pool = [...characters, ...dismissedCharacters];
 
     const results = [];
     pool.forEach(char => {
@@ -1353,12 +1356,12 @@ function updateModalNav(id, type) {
         nav = pool.filter(c => c.isFusion).sort(sortFn);
     } else if (mode === 'all' || mode === 'dismissed') {
         nav = [
-            ...pool.filter(c => !c.isFusion && c.type !== 'easterEgg').sort(sortFn),
+            ...pool.filter(c => !c.isFusion).sort(sortFn),
             ...pool.filter(c => c.isFusion).sort(sortFn),
         ];
     } else if (mode === 'reachable-au') {
         nav = [
-            ...pool.filter(c => !c.isFusion && c.type !== 'easterEgg' && hasReachableAuEntry(c)).sort(sortFn),
+            ...pool.filter(c => !c.isFusion && hasReachableAuEntry(c)).sort(sortFn),
             ...pool.filter(c => c.isFusion && hasReachableAuEntry(c)).sort(sortFn),
         ];
     } else {
@@ -1367,7 +1370,7 @@ function updateModalNav(id, type) {
             if (starFilter === 4) {
                 nav = pool.filter(c => c.isFusion).sort(sortFn);
             } else {
-                nav = pool.filter(c => !c.isFusion && c.type !== 'easterEgg').sort(sortFn);
+                nav = pool.filter(c => !c.isFusion).sort(sortFn);
             }
         } else {
             // fallback: all

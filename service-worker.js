@@ -1,10 +1,12 @@
-const CACHE_NAME        = 'karakter-galerisi-cache-v2';
-const IMAGE_CACHE_NAME  = 'karakter-images-v1';
+const CACHE_NAME        = 'karakter-galerisi-cache-v3';
+const IMAGE_CACHE_NAME  = 'karakter-images-v2';
 
 // Core app shell cached on install
 const urlsToCache = [
-    '/',
-    './index.html'
+    './',
+    './index.html',
+    './index2.html',
+    './manifest.json'
 ];
 
 // ─── Install ──────────────────────────────────────────────────────────────────
@@ -16,33 +18,53 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// ─── Activate ─────────────────────────────────────────────────────────────────
+// ─── Activate — clean up old caches ─────────────────────────────────────────
 self.addEventListener('activate', event => {
-    event.waitUntil(clients.claim());
+    const keep = new Set([CACHE_NAME, IMAGE_CACHE_NAME]);
+    event.waitUntil(
+        caches.keys().then(names =>
+            Promise.all(
+                names.filter(n => !keep.has(n)).map(n => caches.delete(n))
+            )
+        ).then(() => clients.claim())
+    );
 });
 
-// ─── Fetch — cache-first for images ──────────────────────────────────────────
+// ─── Fetch — cache-first for images, network-first for pages ────────────────
 self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+
+    // Image requests: cache-first
     if (event.request.destination === 'image') {
         event.respondWith(
-            // Check image cache first, then app cache, then network
             caches.open(IMAGE_CACHE_NAME).then(imgCache =>
                 imgCache.match(event.request).then(cached => {
                     if (cached) return cached;
-                    return caches.match(event.request).then(appCached => {
-                        if (appCached) return appCached;
-                        return fetch(event.request).then(networkResponse => {
+                    return fetch(event.request).then(networkResponse => {
+                        if (networkResponse.ok || networkResponse.type === 'opaque') {
                             imgCache.put(event.request, networkResponse.clone());
-                            return networkResponse;
-                        });
-                    });
+                        }
+                        return networkResponse;
+                    }).catch(() => cached || new Response('', { status: 404 }));
                 })
             )
         );
         return;
     }
 
-    // Non-image: app cache → network
+    // Navigation requests: network-first with cache fallback
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request).then(response => {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                return response;
+            }).catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // Everything else: cache → network
     event.respondWith(
         caches.match(event.request).then(response => response || fetch(event.request))
     );
@@ -85,7 +107,7 @@ async function precacheImages(urls, client) {
     for (let i = 0; i < urls.length; i += BATCH) {
         const batch = urls.slice(i, i + BATCH);
         await Promise.allSettled(batch.map(async url => {
-            // Skip if already cached (set-and-forget: don't re-fetch)
+            // Skip if already cached
             const existing = await cache.match(url);
             if (existing) { done++; return; }
             try {
