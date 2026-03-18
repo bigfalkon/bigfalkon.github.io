@@ -1,5 +1,5 @@
-const CACHE_NAME        = 'karakter-galerisi-cache-v3';
-const IMAGE_CACHE_NAME  = 'karakter-images-v2';
+const CACHE_NAME        = 'karakter-galerisi-cache-v4';
+const IMAGE_CACHE_NAME  = 'karakter-images-v3';
 
 // Core app shell cached on install
 const urlsToCache = [
@@ -30,24 +30,29 @@ self.addEventListener('activate', event => {
     );
 });
 
+// ─── URL normalization helper ────────────────────────────────────────────────
+function stripCacheBust(rawUrl) {
+    return rawUrl
+        .replace(/[?&]_t=\d+/g, '')
+        .replace(/\?&/, '?')
+        .replace(/\?$/, '');
+}
+
 // ─── Fetch — cache-first for images, network-first for pages ────────────────
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
     // Image requests: cache-first
-    // Normalize URL by stripping _t cache-bust param so precached keys match
     if (event.request.destination === 'image') {
-        const cleanUrl = event.request.url
-            .replace(/[?&]_t=\d+/g, '')
-            .replace(/\?&/, '?')
-            .replace(/\?$/, '');
+        const cleanUrl = stripCacheBust(event.request.url);
 
         event.respondWith(
             caches.open(IMAGE_CACHE_NAME).then(imgCache =>
                 imgCache.match(cleanUrl).then(cached => {
                     if (cached) return cached;
                     return fetch(event.request).then(networkResponse => {
-                        if (networkResponse.ok || networkResponse.type === 'opaque') {
+                        // Only cache valid, non-opaque responses
+                        if (networkResponse.ok) {
                             imgCache.put(cleanUrl, networkResponse.clone());
                         }
                         return networkResponse;
@@ -122,6 +127,7 @@ async function precacheImages(urls, client) {
     const cache = await caches.open(IMAGE_CACHE_NAME);
 
     let done = 0;
+    let skipped = 0;
     const total = urls.length;
     const failed = [];
     const BATCH = 10;
@@ -130,13 +136,15 @@ async function precacheImages(urls, client) {
 
     function report(extra) {
         if (!client) return;
-        client.postMessage({
-            type: 'CACHE_PROGRESS',
-            done, total,
-            failedCount: failed.length,
-            elapsedMs: Date.now() - startTime,
-            ...extra
-        });
+        try {
+            client.postMessage({
+                type: 'CACHE_PROGRESS',
+                done, total, skipped,
+                failedCount: failed.length,
+                elapsedMs: Date.now() - startTime,
+                ...extra
+            });
+        } catch (_) { /* client may have navigated away */ }
     }
 
     for (let i = 0; i < urls.length; i += BATCH) {
@@ -149,19 +157,45 @@ async function precacheImages(urls, client) {
         await Promise.allSettled(batch.map(async url => {
             const fetchStart = Date.now();
             try {
-                // Skip if already cached
+                // Skip if already cached with a valid response
                 const existing = await cache.match(url);
-                if (existing) { done++; return; }
+                if (existing && existing.status === 200) {
+                    done++;
+                    skipped++;
+                    return;
+                }
+                // Delete broken/opaque cached entries so we can re-fetch properly
+                if (existing) {
+                    await cache.delete(url);
+                }
 
-                const response = await fetchWithTimeout(url, { mode: 'no-cors' }, TIMEOUT_MS);
-                await cache.put(url, response);
-                done++;
+                // Try CORS first (proper response, real size in quota)
+                let response;
+                try {
+                    response = await fetchWithTimeout(url, {}, TIMEOUT_MS);
+                } catch (corsErr) {
+                    // CORS failed — fallback to no-cors (opaque, but better than nothing)
+                    response = await fetchWithTimeout(url, { mode: 'no-cors' }, TIMEOUT_MS);
+                }
+
+                // Only cache valid responses
+                if (response.ok) {
+                    await cache.put(url, response);
+                    done++;
+                } else if (response.type === 'opaque') {
+                    // Opaque = can't verify, but still cache it as last resort
+                    await cache.put(url, response);
+                    done++;
+                } else {
+                    done++;
+                    const durationMs = Date.now() - fetchStart;
+                    failed.push({ url, reason: `HTTP ${response.status}`, durationMs });
+                    console.warn('[SW] Bad response:', url, response.status);
+                }
             } catch(e) {
                 done++;
                 let reason;
-                if (e.message === 'timeout') {
-                    reason = `timeout (${Math.round(TIMEOUT_MS/1000)}s)`;
-                } else if (e.name === 'AbortError') {
+                if (e.message === 'timeout' || e.name === 'AbortError') {
                     reason = `timeout (${Math.round(TIMEOUT_MS/1000)}s)`;
                 } else if (e.name === 'TypeError') {
                     reason = 'network error';
@@ -181,11 +215,13 @@ async function precacheImages(urls, client) {
     }
 
     if (client) {
-        client.postMessage({
-            type: 'CACHE_COMPLETE',
-            total,
-            failed,
-            elapsedMs: Date.now() - startTime
-        });
+        try {
+            client.postMessage({
+                type: 'CACHE_COMPLETE',
+                total, skipped,
+                failed,
+                elapsedMs: Date.now() - startTime
+            });
+        } catch (_) { /* client may have navigated away */ }
     }
 }
