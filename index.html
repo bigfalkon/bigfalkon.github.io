@@ -650,7 +650,7 @@ function _doRender() {
         dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
     }
 
-    const visibleDismissed = dismissedCharacters;
+    const visibleDismissed = dismissedCharacters.filter(c => c.type !== 'easterEgg');
 
     const sortFn = (a, b) => {
         if (state.sortBy === 'date_desc') return (b.eklenmeTarihi?.toDate() || 0) - (a.eklenmeTarihi?.toDate() || 0);
@@ -1289,7 +1289,7 @@ function renderSearchResults() {
     const term = dom.searchModal.input.value.toLowerCase().trim();
     if (!term) { ph.textContent = 'Type a name or ID above to search.'; ph.classList.remove('hidden'); return; }
 
-    const pool = [...characters, ...dismissedCharacters];
+    const pool = [...characters, ...dismissedCharacters.filter(c => c.type !== 'easterEgg')];
 
     const results = [];
     pool.forEach(char => {

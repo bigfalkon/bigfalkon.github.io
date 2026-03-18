@@ -49,8 +49,6 @@ self.addEventListener('fetch', event => {
                 imgCache.match(cleanUrl).then(cached => {
                     if (cached) return cached;
                     return fetch(event.request).then(res => {
-                        // Cache both normal (ok) and opaque (type=opaque, status=0) responses.
-                        // Use cleanUrl as key so cache-busted URLs share the same cache entry.
                         if (res.ok || res.type === 'opaque') {
                             imgCache.put(cleanUrl, res.clone());
                         }
@@ -102,8 +100,9 @@ self.addEventListener('message', event => {
 });
 
 // ─── Precache images ────────────────────────────────────────────────────────
-// Uses no-cors to handle cross-origin images, then converts opaque responses
-// to real blob-based responses to avoid the ~7MB-per-opaque-response quota issue.
+// Opaque responses (no-cors cross-origin) cannot have their body read,
+// so blob.size is always 0. Store them directly — this is fine for caching
+// purposes and what browsers have always done with opaque responses.
 async function precacheImages(urls) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
@@ -131,7 +130,6 @@ async function precacheImages(urls) {
         await Promise.allSettled(batch.map(async url => {
             const t0 = Date.now();
             try {
-                // Skip if already cached
                 const existing = await cache.match(url);
                 if (existing) {
                     done++;
@@ -139,20 +137,9 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                // Fetch with no-cors so cross-origin images (ImgBB, VGY.ME) work
+                // no-cors → opaque response; store directly, do NOT try to read blob
                 const res = await fetch(url, { mode: 'no-cors' });
-
-                // Convert to blob and store as a real Response.
-                // This avoids the browser counting opaque responses as ~7MB each
-                // against the storage quota.
-                const blob = await res.blob();
-                if (blob.size > 0) {
-                    await cache.put(url, new Response(blob, {
-                        headers: { 'Content-Type': blob.type || 'image/png' }
-                    }));
-                } else {
-                    failed.push({ url, reason: 'empty response', durationMs: Date.now() - t0 });
-                }
+                await cache.put(url, res);
                 done++;
             } catch (e) {
                 done++;
