@@ -372,7 +372,7 @@
                     <span id="filter-label-icon" class="material-symbols-outlined" style="font-size:20px;">apps</span>
                     <span id="filter-label-text" class="text-sm font-semibold hidden sm:inline">All</span>
                 </button>
-                <div id="filter-menu" class="hidden absolute top-full left-0 mt-2 w-52 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+                <div id="filter-menu" class="hidden absolute top-full left-0 mt-2 w-52 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var); max-height: 80vh; overflow-y: auto;">
                     <button class="menu-item" data-filter="all"><div><span class="material-symbols-outlined">apps</span><span>All</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     <button class="menu-item" data-filter="1-star"><div><span class="material-symbols-outlined text-orange-400">filter_1</span><span>1 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     <button class="menu-item" data-filter="2-star"><div><span class="material-symbols-outlined text-slate-400">filter_2</span><span>2 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
@@ -884,7 +884,7 @@ function buildRaceDropdown() {
     addEl('hr', 'menu-divider race-section-el');
     addEl('p', 'px-3 py-1 text-xs font-bold uppercase tracking-wider race-section-el', 'Race').style.color = 'var(--on-surface-var)';
 
-    const allItem = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">diversity_3</span><span>All Races</span></div><span class="check-icon material-symbols-outlined">check</span>`);
+    const allItem = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">diversity_3</span><span>Tümü</span></div><span class="check-icon material-symbols-outlined">check</span>`);
     allItem.dataset.raceValue = '';
     allItem.classList.toggle('active', !state.raceFilter);
     allItem.addEventListener('click', () => { state.raceFilter = null; filterMenu.classList.add('hidden'); _updateMenuSelection(); renderCharacters(); });
@@ -1588,7 +1588,10 @@ async function initApp() {
         dom.filterMenu.addEventListener('click', e => {
             const btn = e.target.closest('.menu-item');
             if (!btn || btn.classList.contains('race-menu-item')) return;
-            if (btn.dataset.filter) state.galleryMode = btn.dataset.filter;
+            if (btn.dataset.filter) {
+                state.galleryMode = btn.dataset.filter;
+                if (btn.dataset.filter === 'all') state.raceFilter = null;
+            }
             if (btn.dataset.sort)   state.sortBy = btn.dataset.sort;
             dom.filterMenu.classList.add('hidden');
             updateUI(); renderCharacters();
