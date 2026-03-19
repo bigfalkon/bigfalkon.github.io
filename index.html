@@ -372,7 +372,7 @@
                     <span id="filter-label-icon" class="material-symbols-outlined" style="font-size:20px;">apps</span>
                     <span id="filter-label-text" class="text-sm font-semibold hidden sm:inline">All</span>
                 </button>
-                <div id="filter-menu" class="hidden absolute top-full left-0 mt-2 w-52 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+                <div id="filter-menu" class="hidden absolute top-full left-0 mt-2 w-52 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var); max-height: 80vh; overflow-y: auto;">
                     <button class="menu-item" data-filter="all"><div><span class="material-symbols-outlined">apps</span><span>All</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     <button class="menu-item" data-filter="1-star"><div><span class="material-symbols-outlined text-orange-400">filter_1</span><span>1 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     <button class="menu-item" data-filter="2-star"><div><span class="material-symbols-outlined text-slate-400">filter_2</span><span>2 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
@@ -395,16 +395,6 @@
                 </button>
                 <div id="au-menu" class="hidden absolute top-full left-0 mt-2 w-56 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
                     <div id="au-select-list"></div>
-                </div>
-            </div>
-
-            <!-- Race Dropdown -->
-            <div class="relative" id="race-container">
-                <button id="race-toggle-btn" class="chip ripple-effect hidden" style="padding:8px 12px; gap:4px;" aria-label="Irk Filtresi">
-                    <span class="material-symbols-outlined" style="font-size:20px;">diversity_3</span>
-                    <span id="race-label-text" class="text-sm font-semibold hidden sm:inline">Irk</span>
-                </button>
-                <div id="race-menu" class="hidden absolute top-full left-0 mt-2 w-52 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var); max-height: 260px; overflow-y: auto;">
                 </div>
             </div>
 
@@ -871,40 +861,41 @@ function buildAuDropdown() {
     }
 }
 
-// ─── Race filter: separate chip dropdown ────────────────────────────────────────
+// ─── Race filter: injected into filter dropdown ────────────────────────────────
 function buildRaceDropdown() {
-    const raceMenu = document.getElementById('race-menu');
-    const raceToggleBtn = document.getElementById('race-toggle-btn');
-    if (!raceMenu || !raceToggleBtn) return;
+    const filterMenu = document.getElementById('filter-menu');
+    if (!filterMenu) return;
 
-    raceMenu.innerHTML = '';
+    // Remove any previously injected race section
+    filterMenu.querySelectorAll('.race-section-el').forEach(el => el.remove());
 
     const allChars = [...characters, ...dismissedCharacters];
     const races = [...new Set(allChars.map(c => c.irk).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'en'));
-
-    raceToggleBtn.classList.toggle('hidden', races.length === 0);
     if (races.length === 0) return;
 
     const addEl = (tag, className, html) => {
         const el = document.createElement(tag);
         el.className = className;
         if (html) el.innerHTML = html;
-        raceMenu.appendChild(el);
+        filterMenu.appendChild(el);
         return el;
     };
 
-    const allItem = addEl('button', 'menu-item race-menu-item', `<div><span class="material-symbols-outlined">diversity_3</span><span>Tümü</span></div><span class="check-icon material-symbols-outlined">check</span>`);
+    addEl('hr', 'menu-divider race-section-el');
+    addEl('p', 'px-3 py-1 text-xs font-bold uppercase tracking-wider race-section-el', 'Race').style.color = 'var(--on-surface-var)';
+
+    const allItem = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">diversity_3</span><span>Tümü</span></div><span class="check-icon material-symbols-outlined">check</span>`);
     allItem.dataset.raceValue = '';
     allItem.classList.toggle('active', !state.raceFilter);
-    allItem.addEventListener('click', () => { state.raceFilter = null; raceMenu.classList.add('hidden'); _updateMenuSelection(); renderCharacters(); });
+    allItem.addEventListener('click', () => { state.raceFilter = null; filterMenu.classList.add('hidden'); _updateMenuSelection(); renderCharacters(); });
 
     races.forEach(race => {
-        const item = addEl('button', 'menu-item race-menu-item', `<div><span class="material-symbols-outlined">person</span><span>${race}</span></div><span class="check-icon material-symbols-outlined">check</span>`);
+        const item = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">person</span><span>${race}</span></div><span class="check-icon material-symbols-outlined">check</span>`);
         item.dataset.raceValue = race;
         item.classList.toggle('active', state.raceFilter === race);
         item.addEventListener('click', () => {
             state.raceFilter = state.raceFilter === race ? null : race;
-            raceMenu.classList.add('hidden');
+            filterMenu.classList.add('hidden');
             _updateMenuSelection();
             renderCharacters();
         });
@@ -1070,28 +1061,23 @@ function updateUI() {
 
 function _updateMenuSelection() {
     document.querySelectorAll('#filter-menu .menu-item').forEach(btn => {
-        const isF = btn.dataset.filter === state.galleryMode;
-        const isS = btn.dataset.sort   === state.sortBy;
-        btn.classList.toggle('active', isF || isS);
-    });
-    document.querySelectorAll('#race-menu .menu-item').forEach(btn => {
-        const rv = btn.dataset.raceValue;
-        btn.classList.toggle('active', rv === '' ? !state.raceFilter : state.raceFilter === rv);
+        if (btn.classList.contains('race-menu-item')) {
+            const rv = btn.dataset.raceValue;
+            btn.classList.toggle('active', rv === '' ? !state.raceFilter : state.raceFilter === rv);
+        } else {
+            const isF = btn.dataset.filter === state.galleryMode;
+            const isS = btn.dataset.sort   === state.sortBy;
+            btn.classList.toggle('active', isF || isS);
+        }
     });
     const active = document.querySelector(`#filter-menu button[data-filter="${state.galleryMode}"]`);
     if (active) {
         const icon = active.querySelector('div > .material-symbols-outlined')?.textContent || 'apps';
         const text = active.querySelector('div > span:last-child')?.textContent || 'All';
         dom.filterIcon.textContent = icon;
-        dom.filterText.textContent = text;
+        dom.filterText.textContent = state.raceFilter ? `${text} · ${state.raceFilter}` : text;
         dom.filterToggleBtn.classList.toggle('dismissed-selected', state.galleryMode === 'dismissed');
-        dom.filterToggleBtn.classList.toggle('selected', state.galleryMode !== 'dismissed');
-    }
-    const raceToggleBtn = document.getElementById('race-toggle-btn');
-    const raceLabelText = document.getElementById('race-label-text');
-    if (raceToggleBtn) {
-        raceToggleBtn.classList.toggle('selected', !!state.raceFilter);
-        if (raceLabelText) raceLabelText.textContent = state.raceFilter || 'Irk';
+        dom.filterToggleBtn.classList.toggle('selected', state.galleryMode !== 'dismissed' || !!state.raceFilter);
     }
 }
 
@@ -1601,7 +1587,7 @@ async function initApp() {
         dom.filterToggleBtn.addEventListener('click', e => { e.stopPropagation(); dom.filterMenu.classList.toggle('hidden'); document.getElementById('au-menu').classList.add('hidden'); });
         dom.filterMenu.addEventListener('click', e => {
             const btn = e.target.closest('.menu-item');
-            if (!btn) return;
+            if (!btn || btn.classList.contains('race-menu-item')) return;
             if (btn.dataset.filter) {
                 state.galleryMode = btn.dataset.filter;
                 if (btn.dataset.filter === 'all') state.raceFilter = null;
@@ -1614,12 +1600,7 @@ async function initApp() {
         // AU dropdown
         const auToggleBtn = document.getElementById('au-toggle-btn');
         const auMenu = document.getElementById('au-menu');
-        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); document.getElementById('race-menu').classList.add('hidden'); });
-
-        // Race dropdown
-        const raceToggleBtn = document.getElementById('race-toggle-btn');
-        const raceMenu = document.getElementById('race-menu');
-        raceToggleBtn.addEventListener('click', e => { e.stopPropagation(); raceMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); auMenu.classList.add('hidden'); });
+        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
 
         document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
         dom.searchModal.input.addEventListener('input', renderSearchResults);
@@ -1629,9 +1610,6 @@ async function initApp() {
             }
             if (!auMenu.classList.contains('hidden') && !e.target.closest('#au-container')) {
                 auMenu.classList.add('hidden');
-            }
-            if (!raceMenu.classList.contains('hidden') && !e.target.closest('#race-container')) {
-                raceMenu.classList.add('hidden');
             }
         });
         dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); }});
