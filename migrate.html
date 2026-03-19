@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Firebase Migration Tool</title>
+    <style>
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 30px; max-width: 800px; margin: auto; }
+        h1 { color: #e94560; }
+        button { background: #e94560; color: #fff; border: none; padding: 12px 28px; font-size: 16px; cursor: pointer; border-radius: 6px; margin: 8px 4px; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #log { background: #0f0f23; border: 1px solid #333; padding: 16px; height: 420px; overflow-y: auto; border-radius: 6px; margin-top: 20px; font-size: 13px; line-height: 1.7; }
+        .ok   { color: #4ecca3; }
+        .err  { color: #e94560; }
+        .info { color: #f5a623; }
+        .done { color: #fff; font-weight: bold; font-size: 15px; }
+        #progress { margin-top: 12px; background: #333; border-radius: 4px; height: 16px; }
+        #bar { height: 16px; background: #4ecca3; border-radius: 4px; width: 0%; transition: width 0.3s; }
+        .warning { background: #333; border-left: 4px solid #f5a623; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firebase Migration Tool</h1>
+
+    <div class="warning">
+        ⚠️ <strong>Başlamadan önce:</strong> Yeni Firebase projesinde Firestore kurallarını geçici olarak açık yap:<br>
+        <code>Firebase Console → Firestore → Rules → aşağıdaki kodu yapıştır → Publish</code><br><br>
+        <code>rules_version = '2';<br>
+        service cloud.firestore {<br>
+        &nbsp;&nbsp;match /databases/{database}/documents {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+        &nbsp;&nbsp;}<br>
+        }</code><br><br>
+        Migration bittikten sonra kuralları eski haline getirmeyi unutma!
+    </div>
+
+    <button id="btnStart" onclick="startMigration()">Migration'ı Başlat</button>
+    <button onclick="clearLog()">Logu Temizle</button>
+
+    <div id="progress"><div id="bar"></div></div>
+    <div id="log"></div>
+
+    <!-- Firebase v8 Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // ─── ESKİ PROJENİN CONFIG'İ ────────────────────────────────────────────────
+        const OLD_CONFIG = {
+            apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+            authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+            projectId: "karaktergalerisi-dc337",
+            storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+            messagingSenderId: "486669559067",
+            appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+        };
+
+        // ─── YENİ PROJENİN CONFIG'İ ────────────────────────────────────────────────
+        const NEW_CONFIG = {
+            apiKey: "AIzaSyDAmMtRBGyNOb6R2ZjSZrhN5NnGA_p-L3w",
+            authDomain: "character-gallery-e23ee.firebaseapp.com",
+            projectId: "character-gallery-e23ee",
+            storageBucket: "character-gallery-e23ee.firebasestorage.app",
+            messagingSenderId: "737596044949",
+            appId: "1:737596044949:web:5ddf2bda9fcfce9f990d9c"
+        };
+
+        // Migrate edilecek koleksiyonlar
+        const COLLECTIONS = ['characters', 'dismissed', 'alternativeUniverses', 'promptLibrary', 'settings'];
+
+        const logEl = document.getElementById('log');
+        const barEl = document.getElementById('bar');
+
+        function log(msg, cls = '') {
+            const d = document.createElement('div');
+            d.className = cls;
+            d.innerHTML = msg;
+            logEl.appendChild(d);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() { logEl.innerHTML = ''; }
+
+        function setProgress(pct) { barEl.style.width = pct + '%'; }
+
+        async function migrateCollection(oldDb, newDb, collName, progressStart, progressEnd) {
+            log(`<br>📂 Koleksiyon okunuyor: <strong>${collName}</strong>`, 'info');
+            let snap;
+            try {
+                snap = await oldDb.collection(collName).get();
+            } catch (e) {
+                log(`✗ ${collName} okunamadı: ${e.message}`, 'err');
+                return { success: 0, fail: 1 };
+            }
+
+            const docs = snap.docs;
+            log(`   ${docs.length} döküman bulundu`, 'info');
+
+            if (docs.length === 0) {
+                setProgress(progressEnd);
+                return { success: 0, fail: 0 };
+            }
+
+            let success = 0, fail = 0;
+            const BATCH_SIZE = 400; // Firestore batch limit 500
+
+            for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+                const chunk = docs.slice(i, i + BATCH_SIZE);
+                const batch = newDb.batch();
+                for (const d of chunk) {
+                    batch.set(newDb.collection(collName).doc(d.id), d.data());
+                }
+                try {
+                    await batch.commit();
+                    success += chunk.length;
+                    const pct = progressStart + ((i + chunk.length) / docs.length) * (progressEnd - progressStart);
+                    setProgress(Math.round(pct));
+                    log(`   ✓ ${Math.min(i + BATCH_SIZE, docs.length)} / ${docs.length} yazıldı`, 'ok');
+                } catch (e) {
+                    fail += chunk.length;
+                    log(`   ✗ Batch yazma hatası: ${e.message}`, 'err');
+                }
+            }
+
+            return { success, fail };
+        }
+
+        async function startMigration() {
+            document.getElementById('btnStart').disabled = true;
+            clearLog();
+            setProgress(0);
+
+            log('🚀 Migration başlıyor...', 'info');
+
+            // Firebase app'lerini başlat
+            let oldApp, newApp;
+            try {
+                oldApp = firebase.apps.find(a => a.name === 'old') || firebase.initializeApp(OLD_CONFIG, 'old');
+                newApp = firebase.apps.find(a => a.name === 'new') || firebase.initializeApp(NEW_CONFIG, 'new');
+            } catch (e) {
+                log(`✗ Firebase başlatılamadı: ${e.message}`, 'err');
+                document.getElementById('btnStart').disabled = false;
+                return;
+            }
+
+            const oldDb = oldApp.firestore();
+            const newDb = newApp.firestore();
+
+            log('✓ Her iki Firebase bağlantısı kuruldu', 'ok');
+
+            let totalSuccess = 0, totalFail = 0;
+            const step = 100 / COLLECTIONS.length;
+
+            for (let i = 0; i < COLLECTIONS.length; i++) {
+                const result = await migrateCollection(
+                    oldDb, newDb, COLLECTIONS[i],
+                    i * step, (i + 1) * step
+                );
+                totalSuccess += result.success;
+                totalFail += result.fail;
+            }
+
+            setProgress(100);
+            log('<br>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', '');
+            if (totalFail === 0) {
+                log(`🎉 Migration tamamlandı! ${totalSuccess} döküman başarıyla aktarıldı.`, 'done');
+                log('<br>⚠️ Şimdi yeni Firebase Firestore kurallarını güvenli hale getirmeyi unutma!', 'info');
+            } else {
+                log(`⚠️ Migration bitti: ${totalSuccess} başarılı, ${totalFail} başarısız.`, 'info');
+                log('Başarısız olanlar için Firestore kurallarını kontrol et ve tekrar dene.', 'err');
+            }
+
+            document.getElementById('btnStart').disabled = false;
+        }
+    </script>
+</body>
+</html>
