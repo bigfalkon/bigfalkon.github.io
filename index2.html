@@ -162,6 +162,40 @@
         #cache-toast .toast-fill {
             height: 100%; border-radius: 2px; background: var(--primary); transition: width .3s ease;
         }
+
+        /* Aurora background */
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(circle at 12% 20%, rgba(var(--primary-rgb), 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 88% 70%, rgba(var(--primary-rgb), 0.07) 0%, transparent 45%);
+            z-index: -1; pointer-events: none;
+        }
+
+        /* Glass controls panel */
+        .controls-panel {
+            background: rgba(26, 25, 31, 0.75);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(146, 143, 153, 0.18);
+            border-radius: 20px; padding: 1.25rem; margin-bottom: 1.5rem;
+        }
+
+        /* Filter chips */
+        .chip {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 6px; padding: 7px 14px; border-radius: 20px;
+            font-weight: 600; font-size: 0.82rem;
+            border: 1px solid var(--outline-var);
+            background-color: var(--surface-high);
+            color: var(--on-surface-var);
+            transition: all 0.2s ease-in-out; cursor: pointer; white-space: nowrap;
+        }
+        .chip:hover { background-color: rgba(255,255,255,0.08); color: var(--on-surface); }
+        .chip.selected { background-color: var(--primary-container); color: var(--on-primary-container); border-color: var(--primary); }
+        .chip .material-symbols-outlined { font-size: 15px !important; }
+        .chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .chip-label { font-size: 0.7rem; font-weight: 700; color: var(--on-surface-var); letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.6; white-space: nowrap; }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -215,32 +249,65 @@
     <!-- ═══════════════════ CHARACTERS TAB ═══════════════════ -->
     <div id="tab-characters" class="tab-content active pt-6">
         <!-- Controls -->
-        <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
-            <input type="text" id="search-input" placeholder="Search records..." class="form-input md:col-span-2">
-            <select id="view-filter" class="form-select">
-                <option value="all">All Records</option>
-                <option value="available">Available Characters</option>
-                <option value="preview-report">Fusion Preview Report</option>
-                <option value="character-report">Character Report</option>
-            </select>
-            <select id="sort-by" class="form-select">
-                <option value="name_asc">Name (A–Z)</option>
-                <option value="date_desc">Added (Newest)</option>
-                <option value="date_asc">Added (Oldest)</option>
-            </select>
-            <div class="col-span-full mt-2 flex flex-col sm:flex-row gap-3 flex-wrap">
-                <button id="toggle-form-btn" class="btn btn-primary w-full sm:w-auto">
-                    <span id="toggle-form-icon" class="material-symbols-outlined">add</span>
-                    <span id="toggle-form-text">Add New</span>
+        <div class="controls-panel">
+            <!-- Row 1: Search + Sort -->
+            <div class="flex gap-3 mb-4 flex-wrap">
+                <input type="text" id="search-input" placeholder="Kayıt ara..." class="form-input flex-grow" style="min-width:180px;">
+                <select id="sort-by" class="form-select" style="width:auto;flex-shrink:0;">
+                    <option value="name_asc">İsim A–Z</option>
+                    <option value="date_desc">Eklenme (Yeni)</option>
+                    <option value="date_asc">Eklenme (Eski)</option>
+                </select>
+            </div>
+
+            <!-- Row 2: Type filter chips -->
+            <div class="chip-row mb-3">
+                <span class="chip-label">Tür</span>
+                <button class="chip selected" data-type-filter="all">
+                    <span class="material-symbols-outlined">apps</span>Tümü
                 </button>
-                <a href="index.html" class="btn btn-secondary w-full sm:w-auto">
-                    <span class="material-symbols-outlined">gallery_thumbnail</span><span>Gallery</span>
+                <button class="chip" data-type-filter="character">
+                    <span class="material-symbols-outlined">person</span>Karakter
+                </button>
+                <button class="chip" data-type-filter="fusion">
+                    <span class="material-symbols-outlined">merge_type</span>Füzyon
+                </button>
+                <button class="chip" data-type-filter="retired">
+                    <span class="material-symbols-outlined">work_history</span>Emekli
+                </button>
+            </div>
+
+            <!-- Row 3: Irk filter + Reports -->
+            <div class="flex gap-3 mb-4 flex-wrap items-center">
+                <span class="chip-label">Irk</span>
+                <select id="irk-filter" class="form-select" style="width:auto;flex-grow:1;max-width:220px;">
+                    <option value="all">Tüm Irklar</option>
+                </select>
+                <select id="view-filter" class="form-select" style="width:auto;flex-shrink:0;">
+                    <option value="all">Raporlar...</option>
+                    <option value="available">Müsait Karakterler</option>
+                    <option value="preview-report">Füzyon Önizleme</option>
+                    <option value="character-report">Karakter Raporu</option>
+                </select>
+            </div>
+
+            <!-- Row 4: Action buttons -->
+            <div class="flex flex-wrap gap-2">
+                <button id="toggle-form-btn" class="btn btn-primary">
+                    <span id="toggle-form-icon" class="material-symbols-outlined">add</span>
+                    <span id="toggle-form-text">Ekle</span>
+                </button>
+                <a href="index.html" class="btn btn-secondary">
+                    <span class="material-symbols-outlined">gallery_thumbnail</span><span>Galeri</span>
                 </a>
-                <a href="rastgelekarakter.html" class="btn btn-secondary w-full sm:w-auto">
-                    <span class="material-symbols-outlined">casino</span><span>Random</span>
+                <a href="rastgelekarakter.html" class="btn btn-secondary">
+                    <span class="material-symbols-outlined">casino</span><span>Rastgele</span>
                 </a>
-                <button class="btn btn-secondary w-full sm:w-auto" onclick="openExportModal()">
-                    <span class="material-symbols-outlined">download</span><span>Download Prompts</span>
+                <button class="btn btn-secondary" onclick="openExportModal()">
+                    <span class="material-symbols-outlined">download</span><span>Promptları İndir</span>
+                </button>
+                <button class="btn btn-secondary" onclick="openBulkTitleModal()">
+                    <span class="material-symbols-outlined">title</span><span>Başlık Yönet</span>
                 </button>
             </div>
         </div>
@@ -478,6 +545,31 @@
     </div>
 </div>
 
+<!-- BULK TITLE DELETE MODAL -->
+<div id="bulk-title-modal" class="modal-backdrop hidden" onclick="closeBulkTitleModal()">
+    <div class="modal-content !max-w-screen-md" style="max-height:90vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeBulkTitleModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 class="text-2xl font-bold mb-1" style="color:var(--primary);">Prompt Başlıkları</h2>
+        <p class="text-sm mb-4 pb-3 border-b" style="color:var(--on-surface-var);border-color:var(--outline-var);">
+            Başlıkları seçip silebilirsiniz. Prompt metni korunur, yalnızca başlık temizlenir.
+        </p>
+        <div class="flex items-center gap-4 mb-4 flex-wrap">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="bulk-select-all" class="w-4 h-4 accent-[var(--primary)]">
+                <span class="text-sm font-semibold">Tümünü Seç</span>
+            </label>
+            <button class="btn btn-danger text-sm py-2 px-4" onclick="deleteBulkTitles()">
+                <span class="material-symbols-outlined text-sm">delete_sweep</span>Seçilenlerin Başlığını Sil
+            </button>
+            <span id="bulk-selected-count" class="text-xs text-gray-400"></span>
+        </div>
+        <div id="bulk-title-list" class="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
+            <p class="text-center text-gray-400 py-8">Yükleniyor…</p>
+        </div>
+        <p id="bulk-title-status" class="text-center text-sm mt-3 text-gray-400 min-h-[1.25rem]"></p>
+    </div>
+</div>
+
 <!-- AU CREATE/EDIT MODAL -->
 <div id="au-form-modal" class="modal-backdrop hidden" onclick="closeAuFormModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
@@ -614,7 +706,7 @@ let selectedAuId = null;         // Currently viewed AU in AU tab
 let auEntryEditingCharId = null; // Char/fusion being edited in AU entry modal
 let auEntrySelectorCharId = null;// Selected char in AU entry modal (new entry)
 
-const viewState = { filter: 'all', sortBy: 'name_asc' };
+const viewState = { filter: 'all', sortBy: 'name_asc', typeFilter: 'all', irkFilter: 'all' };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const dom = {};
@@ -823,10 +915,20 @@ function renderAdminPanel() {
 
     dom.adminGrid.innerHTML = '';
     const q = dom.searchInput.value.toLowerCase().trim();
-    let items = [...characters, ...dismissed];
+    let items;
     if (viewState.filter === 'available') {
         const pIds = new Set(characters.filter(c=>c.isFusion).flatMap(f=>f.fusionPartners||[]));
         items = characters.filter(c=>!c.isFusion && !pIds.has(c.id));
+    } else {
+        switch (viewState.typeFilter) {
+            case 'character': items = characters.filter(c => !c.isFusion); break;
+            case 'fusion':    items = characters.filter(c => c.isFusion);  break;
+            case 'retired':   items = [...dismissed]; break;
+            default:          items = [...characters, ...dismissed];
+        }
+    }
+    if (viewState.irkFilter !== 'all') {
+        items = items.filter(i => i.irk === viewState.irkFilter);
     }
     items.sort((a,b) => {
         if (viewState.sortBy === 'date_desc') return getDate(b)-getDate(a);
@@ -1531,6 +1633,21 @@ const fetchApiKeys = async () => {
     } catch(e) { alert("Failed to load API keys."); return false; }
 };
 
+// ─── Irk filter populate ──────────────────────────────────────────────────────
+function populateIrkFilter() {
+    const irkSet = new Set();
+    [...characters, ...dismissed].forEach(c => { if (c.irk) irkSet.add(c.irk); });
+    const sel = document.getElementById('irk-filter');
+    const current = sel.value;
+    sel.innerHTML = '<option value="all">Tüm Irklar</option>';
+    [...irkSet].sort((a, b) => a.localeCompare(b, 'tr')).forEach(irk => {
+        const opt = document.createElement('option');
+        opt.value = irk; opt.textContent = irk;
+        sel.appendChild(opt);
+    });
+    if (current !== 'all' && [...irkSet].includes(current)) sel.value = current;
+}
+
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 const fetchItems = async () => {
     try {
@@ -1544,6 +1661,7 @@ const fetchItems = async () => {
         window.characters = characters;
         window.dismissed  = dismissed;
         alternativeUniverses = aus.docs.map(d=>({id:d.id,...d.data()}));
+        populateIrkFilter();
         renderAdminPanel();
         renderAuDefinitions();
         if (selectedAuId) renderAuEntries();
@@ -1610,6 +1728,7 @@ async function downloadPrompts() {
             let star=p.charStar;
             if(star==='1') star='Level 1'; else if(star==='2') star='Level 2'; else if(star==='3') star='Level 3'; else if(star==='FÜZYON') star='FUSION';
             txt+=`### ${name} - [${star}] ###\n`;
+            if(char?.irk) txt+=`Irk: ${char.irk}\n`;
             if(p.title) txt+=`Title: ${p.title}\n`;
             txt+=`${p.prompt}\n--------------------------------------------------\n\n`;
             count++;
@@ -1627,7 +1746,8 @@ async function downloadPrompts() {
                     const auDef = alternativeUniverses.find(a => a.id === auId);
                     const auName = auDef ? auDef.name : auId;
                     const type = char.isFusion ? 'FUSION' : '3★';
-                    auPromptLines.push(`### ${char.name} - [${auName} AU / ${type}] ###\n${entry.prompt}\n--------------------------------------------------\n\n`);
+                    const irkLine = char.irk ? `Irk: ${char.irk}\n` : '';
+                    auPromptLines.push(`### ${char.name} - [${auName} AU / ${type}] ###\n${irkLine}${entry.prompt}\n--------------------------------------------------\n\n`);
                 });
             });
             if (auPromptLines.length) {
@@ -1646,6 +1766,79 @@ async function downloadPrompts() {
         setTimeout(closeExportModal,2000);
     } catch(e) { dom.exportStatus.textContent=`Error: ${e.message}`; dom.exportStatus.classList.add('text-red-400');
     } finally { dom.exportBtn.disabled=false; }
+}
+
+// ─── Bulk Title Manager ───────────────────────────────────────────────────────
+async function openBulkTitleModal() {
+    const modal = document.getElementById('bulk-title-modal');
+    modal.classList.add('visible'); modal.classList.remove('hidden');
+    document.getElementById('bulk-title-status').textContent = '';
+    document.getElementById('bulk-select-all').checked = false;
+    await renderBulkTitleList();
+}
+function closeBulkTitleModal() {
+    const modal = document.getElementById('bulk-title-modal');
+    modal.classList.remove('visible'); modal.classList.add('hidden');
+}
+async function renderBulkTitleList() {
+    const list = document.getElementById('bulk-title-list');
+    list.innerHTML = '<p class="text-center text-gray-400 py-8">Yükleniyor…</p>';
+    try {
+        const snap = await db.collection('promptLibrary').get();
+        const prompts = snap.docs.map(d => ({docId: d.id, ...d.data()})).filter(p => p.title && p.title.trim());
+        if (!prompts.length) {
+            list.innerHTML = '<p class="text-center text-gray-400 py-8"><span class="material-symbols-outlined block text-4xl mb-2 opacity-40">check_circle</span>Başlıklı prompt bulunamadı.</p>';
+            return;
+        }
+        prompts.sort((a, b) => a.charName.localeCompare(b.charName, 'tr'));
+        const starLabels = {'1':'1 ★','2':'2 ★','3':'3 ★','FÜZYON':'FUSION','EK':'EK'};
+        list.innerHTML = '';
+        prompts.forEach(p => {
+            const el = document.createElement('label');
+            el.className = 'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors';
+            el.style.background = 'var(--surface-high)';
+            el.style.border = '1px solid var(--outline-var)';
+            el.innerHTML = `
+                <input type="checkbox" class="bulk-title-check w-4 h-4 accent-[var(--primary)] flex-shrink-0" data-doc-id="${p.docId}">
+                <div class="flex-grow min-w-0">
+                    <p class="font-semibold text-sm truncate">${p.charName}</p>
+                    <p class="text-xs text-gray-400">${starLabels[p.charStar] || p.charStar} — <span class="text-gray-300">"${p.title}"</span></p>
+                </div>`;
+            list.appendChild(el);
+        });
+        updateBulkSelectedCount();
+        list.querySelectorAll('.bulk-title-check').forEach(cb => {
+            cb.addEventListener('change', updateBulkSelectedCount);
+        });
+    } catch(e) {
+        list.innerHTML = `<p class="text-red-400 text-center py-4">Yükleme hatası: ${e.message}</p>`;
+    }
+}
+function updateBulkSelectedCount() {
+    const total = document.querySelectorAll('.bulk-title-check').length;
+    const checked = document.querySelectorAll('.bulk-title-check:checked').length;
+    const el = document.getElementById('bulk-selected-count');
+    if (el) el.textContent = checked > 0 ? `${checked} / ${total} seçili` : '';
+}
+async function deleteBulkTitles() {
+    if (!firebase.auth().currentUser) { alert("Önce giriş yapın."); return; }
+    const checked = [...document.querySelectorAll('.bulk-title-check:checked')];
+    if (!checked.length) { alert("Hiçbir başlık seçilmedi."); return; }
+    if (!confirm(`${checked.length} promptun başlığını silmek istiyor musunuz?`)) return;
+    const statusEl = document.getElementById('bulk-title-status');
+    statusEl.textContent = 'Siliniyor…';
+    try {
+        const batch = db.batch();
+        checked.forEach(cb => {
+            batch.update(db.collection('promptLibrary').doc(cb.dataset.docId), { title: '' });
+        });
+        await batch.commit();
+        statusEl.textContent = `✓ ${checked.length} başlık silindi.`;
+        document.getElementById('bulk-select-all').checked = false;
+        await renderBulkTitleList();
+    } catch(e) {
+        statusEl.textContent = `Hata: ${e.message}`;
+    }
 }
 
 // ─── Image enlarge ────────────────────────────────────────────────────────────
@@ -1677,7 +1870,14 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.addEditForm.addEventListener('submit', handleFormSubmit);
     dom.cancelButton.addEventListener('click', () => { resetForm(); dom.addEditFormContainer.classList.add('hidden'); dom.toggleFormText.textContent='Add New'; dom.toggleFormIcon.textContent='add'; });
     dom.searchInput.addEventListener('input', renderAdminPanel);
-    dom.viewFilter.addEventListener('change', e => { viewState.filter=e.target.value; renderAdminPanel(); });
+    dom.viewFilter.addEventListener('change', e => {
+        viewState.filter = e.target.value;
+        renderAdminPanel();
+        // After showing report modal, reset back to 'all'
+        if (e.target.value !== 'all' && e.target.value !== 'available') {
+            setTimeout(() => { dom.viewFilter.value = 'all'; viewState.filter = 'all'; }, 100);
+        }
+    });
     dom.sortBy.addEventListener('change', e => { viewState.sortBy=e.target.value; renderAdminPanel(); });
     dom.toggleFormBtn.addEventListener('click', () => {
         const hidden = dom.addEditFormContainer.classList.toggle('hidden');
@@ -1686,6 +1886,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hidden) resetForm();
     });
     dom.selectorSearchInput.addEventListener('input', () => renderCharacterSelector(dom.selectorSearchInput.value));
+
+    // Type filter chips
+    document.querySelectorAll('[data-type-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-type-filter]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            viewState.typeFilter = btn.dataset.typeFilter;
+            viewState.filter = 'all'; // reset report filter
+            dom.viewFilter.value = 'all';
+            renderAdminPanel();
+        });
+    });
+
+    // Irk filter
+    document.getElementById('irk-filter').addEventListener('change', e => {
+        viewState.irkFilter = e.target.value;
+        renderAdminPanel();
+    });
+
+    // Bulk title select-all
+    document.getElementById('bulk-select-all').addEventListener('change', e => {
+        document.querySelectorAll('.bulk-title-check').forEach(cb => cb.checked = e.target.checked);
+        updateBulkSelectedCount();
+    });
 
     // AU tab listeners
     document.getElementById('create-au-btn').addEventListener('click', () => openAuFormModal());
