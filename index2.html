@@ -220,14 +220,20 @@
             <p class="text-lg mt-1" style="color: var(--on-surface-var);">Manage Characters, Fusions & Alt. Universes</p>
         </div>
         <div class="flex items-center gap-2">
-            <button id="cache-btn" class="btn btn-secondary" title="Pre-cache all character images for fast loading across the site">
+            <a href="index.html" class="btn btn-secondary" title="Galeri" style="padding:10px;">
+                <span class="material-symbols-outlined">gallery_thumbnail</span>
+            </a>
+            <a href="rastgelekarakter.html" class="btn btn-secondary" title="Rastgele Karakter" style="padding:10px;">
+                <span class="material-symbols-outlined">casino</span>
+            </a>
+            <button id="cache-btn" class="btn btn-secondary" title="Pre-cache all character images for fast loading across the site" style="padding:10px;">
                 <span id="cache-btn-icon" class="material-symbols-outlined">cloud_download</span>
-                <span id="cache-btn-text" class="hidden sm:inline">Cache Images</span>
+                <span id="cache-btn-text" style="display:none;">Cache Images</span>
             </button>
             <div id="auth-button-container">
-            <button id="auth-action-btn" class="btn btn-secondary">
+            <button id="auth-action-btn" class="btn btn-secondary" title="Sign In / Sign Out" style="padding:10px;">
                 <span id="auth-action-icon" class="material-symbols-outlined">login</span>
-                <span id="auth-action-text">Sign In</span>
+                <span id="auth-action-text" style="display:none;">Sign In</span>
             </button>
         </div>
         </div>
@@ -276,17 +282,11 @@
             </div>
 
             <!-- Row 3: Action buttons — compact -->
-            <div class="flex gap-2 items-center flex-wrap">
+            <div class="flex gap-2 items-center">
                 <button id="toggle-form-btn" class="btn btn-primary">
                     <span id="toggle-form-icon" class="material-symbols-outlined">add</span>
                     <span id="toggle-form-text">Add</span>
                 </button>
-                <a href="index.html" class="btn btn-secondary" title="Galeri">
-                    <span class="material-symbols-outlined">gallery_thumbnail</span>
-                </a>
-                <a href="rastgelekarakter.html" class="btn btn-secondary" title="Rastgele">
-                    <span class="material-symbols-outlined">casino</span>
-                </a>
                 <button class="btn btn-secondary" onclick="openExportModal()" title="Download Prompts">
                     <span class="material-symbols-outlined">download</span>
                     <span>Prompts</span>
