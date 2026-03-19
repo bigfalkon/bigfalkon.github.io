@@ -866,40 +866,45 @@ function buildRaceDropdown() {
     const filterMenu = document.getElementById('filter-menu');
     if (!filterMenu) return;
 
-    // Remove any previously injected race section
     filterMenu.querySelectorAll('.race-section-el').forEach(el => el.remove());
 
     const allChars = [...characters, ...dismissedCharacters];
-    const races = [...new Set(allChars.map(c => c.irk).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'en'));
+    const races = [...new Set(allChars.map(c => c.irk).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
     if (races.length === 0) return;
 
-    const addEl = (tag, className, html) => {
-        const el = document.createElement(tag);
-        el.className = className;
-        if (html) el.innerHTML = html;
-        filterMenu.appendChild(el);
-        return el;
-    };
+    const hr = document.createElement('hr');
+    hr.className = 'menu-divider race-section-el';
+    filterMenu.appendChild(hr);
 
-    addEl('hr', 'menu-divider race-section-el');
-    addEl('p', 'px-3 py-1 text-xs font-bold uppercase tracking-wider race-section-el', 'Race').style.color = 'var(--on-surface-var)';
+    const wrap = document.createElement('div');
+    wrap.className = 'race-section-el';
+    wrap.style.cssText = 'padding:2px 8px 6px;';
 
-    const allItem = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">diversity_3</span><span>Tümü</span></div><span class="check-icon material-symbols-outlined">check</span>`);
-    allItem.dataset.raceValue = '';
-    allItem.classList.toggle('active', !state.raceFilter);
-    allItem.addEventListener('click', () => { state.raceFilter = null; filterMenu.classList.add('hidden'); _updateMenuSelection(); renderCharacters(); });
+    const sel = document.createElement('select');
+    sel.id = 'race-select';
+    sel.style.cssText = 'width:100%;font-size:0.8rem;padding:5px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--outline-var);color:var(--on-surface);cursor:pointer;outline:none;';
+
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = 'Tüm Irklar';
+    sel.appendChild(allOpt);
 
     races.forEach(race => {
-        const item = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">person</span><span>${race}</span></div><span class="check-icon material-symbols-outlined">check</span>`);
-        item.dataset.raceValue = race;
-        item.classList.toggle('active', state.raceFilter === race);
-        item.addEventListener('click', () => {
-            state.raceFilter = state.raceFilter === race ? null : race;
-            filterMenu.classList.add('hidden');
-            _updateMenuSelection();
-            renderCharacters();
-        });
+        const opt = document.createElement('option');
+        opt.value = race;
+        opt.textContent = race;
+        sel.appendChild(opt);
     });
+
+    sel.value = state.raceFilter || '';
+    sel.addEventListener('change', () => {
+        state.raceFilter = sel.value || null;
+        _updateMenuSelection();
+        renderCharacters();
+    });
+
+    wrap.appendChild(sel);
+    filterMenu.appendChild(wrap);
 }
 
 // ─── Secret unlock for locked AUs (5 clicks on gallery title) ────────────────
@@ -1061,15 +1066,12 @@ function updateUI() {
 
 function _updateMenuSelection() {
     document.querySelectorAll('#filter-menu .menu-item').forEach(btn => {
-        if (btn.classList.contains('race-menu-item')) {
-            const rv = btn.dataset.raceValue;
-            btn.classList.toggle('active', rv === '' ? !state.raceFilter : state.raceFilter === rv);
-        } else {
-            const isF = btn.dataset.filter === state.galleryMode;
-            const isS = btn.dataset.sort   === state.sortBy;
-            btn.classList.toggle('active', isF || isS);
-        }
+        const isF = btn.dataset.filter === state.galleryMode;
+        const isS = btn.dataset.sort   === state.sortBy;
+        btn.classList.toggle('active', isF || isS);
     });
+    const raceSelect = document.getElementById('race-select');
+    if (raceSelect) raceSelect.value = state.raceFilter || '';
     const active = document.querySelector(`#filter-menu button[data-filter="${state.galleryMode}"]`);
     if (active) {
         const icon = active.querySelector('div > .material-symbols-outlined')?.textContent || 'apps';
