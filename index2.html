@@ -51,7 +51,18 @@
             --au-container: #0a4f3a;
             --on-au-container: #a0f5d8;
         }
-        body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--on-bg); }
+        body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--on-bg); overflow-x: hidden; }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background:
+                radial-gradient(circle at 15% 25%, rgba(var(--primary-rgb),.14) 0%, transparent 40%),
+                radial-gradient(circle at 85% 65%, rgba(140,179,255,.11) 0%, transparent 45%);
+            animation: aurora 20s infinite alternate ease-in-out;
+        }
+        @keyframes aurora {
+            from { transform: translate(0,0) rotate(0deg) scale(1.2); }
+            to   { transform: translate(5vw,-5vh) rotate(10deg) scale(1.2); }
+        }
         .form-input, .form-select {
             background-color: var(--surface-high); border: 1px solid var(--outline-var);
             color: var(--on-surface); border-radius: 8px; padding: 12px; width: 100%;
@@ -73,7 +84,7 @@
 
         .btn {
             display: inline-flex; align-items: center; justify-content: center;
-            gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 700;
+            gap: 8px; padding: 10px 20px; border-radius: 99px; font-weight: 700;
             border: 1px solid transparent; cursor: pointer; transition: all 0.2s ease;
         }
         .btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
@@ -184,7 +195,7 @@
         /* Filter chips */
         .chip {
             display: inline-flex; align-items: center; justify-content: center;
-            padding: 5px 13px; border-radius: 20px; flex-shrink: 0;
+            padding: 8px 16px; border-radius: 20px; flex-shrink: 0;
             font-weight: 600; font-size: 0.8rem;
             border: 1px solid var(--outline-var);
             background-color: var(--surface-high);
@@ -216,7 +227,7 @@
 <div id="app" class="max-w-screen-xl mx-auto">
     <header class="flex justify-between items-center mb-6 pb-4 border-b" style="border-color: var(--outline-var);">
         <div>
-            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--primary);">Admin Panel</h1>
+            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--primary); font-family: 'Metamorphous', serif;">Admin Panel</h1>
             <p class="text-lg mt-1" style="color: var(--on-surface-var);">Manage Characters, Fusions & Alt. Universes</p>
         </div>
         <div class="flex items-center gap-2">
