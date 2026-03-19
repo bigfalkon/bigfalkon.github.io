@@ -319,7 +319,8 @@
                 </select>
                 <input required type="text" name="id" placeholder="Record ID (must be unique)" class="form-input">
                 <input required type="text" name="name" placeholder="Name" class="form-input">
-                <input type="text" name="irk" placeholder="Race (optional)" class="form-input">
+                <input type="text" name="irk" id="irk-input" placeholder="Race (optional)" class="form-input" list="irk-datalist" autocomplete="off">
+                <datalist id="irk-datalist"></datalist>
 
                 <div id="main-image-container">
                     <label class="block text-sm font-medium mb-1">Main Image</label>
@@ -630,7 +631,13 @@
     <div class="modal-content !max-w-screen-sm" style="max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
         <button class="icon-button absolute top-2 right-2" onclick="closeAuEntryModal()"><span class="material-symbols-outlined">close</span></button>
         <h2 class="text-2xl font-bold mb-2" style="color: var(--au);">Add / Edit AU Entry</h2>
-        <p class="text-sm text-gray-400 mb-6" id="au-entry-modal-subtitle"></p>
+        <p class="text-sm text-gray-400" id="au-entry-modal-subtitle"></p>
+
+        <!-- AU selector (shown when opened from character list) -->
+        <div id="au-entry-au-picker" class="hidden mb-4 mt-3">
+            <label class="block text-xs font-semibold mb-1" style="color:var(--on-surface-var);">Universe</label>
+            <select id="au-entry-au-select" class="form-select" style="font-size:0.875rem;padding:8px 10px;"></select>
+        </div>
 
         <!-- Character/Fusion selector for new entry -->
         <div id="au-entry-selector-section">
@@ -777,6 +784,8 @@ Object.assign(dom, {
     auEntrySelectorSection: document.getElementById('au-entry-selector-section'),
     auEntryPrompt:      document.getElementById('au-entry-prompt'),
     auEntryStatus:      document.getElementById('au-entry-status'),
+    auEntryAuPicker:    document.getElementById('au-entry-au-picker'),
+    auEntryAuSelect:    document.getElementById('au-entry-au-select'),
 });
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -990,7 +999,21 @@ function renderAdminPanel() {
         const auDotsHtml = auDots ? `<div class="flex gap-1 flex-wrap mt-1 items-center"><span class="text-xs text-gray-500 mr-1">AU:</span>${auDots}</div>` : '';
 
         const irkBadge = item.irk ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style="background:rgba(var(--primary-rgb),0.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);">${item.irk}</span>` : '';
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+
+        // Fusion mini-row (only for non-fusion characters)
+        let fusionMiniRow = '';
+        if (!isFusion) {
+            const charFusions = characters.filter(c => c.isFusion && c.fusionPartners?.includes(item.id));
+            if (charFusions.length) {
+                const thumbs = charFusions.map(f => {
+                    const url = f.previewUrl || f.imageUrl || '';
+                    return `<img src="${url}" alt="${f.name}" title="${f.name}" class="w-5 h-7 object-cover rounded cursor-zoom-in flex-shrink-0" onclick="enlargeImage(event,'${url}')">`;
+                }).join('');
+                fusionMiniRow = `<div class="flex items-center gap-1 mt-1 flex-wrap"><span class="material-symbols-outlined" style="font-size:14px;color:var(--fusion);">merge_type</span>${thumbs}</div>`;
+            }
+        }
+
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
@@ -1171,11 +1194,20 @@ async function deleteAu(auId) {
 
 // AU Entry CRUD
 function openAuEntryModalForChar(charId) {
-    // Called from character list AU button → switch to AU tab, open entry modal
-    document.querySelector('.tab-btn[data-tab="au"]').click();
+    // Called from character list AU button — no tab switch needed; show inline AU dropdown
     if (!alternativeUniverses.length) { alert("Create a universe first."); return; }
-    // If no AU selected, pick first
-    if (!selectedAuId) { selectedAuId = alternativeUniverses[0].id; renderAuDefinitions(); renderAuEntries(); }
+    if (!selectedAuId) selectedAuId = alternativeUniverses[0].id;
+
+    // Populate AU picker dropdown
+    dom.auEntryAuSelect.innerHTML = alternativeUniverses.map(au =>
+        `<option value="${au.id}" ${au.id === selectedAuId ? 'selected' : ''}>${au.name || au.id}</option>`
+    ).join('');
+    dom.auEntryAuPicker.classList.remove('hidden');
+    dom.auEntryAuSelect.onchange = () => {
+        selectedAuId = dom.auEntryAuSelect.value;
+        openAuEntryModalForCharInAu(charId);
+    };
+
     openAuEntryModalForCharInAu(charId);
 }
 
@@ -1185,8 +1217,13 @@ function openAuEntryModalForCharInAu(charId) {
     const char = [...characters, ...dismissed].find(c => c.id === charId);
     if (!char) return;
 
-    const au = alternativeUniverses.find(a => a.id === selectedAuId);
-    dom.auEntryModalSubtitle.textContent = `Universe: ${au?.name || selectedAuId}`;
+    // Update subtitle only when not using the inline picker
+    if (dom.auEntryAuPicker.classList.contains('hidden')) {
+        const au = alternativeUniverses.find(a => a.id === selectedAuId);
+        dom.auEntryModalSubtitle.textContent = `Universe: ${au?.name || selectedAuId}`;
+    } else {
+        dom.auEntryModalSubtitle.textContent = '';
+    }
 
     // Hide selector, show selected
     dom.auEntrySelectorSection.classList.add('hidden');
@@ -1239,6 +1276,7 @@ function openAuEntryModalNew() {
     auEntryEditingCharId = null;
     auEntrySelectorCharId = null;
 
+    dom.auEntryAuPicker.classList.add('hidden');
     const au = alternativeUniverses.find(a => a.id === selectedAuId);
     dom.auEntryModalSubtitle.textContent = `Universe: ${au?.name || selectedAuId}`;
 
@@ -1260,6 +1298,8 @@ function openAuEntryModalNew() {
 
 function closeAuEntryModal() {
     dom.auEntryModal.classList.remove('visible'); dom.auEntryModal.classList.add('hidden');
+    dom.auEntryAuPicker.classList.add('hidden');
+    if (dom.auEntryAuSelect) dom.auEntryAuSelect.onchange = null;
     auEntryEditingCharId = null; auEntrySelectorCharId = null;
 }
 
@@ -1645,6 +1685,16 @@ function populateIrkFilter() {
         sel.appendChild(opt);
     });
     if (current !== 'all' && [...irkSet].includes(current)) sel.value = current;
+    // Populate datalist for race combobox in form
+    const dl = document.getElementById('irk-datalist');
+    if (dl) {
+        dl.innerHTML = '';
+        [...irkSet].sort((a, b) => a.localeCompare(b, 'en')).forEach(irk => {
+            const opt = document.createElement('option');
+            opt.value = irk;
+            dl.appendChild(opt);
+        });
+    }
 }
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
@@ -1672,6 +1722,22 @@ const fetchItems = async () => {
 
 // ─── Quick Prompt Modal ───────────────────────────────────────────────────────
 function closeQuickPromptModal() { dom.quickPromptModal.classList.remove('visible'); dom.quickPromptModal.classList.add('hidden'); }
+function copyQpText(idx, btn) {
+    const text = (window._qpTexts || [])[idx];
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">check</span>';
+        btn.style.background = 'rgba(102,187,106,.2)';
+        btn.style.color = '#66bb6a';
+        btn.style.borderColor = 'rgba(102,187,106,.4)';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }, 1500);
+    }).catch(() => {
+        // Fallback: select textarea text
+        const ta = btn.closest('.relative').querySelector('textarea');
+        if (ta) { ta.select(); document.execCommand('copy'); }
+    });
+}
 async function openQuickPromptModal(charId, charName) {
     dom.qpCharName.textContent = charName;
     dom.qpContent.innerHTML=''; dom.qpLoading.classList.remove('hidden'); dom.qpContent.classList.add('hidden'); dom.qpEmpty.classList.add('hidden');
@@ -1681,20 +1747,21 @@ async function openQuickPromptModal(charId, charName) {
         if (snap.empty) { dom.qpLoading.classList.add('hidden'); dom.qpEmpty.classList.remove('hidden'); return; }
         const order = {'1':1,'2':2,'3':3,'FÜZYON':4,'EK':5};
         const prompts = snap.docs.map(d=>d.data()).sort((a,b)=>(order[a.charStar]||99)-(order[b.charStar]||99));
+        window._qpTexts = prompts.map(p => p.prompt);
         let html='';
-        prompts.forEach(p => {
+        prompts.forEach((p, idx) => {
             const badgeMap = {'1':'bg-orange-900/50 text-orange-200 border-orange-700/50','2':'bg-slate-700/50 text-slate-200 border-slate-600/50','3':'bg-amber-900/50 text-amber-200 border-amber-700/50','FÜZYON':'bg-fuchsia-900/50 text-fuchsia-200 border-fuchsia-700/50'};
             const bc = badgeMap[p.charStar]||'bg-gray-700 text-gray-300';
             const label = p.charStar==='FÜZYON'?'FUSION':(isNaN(p.charStar)?p.charStar:p.charStar+' ★');
-            html += `<div class="bg-[#131318] p-4 rounded-lg border border-gray-700 relative group">
+            html += `<div class="bg-[#131318] p-4 rounded-lg border border-gray-700 relative">
                 <div class="flex justify-between items-center mb-2">
                     <span class="px-2 py-1 rounded text-xs font-bold border ${bc}">${label}</span>
-                    <span class="text-xs text-gray-500">${p.title||'Untitled'}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">${p.title||'Untitled'}</span>
+                        <button onclick="copyQpText(${idx},this)" class="flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors" style="background:rgba(var(--primary-rgb),.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),.3);" title="Copy"><span class="material-symbols-outlined" style="font-size:14px;">content_copy</span></button>
+                    </div>
                 </div>
                 <textarea readonly class="w-full bg-transparent text-sm font-mono text-gray-300 focus:outline-none resize-none" rows="4" onclick="this.select()">${p.prompt}</textarea>
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="navigator.clipboard.writeText(this.parentElement.previousElementSibling.value).then(()=>alert('Copied!'))" class="bg-green-700 text-white p-1 rounded hover:bg-green-600" title="Copy"><span class="material-symbols-outlined text-sm">content_copy</span></button>
-                </div>
             </div>`;
         });
         dom.qpContent.innerHTML=html; dom.qpLoading.classList.add('hidden'); dom.qpContent.classList.remove('hidden');

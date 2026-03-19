@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
         :root {
             --primary-rgb: 189, 179, 255;
@@ -529,7 +530,17 @@ const firebaseConfig = {
     appId: "1:737596044949:web:5ddf2bda9fcfce9f990d9c"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db   = firebase.firestore();
+const auth = firebase.auth();
+let _authUser = null;
+auth.onAuthStateChanged(user => {
+    _authUser = user;
+    if (!user && state.unlockedAuIds.size > 0) {
+        // Logged out → re-lock hidden AUs (only if something was unlocked)
+        state.unlockedAuIds.clear();
+        if (alternativeUniverses.length) { buildAuDropdown(); renderCharacters(); }
+    }
+});
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let characters = [], dismissedCharacters = [], alternativeUniverses = [];
@@ -907,25 +918,28 @@ function buildRaceDropdown() {
     filterMenu.appendChild(wrap);
 }
 
-// ─── Secret unlock for locked AUs (5 clicks on gallery title) ────────────────
+// ─── Secret unlock for locked AUs (5 clicks on gallery title, auth required) ──
 function setupSecretUnlock() {
     const title = document.getElementById('gallery-title');
     let clicks = 0, timer = null;
     title.addEventListener('click', () => {
+        if (!_authUser) return; // only works when logged in via admin
         clicks++;
         clearTimeout(timer);
         timer = setTimeout(() => { clicks = 0; }, 1500);
         if (clicks >= 5) {
             clicks = 0;
-            const lockedAus = alternativeUniverses.filter(au => au.locked && !state.unlockedAuIds.has(au.id));
+            const lockedAus = alternativeUniverses.filter(au => au.locked);
             if (!lockedAus.length) return;
-            const pw = prompt('✨ Enter the secret...');
-            if (pw === null) return;
-            if (pw === '1234') {
+            // Toggle: if any locked AU is currently unlocked, re-lock all; else unlock all
+            const anyUnlocked = lockedAus.some(au => state.unlockedAuIds.has(au.id));
+            if (anyUnlocked) {
+                lockedAus.forEach(au => state.unlockedAuIds.delete(au.id));
+            } else {
                 lockedAus.forEach(au => state.unlockedAuIds.add(au.id));
-                buildAuDropdown();
-                renderCharacters();
             }
+            buildAuDropdown();
+            renderCharacters();
         }
     });
 }
