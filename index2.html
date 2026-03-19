@@ -184,8 +184,8 @@
         /* Filter chips */
         .chip {
             display: inline-flex; align-items: center; justify-content: center;
-            gap: 6px; padding: 7px 14px; border-radius: 20px;
-            font-weight: 600; font-size: 0.82rem;
+            padding: 5px 13px; border-radius: 20px; flex-shrink: 0;
+            font-weight: 600; font-size: 0.8rem;
             border: 1px solid var(--outline-var);
             background-color: var(--surface-high);
             color: var(--on-surface-var);
@@ -193,9 +193,6 @@
         }
         .chip:hover { background-color: rgba(255,255,255,0.08); color: var(--on-surface); }
         .chip.selected { background-color: var(--primary-container); color: var(--on-primary-container); border-color: var(--primary); }
-        .chip .material-symbols-outlined { font-size: 15px !important; }
-        .chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .chip-label { font-size: 0.7rem; font-weight: 700; color: var(--on-surface-var); letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.6; white-space: nowrap; }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -250,64 +247,49 @@
     <div id="tab-characters" class="tab-content active pt-6">
         <!-- Controls -->
         <div class="controls-panel">
-            <!-- Row 1: Search + Sort -->
-            <div class="flex gap-3 mb-4 flex-wrap">
-                <input type="text" id="search-input" placeholder="Kayıt ara..." class="form-input flex-grow" style="min-width:180px;">
-                <select id="sort-by" class="form-select" style="width:auto;flex-shrink:0;">
-                    <option value="name_asc">İsim A–Z</option>
-                    <option value="date_desc">Eklenme (Yeni)</option>
-                    <option value="date_asc">Eklenme (Eski)</option>
+            <!-- Row 1: Search + Sort inline -->
+            <div class="flex gap-2 mb-3">
+                <input type="text" id="search-input" placeholder="Kayıt ara..." class="form-input flex-grow">
+                <select id="sort-by" class="form-select flex-shrink-0" style="width:100px;padding-left:10px;padding-right:10px;font-size:0.82rem;">
+                    <option value="name_asc">A–Z</option>
+                    <option value="date_desc">Yeni</option>
+                    <option value="date_asc">Eski</option>
                 </select>
             </div>
 
-            <!-- Row 2: Type filter chips -->
-            <div class="chip-row mb-3">
-                <span class="chip-label">Tür</span>
-                <button class="chip selected" data-type-filter="all">
-                    <span class="material-symbols-outlined">apps</span>Tümü
-                </button>
-                <button class="chip" data-type-filter="character">
-                    <span class="material-symbols-outlined">person</span>Karakter
-                </button>
-                <button class="chip" data-type-filter="fusion">
-                    <span class="material-symbols-outlined">merge_type</span>Füzyon
-                </button>
-                <button class="chip" data-type-filter="retired">
-                    <span class="material-symbols-outlined">work_history</span>Emekli
-                </button>
-            </div>
-
-            <!-- Row 3: Irk filter + Reports -->
-            <div class="flex gap-3 mb-4 flex-wrap items-center">
-                <span class="chip-label">Irk</span>
-                <select id="irk-filter" class="form-select" style="width:auto;flex-grow:1;max-width:220px;">
+            <!-- Row 2: Type chips + Irk + Reports — all in one scrollable row -->
+            <div class="flex items-center gap-2 mb-3" style="overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
+                <button class="chip selected" data-type-filter="all">Tümü</button>
+                <button class="chip" data-type-filter="character">Karakter</button>
+                <button class="chip" data-type-filter="fusion">Füzyon</button>
+                <button class="chip" data-type-filter="retired">Emekli</button>
+                <span style="width:1px;height:18px;background:var(--outline-var);flex-shrink:0;margin:0 2px;"></span>
+                <select id="irk-filter" class="form-select flex-shrink-0" style="width:auto;min-width:90px;padding:6px 8px;font-size:0.8rem;">
                     <option value="all">Tüm Irklar</option>
                 </select>
-                <select id="view-filter" class="form-select" style="width:auto;flex-shrink:0;">
-                    <option value="all">Raporlar...</option>
-                    <option value="available">Müsait Karakterler</option>
-                    <option value="preview-report">Füzyon Önizleme</option>
-                    <option value="character-report">Karakter Raporu</option>
+                <select id="view-filter" class="form-select flex-shrink-0" style="width:auto;padding:6px 8px;font-size:0.8rem;">
+                    <option value="all">Raporlar…</option>
+                    <option value="available">Müsait</option>
+                    <option value="preview-report">Önizleme</option>
+                    <option value="character-report">Karakterler</option>
                 </select>
             </div>
 
-            <!-- Row 4: Action buttons -->
-            <div class="flex flex-wrap gap-2">
+            <!-- Row 3: Action buttons — compact -->
+            <div class="flex gap-2 items-center flex-wrap">
                 <button id="toggle-form-btn" class="btn btn-primary">
                     <span id="toggle-form-icon" class="material-symbols-outlined">add</span>
                     <span id="toggle-form-text">Ekle</span>
                 </button>
-                <a href="index.html" class="btn btn-secondary">
-                    <span class="material-symbols-outlined">gallery_thumbnail</span><span>Galeri</span>
+                <a href="index.html" class="btn btn-secondary" title="Galeri">
+                    <span class="material-symbols-outlined">gallery_thumbnail</span>
                 </a>
-                <a href="rastgelekarakter.html" class="btn btn-secondary">
-                    <span class="material-symbols-outlined">casino</span><span>Rastgele</span>
+                <a href="rastgelekarakter.html" class="btn btn-secondary" title="Rastgele">
+                    <span class="material-symbols-outlined">casino</span>
                 </a>
-                <button class="btn btn-secondary" onclick="openExportModal()">
-                    <span class="material-symbols-outlined">download</span><span>Promptları İndir</span>
-                </button>
-                <button class="btn btn-secondary" onclick="openBulkTitleModal()">
-                    <span class="material-symbols-outlined">title</span><span>Başlık Yönet</span>
+                <button class="btn btn-secondary" onclick="openExportModal()" title="Promptları İndir">
+                    <span class="material-symbols-outlined">download</span>
+                    <span>Promptlar</span>
                 </button>
             </div>
         </div>
@@ -542,6 +524,12 @@
             <span class="material-symbols-outlined">download</span> Start Download
         </button>
         <p id="export-status" class="text-center text-sm mt-2 text-gray-400"></p>
+        <div class="mt-4 pt-3 border-t" style="border-color:var(--outline-var);">
+            <button class="btn btn-secondary w-full text-sm py-2" onclick="closeExportModal();openBulkTitleModal()">
+                <span class="material-symbols-outlined" style="font-size:18px;">title</span>
+                Prompt Başlıklarını Yönet
+            </button>
+        </div>
     </div>
 </div>
 
