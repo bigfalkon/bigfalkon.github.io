@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toplu Irk Atama</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <style>
+        :root {
+            --bg: #13111a; --surface: #1e1c26; --surface-high: #2a2830;
+            --primary: #c7a6ff; --primary-rgb: 199,166,255;
+            --on-surface-var: #9e9aaa; --outline-var: #3a3847;
+            --danger: #e05c5c; --success: #4caf7d; --warning: #f0a500;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Manrope', sans-serif; background: var(--bg); color: #e8e4f0; min-height: 100vh; }
+
+        /* Auth Wall */
+        #auth-wall { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        #auth-wall.hidden { display: none; }
+        .auth-card { background: var(--surface); border: 1px solid var(--outline-var); border-radius: 20px; padding: 2rem; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 1rem; }
+        .auth-card h2 { font-size: 1.4rem; font-weight: 800; }
+
+        /* Layout */
+        .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+        header { margin-bottom: 1.5rem; }
+        header h1 { font-size: 1.8rem; font-weight: 800; }
+        header p { color: var(--on-surface-var); font-size: 0.9rem; margin-top: 0.3rem; }
+
+        /* Stats */
+        .stats-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .stat-chip { background: var(--surface); border: 1px solid var(--outline-var); border-radius: 12px; padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; }
+        .stat-chip b { color: var(--primary); }
+
+        /* Toolbar */
+        .toolbar { background: var(--surface); border: 1px solid var(--outline-var); border-radius: 16px; padding: 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toolbar-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        .toolbar-label { font-size: 0.8rem; font-weight: 700; color: var(--on-surface-var); text-transform: uppercase; letter-spacing: 0.05em; min-width: 80px; }
+
+        /* Inputs & Buttons */
+        input[type="text"], input[type="email"], input[type="password"] {
+            background: var(--surface-high); border: 1px solid var(--outline-var); border-radius: 10px;
+            color: #e8e4f0; padding: 0.5rem 0.75rem; font-family: inherit; font-size: 0.9rem; outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--primary); }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; font-size: 0.875rem; font-weight: 600; transition: opacity 0.15s, transform 0.15s; }
+        .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-primary { background: var(--primary); color: #13111a; }
+        .btn-secondary { background: var(--surface-high); color: #e8e4f0; border: 1px solid var(--outline-var); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
+
+        /* Filter tabs */
+        .filter-tabs { display: flex; gap: 0.35rem; }
+        .filter-tab { padding: 0.35rem 0.85rem; border-radius: 8px; border: 1px solid var(--outline-var); background: transparent; color: var(--on-surface-var); cursor: pointer; font-family: inherit; font-size: 0.82rem; font-weight: 600; transition: all 0.15s; }
+        .filter-tab.active { background: rgba(var(--primary-rgb), 0.15); border-color: var(--primary); color: var(--primary); }
+
+        /* Quick assign */
+        .quick-assign { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        #quick-irk-input { flex: 1; min-width: 160px; }
+
+        /* Character list */
+        #char-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .char-row { display: flex; align-items: center; gap: 0.75rem; background: var(--surface); border: 1px solid var(--outline-var); border-radius: 12px; padding: 0.6rem 0.75rem; transition: border-color 0.15s; }
+        .char-row.changed { border-color: rgba(var(--primary-rgb), 0.5); background: rgba(var(--primary-rgb), 0.04); }
+        .char-row.checked { background: rgba(var(--primary-rgb), 0.08); }
+        .char-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; cursor: pointer; }
+        .char-thumb { width: 36px; height: 54px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--surface-high); }
+        .char-name { flex: 1; font-weight: 600; font-size: 0.9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .char-name-sub { font-size: 0.72rem; color: var(--on-surface-var); font-weight: 400; }
+        .char-irk-input { width: 160px; flex-shrink: 0; font-size: 0.85rem; padding: 0.35rem 0.65rem; }
+        .irk-badge { font-size: 0.72rem; color: var(--primary); background: rgba(var(--primary-rgb),0.12); border: 1px solid rgba(var(--primary-rgb),0.25); border-radius: 6px; padding: 0.1rem 0.45rem; white-space: nowrap; flex-shrink: 0; }
+        .no-irk-badge { font-size: 0.72rem; color: var(--on-surface-var); background: var(--surface-high); border: 1px solid var(--outline-var); border-radius: 6px; padding: 0.1rem 0.45rem; white-space: nowrap; flex-shrink: 0; }
+
+        /* Save bar */
+        .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--outline-var); padding: 0.85rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; z-index: 50; flex-wrap: wrap; }
+        .save-bar-info { font-size: 0.85rem; color: var(--on-surface-var); }
+        .save-bar-info b { color: var(--primary); }
+
+        /* Misc */
+        .material-symbols-outlined { font-size: 18px; vertical-align: middle; }
+        .empty-state { text-align: center; padding: 3rem 1rem; color: var(--on-surface-var); }
+        #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--surface-high); border: 1px solid var(--outline-var); border-radius: 12px; padding: 0.6rem 1.2rem; font-size: 0.875rem; font-weight: 600; z-index: 200; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; }
+        #toast.visible { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<!-- Auth Wall -->
+<div id="auth-wall">
+    <div class="auth-card">
+        <h2><span class="material-symbols-outlined" style="font-size:22px;">lock</span> Giriş Gerekli</h2>
+        <input type="email" id="wall-email" placeholder="Email" autocomplete="email">
+        <input type="password" id="wall-password" placeholder="Şifre" autocomplete="current-password">
+        <button class="btn btn-primary" onclick="doSignIn()">
+            <span class="material-symbols-outlined">login</span> Giriş Yap
+        </button>
+        <p id="auth-error" style="color:var(--danger);font-size:0.8rem;display:none;"></p>
+    </div>
+</div>
+
+<!-- Main -->
+<div class="container">
+    <header>
+        <h1><span class="material-symbols-outlined" style="font-size:26px;">diversity_3</span> Toplu Irk Atama</h1>
+        <p>Tüm karakterlere tek ekrandan ırk atayın. Değişiklikler kaydedilene kadar Firestore'a yazılmaz.</p>
+    </header>
+
+    <div class="stats-bar" id="stats-bar">
+        <div class="stat-chip"><span class="material-symbols-outlined">group</span> Toplam: <b id="stat-total">—</b></div>
+        <div class="stat-chip" style="color:var(--success);"><span class="material-symbols-outlined">check_circle</span> Irklı: <b id="stat-with" style="color:var(--success);">—</b></div>
+        <div class="stat-chip" style="color:var(--warning);"><span class="material-symbols-outlined">radio_button_unchecked</span> Irksız: <b id="stat-without" style="color:var(--warning);">—</b></div>
+        <div class="stat-chip" style="color:var(--primary);"><span class="material-symbols-outlined">edit</span> Değişiklik: <b id="stat-changed" style="color:var(--primary);">0</b></div>
+    </div>
+
+    <div class="toolbar">
+        <!-- Filter -->
+        <div class="toolbar-row">
+            <span class="toolbar-label">Göster</span>
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all" onclick="setFilter('all', this)">Tümü</button>
+                <button class="filter-tab" data-filter="without" onclick="setFilter('without', this)">Irksız</button>
+                <button class="filter-tab" data-filter="with" onclick="setFilter('with', this)">Irklı</button>
+            </div>
+        </div>
+
+        <!-- Selection -->
+        <div class="toolbar-row">
+            <span class="toolbar-label">Seç</span>
+            <button class="btn btn-secondary btn-sm" onclick="selectAll()">
+                <span class="material-symbols-outlined">select_all</span> Tümünü Seç
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="selectWithout()">
+                <span class="material-symbols-outlined">radio_button_unchecked</span> Irksızları Seç
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="deselectAll()">
+                <span class="material-symbols-outlined">deselect</span> Seçimi Kaldır
+            </button>
+            <span id="selected-count" style="font-size:0.82rem;color:var(--on-surface-var);"></span>
+        </div>
+
+        <!-- Quick assign -->
+        <div class="toolbar-row">
+            <span class="toolbar-label">Hızlı Ata</span>
+            <div class="quick-assign">
+                <input type="text" id="quick-irk-input" placeholder="Irk adı yaz..." list="irk-datalist">
+                <datalist id="irk-datalist"></datalist>
+                <button class="btn btn-primary btn-sm" onclick="applyToSelected()">
+                    <span class="material-symbols-outlined">bolt</span> Seçililere Uygula
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="clearFromSelected()">
+                    <span class="material-symbols-outlined">remove_circle</span> Seçilileri Temizle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="char-list">
+        <div class="empty-state">Yükleniyor...</div>
+    </div>
+</div>
+
+<!-- Save bar -->
+<div class="save-bar">
+    <div class="save-bar-info"><b id="save-info-count">0</b> değişiklik bekliyor</div>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+        <button class="btn btn-secondary btn-sm" onclick="resetChanges()">
+            <span class="material-symbols-outlined">undo</span> Sıfırla
+        </button>
+        <button class="btn btn-success" id="save-btn" onclick="saveChanges()" disabled>
+            <span class="material-symbols-outlined">save</span> Kaydet
+        </button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+    authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+    projectId: "karaktergalerisi-dc337",
+    storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+    messagingSenderId: "486669559067",
+    appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let allChars = [];       // { id, name, imageUrl, irk, isFusion, _origIrk, _collection }
+let changes = {};        // { charId: newIrk }
+let currentFilter = 'all';
+
+// ─── Auth ───────────────────────────────────────────────────────────────────
+firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+        document.getElementById('auth-wall').classList.add('hidden');
+        loadCharacters();
+    }
+});
+
+async function doSignIn() {
+    const email = document.getElementById('wall-email').value.trim();
+    const pw    = document.getElementById('wall-password').value;
+    const errEl = document.getElementById('auth-error');
+    errEl.style.display = 'none';
+    try {
+        await firebase.auth().signInWithEmailAndPassword(email, pw);
+    } catch(e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+    }
+}
+
+document.getElementById('wall-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSignIn();
+});
+
+// ─── Load ────────────────────────────────────────────────────────────────────
+async function loadCharacters() {
+    showToast('Karakterler yükleniyor...');
+    try {
+        const [charsSnap, dismissedSnap] = await Promise.all([
+            db.collection('characters').get(),
+            db.collection('dismissed').get(),
+        ]);
+        const fromChars    = charsSnap.docs.map(d => ({ id: d.id, ...d.data(), _collection: 'characters' }));
+        const fromDismissed= dismissedSnap.docs.map(d => ({ id: d.id, ...d.data(), _collection: 'dismissed' }));
+        allChars = [...fromChars, ...fromDismissed]
+            .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
+            .map(c => ({ ...c, _origIrk: c.irk || '' }));
+        changes = {};
+        updateStats();
+        updateIrkDatalist();
+        renderList();
+        showToast(`${allChars.length} karakter yüklendi`);
+    } catch(e) {
+        console.error(e);
+        document.getElementById('char-list').innerHTML = `<div class="empty-state" style="color:var(--danger);">Yükleme hatası: ${e.message}</div>`;
+    }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderList() {
+    const list = document.getElementById('char-list');
+    list.innerHTML = '';
+
+    const visible = getFilteredChars();
+    if (!visible.length) {
+        list.innerHTML = '<div class="empty-state">Bu filtreye uygun karakter yok.</div>';
+        return;
+    }
+
+    visible.forEach(char => {
+        const currentIrk = changes.hasOwnProperty(char.id) ? changes[char.id] : (char._origIrk || '');
+        const isChanged  = changes.hasOwnProperty(char.id);
+        const isChecked  = document.querySelector(`input[data-id="${char.id}"]`)?.checked || false;
+
+        const row = document.createElement('div');
+        row.className = `char-row${isChanged ? ' changed' : ''}`;
+        row.dataset.id = char.id;
+
+        const irkDisplay = char._origIrk
+            ? `<span class="irk-badge">${char._origIrk}</span>`
+            : `<span class="no-irk-badge">ırksız</span>`;
+
+        row.innerHTML = `
+            <input type="checkbox" data-id="${char.id}" onchange="onCheckboxChange(this)">
+            <img class="char-thumb" src="${char.imageUrl || ''}" alt="${char.name}" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="char-name" style="min-width:0;">
+                <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${char.name}</div>
+                <div class="char-name-sub">${char._collection === 'dismissed' ? 'Retired · ' : ''}${char.isFusion ? 'Fusion' : 'Karakter'}</div>
+            </div>
+            ${irkDisplay}
+            <input type="text"
+                class="char-irk-input"
+                value="${currentIrk}"
+                placeholder="Irk..."
+                list="irk-datalist"
+                data-id="${char.id}"
+                oninput="onIrkInput(this)">
+        `;
+        list.appendChild(row);
+    });
+
+    updateSelectedCount();
+}
+
+function getFilteredChars() {
+    if (currentFilter === 'without') return allChars.filter(c => !c._origIrk);
+    if (currentFilter === 'with')    return allChars.filter(c => !!c._origIrk);
+    return allChars;
+}
+
+// ─── Input handlers ──────────────────────────────────────────────────────────
+function onIrkInput(input) {
+    const id  = input.dataset.id;
+    const val = input.value.trim();
+    const char = allChars.find(c => c.id === id);
+    if (!char) return;
+
+    if (val === char._origIrk) {
+        delete changes[id];
+    } else {
+        changes[id] = val;
+    }
+    const row = input.closest('.char-row');
+    row?.classList.toggle('changed', changes.hasOwnProperty(id));
+    updateStats();
+    updateSaveBar();
+}
+
+function onCheckboxChange(cb) {
+    const row = cb.closest('.char-row');
+    row?.classList.toggle('checked', cb.checked);
+    updateSelectedCount();
+}
+
+// ─── Selection ────────────────────────────────────────────────────────────────
+function getVisibleCheckboxes() {
+    return [...document.querySelectorAll('#char-list input[type="checkbox"]')];
+}
+
+function selectAll() {
+    getVisibleCheckboxes().forEach(cb => { cb.checked = true; cb.closest('.char-row')?.classList.add('checked'); });
+    updateSelectedCount();
+}
+
+function selectWithout() {
+    getVisibleCheckboxes().forEach(cb => {
+        const id   = cb.dataset.id;
+        const char = allChars.find(c => c.id === id);
+        const has  = !!char?._origIrk;
+        cb.checked = !has;
+        cb.closest('.char-row')?.classList.toggle('checked', !has);
+    });
+    updateSelectedCount();
+}
+
+function deselectAll() {
+    getVisibleCheckboxes().forEach(cb => { cb.checked = false; cb.closest('.char-row')?.classList.remove('checked'); });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const n = getVisibleCheckboxes().filter(cb => cb.checked).length;
+    document.getElementById('selected-count').textContent = n > 0 ? `${n} seçili` : '';
+}
+
+// ─── Quick assign ─────────────────────────────────────────────────────────────
+function applyToSelected() {
+    const val = document.getElementById('quick-irk-input').value.trim();
+    if (!val) { showToast('Önce bir ırk adı yaz'); return; }
+    const selected = getVisibleCheckboxes().filter(cb => cb.checked).map(cb => cb.dataset.id);
+    if (!selected.length) { showToast('Önce karakter seç'); return; }
+    selected.forEach(id => {
+        const char = allChars.find(c => c.id === id);
+        if (!char) return;
+        if (val === char._origIrk) delete changes[id];
+        else changes[id] = val;
+        // Update input
+        const input = document.querySelector(`.char-irk-input[data-id="${id}"]`);
+        if (input) { input.value = val; }
+        const row = document.querySelector(`.char-row[data-id="${id}"]`);
+        row?.classList.toggle('changed', changes.hasOwnProperty(id));
+    });
+    updateStats();
+    updateSaveBar();
+    showToast(`${selected.length} karaktere "${val}" ırkı atandı`);
+}
+
+function clearFromSelected() {
+    const selected = getVisibleCheckboxes().filter(cb => cb.checked).map(cb => cb.dataset.id);
+    if (!selected.length) { showToast('Önce karakter seç'); return; }
+    selected.forEach(id => {
+        const char = allChars.find(c => c.id === id);
+        if (!char) return;
+        if ('' === char._origIrk) delete changes[id];
+        else changes[id] = '';
+        const input = document.querySelector(`.char-irk-input[data-id="${id}"]`);
+        if (input) input.value = '';
+        const row = document.querySelector(`.char-row[data-id="${id}"]`);
+        row?.classList.toggle('changed', changes.hasOwnProperty(id));
+    });
+    updateStats();
+    updateSaveBar();
+    showToast(`${selected.length} karakterin ırkı temizlendi`);
+}
+
+// ─── Filter ───────────────────────────────────────────────────────────────────
+function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+}
+
+// ─── Save ─────────────────────────────────────────────────────────────────────
+async function saveChanges() {
+    const ids = Object.keys(changes);
+    if (!ids.length) return;
+    if (!firebase.auth().currentUser) { alert('Giriş yapılmamış.'); return; }
+
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Kaydediliyor...';
+
+    try {
+        // Firebase batch max 500 işlem, büyük koleksiyonlar için parçala
+        const CHUNK = 400;
+        for (let i = 0; i < ids.length; i += CHUNK) {
+            const batch = db.batch();
+            ids.slice(i, i + CHUNK).forEach(id => {
+                const char = allChars.find(c => c.id === id);
+                if (!char) return;
+                const ref = db.collection(char._collection).doc(id);
+                const val = changes[id] || null;
+                batch.update(ref, { irk: val });
+            });
+            await batch.commit();
+        }
+
+        // Apply changes to local state
+        ids.forEach(id => {
+            const char = allChars.find(c => c.id === id);
+            if (char) char._origIrk = changes[id] || '';
+        });
+        changes = {};
+        updateStats();
+        updateIrkDatalist();
+        updateSaveBar();
+        renderList();
+        showToast(`${ids.length} karakter kaydedildi ✓`);
+    } catch(e) {
+        console.error(e);
+        alert(`Kaydetme hatası: ${e.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined">save</span> Kaydet';
+    }
+}
+
+function resetChanges() {
+    if (!Object.keys(changes).length) return;
+    if (!confirm('Kaydedilmemiş tüm değişiklikler geri alınacak. Devam?')) return;
+    changes = {};
+    renderList();
+    updateStats();
+    updateSaveBar();
+    showToast('Değişiklikler sıfırlandı');
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function updateStats() {
+    const withIrk    = allChars.filter(c => c._origIrk).length;
+    const withoutIrk = allChars.length - withIrk;
+    document.getElementById('stat-total').textContent   = allChars.length;
+    document.getElementById('stat-with').textContent    = withIrk;
+    document.getElementById('stat-without').textContent = withoutIrk;
+    document.getElementById('stat-changed').textContent = Object.keys(changes).length;
+}
+
+function updateSaveBar() {
+    const n = Object.keys(changes).length;
+    document.getElementById('save-info-count').textContent = n;
+    document.getElementById('save-btn').disabled = n === 0;
+}
+
+function updateIrkDatalist() {
+    const races = [...new Set(allChars.map(c => c._origIrk).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
+    const dl = document.getElementById('irk-datalist');
+    dl.innerHTML = races.map(r => `<option value="${r}">`).join('');
+}
+
+let toastTimer;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('visible'), 2400);
+}
+</script>
+</body>
+</html>
