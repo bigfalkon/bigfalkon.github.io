@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Karakter Evreni</title>
+    <title>Admin Panel - Character Universe</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#443a74"/>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Karakterler">
+    <meta name="apple-mobile-web-app-title" content="Characters">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <script>
         if ('serviceWorker' in navigator) {
@@ -184,8 +184,8 @@
         /* Filter chips */
         .chip {
             display: inline-flex; align-items: center; justify-content: center;
-            gap: 6px; padding: 7px 14px; border-radius: 20px;
-            font-weight: 600; font-size: 0.82rem;
+            padding: 5px 13px; border-radius: 20px; flex-shrink: 0;
+            font-weight: 600; font-size: 0.8rem;
             border: 1px solid var(--outline-var);
             background-color: var(--surface-high);
             color: var(--on-surface-var);
@@ -193,9 +193,6 @@
         }
         .chip:hover { background-color: rgba(255,255,255,0.08); color: var(--on-surface); }
         .chip.selected { background-color: var(--primary-container); color: var(--on-primary-container); border-color: var(--primary); }
-        .chip .material-symbols-outlined { font-size: 15px !important; }
-        .chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .chip-label { font-size: 0.7rem; font-weight: 700; color: var(--on-surface-var); letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.6; white-space: nowrap; }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -250,64 +247,49 @@
     <div id="tab-characters" class="tab-content active pt-6">
         <!-- Controls -->
         <div class="controls-panel">
-            <!-- Row 1: Search + Sort -->
-            <div class="flex gap-3 mb-4 flex-wrap">
-                <input type="text" id="search-input" placeholder="Kayıt ara..." class="form-input flex-grow" style="min-width:180px;">
-                <select id="sort-by" class="form-select" style="width:auto;flex-shrink:0;">
-                    <option value="name_asc">İsim A–Z</option>
-                    <option value="date_desc">Eklenme (Yeni)</option>
-                    <option value="date_asc">Eklenme (Eski)</option>
+            <!-- Row 1: Search + Sort inline -->
+            <div class="flex gap-2 mb-3">
+                <input type="text" id="search-input" placeholder="Search records..." class="form-input flex-grow">
+                <select id="sort-by" class="form-select flex-shrink-0" style="width:100px;padding-left:10px;padding-right:10px;font-size:0.82rem;">
+                    <option value="name_asc">A–Z</option>
+                    <option value="date_desc">Newest</option>
+                    <option value="date_asc">Oldest</option>
                 </select>
             </div>
 
-            <!-- Row 2: Type filter chips -->
-            <div class="chip-row mb-3">
-                <span class="chip-label">Tür</span>
-                <button class="chip selected" data-type-filter="all">
-                    <span class="material-symbols-outlined">apps</span>Tümü
-                </button>
-                <button class="chip" data-type-filter="character">
-                    <span class="material-symbols-outlined">person</span>Karakter
-                </button>
-                <button class="chip" data-type-filter="fusion">
-                    <span class="material-symbols-outlined">merge_type</span>Füzyon
-                </button>
-                <button class="chip" data-type-filter="retired">
-                    <span class="material-symbols-outlined">work_history</span>Emekli
-                </button>
-            </div>
-
-            <!-- Row 3: Irk filter + Reports -->
-            <div class="flex gap-3 mb-4 flex-wrap items-center">
-                <span class="chip-label">Irk</span>
-                <select id="irk-filter" class="form-select" style="width:auto;flex-grow:1;max-width:220px;">
-                    <option value="all">Tüm Irklar</option>
+            <!-- Row 2: Type chips + Irk + Reports — all in one scrollable row -->
+            <div class="flex items-center gap-2 mb-3" style="overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
+                <button class="chip selected" data-type-filter="all">All</button>
+                <button class="chip" data-type-filter="character">Character</button>
+                <button class="chip" data-type-filter="fusion">Fusion</button>
+                <button class="chip" data-type-filter="retired">Retired</button>
+                <span style="width:1px;height:18px;background:var(--outline-var);flex-shrink:0;margin:0 2px;"></span>
+                <select id="irk-filter" class="form-select flex-shrink-0" style="width:auto;min-width:90px;padding:6px 8px;font-size:0.8rem;">
+                    <option value="all">All Races</option>
                 </select>
-                <select id="view-filter" class="form-select" style="width:auto;flex-shrink:0;">
-                    <option value="all">Raporlar...</option>
-                    <option value="available">Müsait Karakterler</option>
-                    <option value="preview-report">Füzyon Önizleme</option>
-                    <option value="character-report">Karakter Raporu</option>
+                <select id="view-filter" class="form-select flex-shrink-0" style="width:auto;padding:6px 8px;font-size:0.8rem;">
+                    <option value="all">Reports…</option>
+                    <option value="available">Available</option>
+                    <option value="preview-report">Preview</option>
+                    <option value="character-report">Characters</option>
                 </select>
             </div>
 
-            <!-- Row 4: Action buttons -->
-            <div class="flex flex-wrap gap-2">
+            <!-- Row 3: Action buttons — compact -->
+            <div class="flex gap-2 items-center flex-wrap">
                 <button id="toggle-form-btn" class="btn btn-primary">
                     <span id="toggle-form-icon" class="material-symbols-outlined">add</span>
-                    <span id="toggle-form-text">Ekle</span>
+                    <span id="toggle-form-text">Add</span>
                 </button>
-                <a href="index.html" class="btn btn-secondary">
-                    <span class="material-symbols-outlined">gallery_thumbnail</span><span>Galeri</span>
+                <a href="index.html" class="btn btn-secondary" title="Galeri">
+                    <span class="material-symbols-outlined">gallery_thumbnail</span>
                 </a>
-                <a href="rastgelekarakter.html" class="btn btn-secondary">
-                    <span class="material-symbols-outlined">casino</span><span>Rastgele</span>
+                <a href="rastgelekarakter.html" class="btn btn-secondary" title="Rastgele">
+                    <span class="material-symbols-outlined">casino</span>
                 </a>
-                <button class="btn btn-secondary" onclick="openExportModal()">
-                    <span class="material-symbols-outlined">download</span><span>Promptları İndir</span>
-                </button>
-                <button class="btn btn-secondary" onclick="openBulkTitleModal()">
-                    <span class="material-symbols-outlined">title</span><span>Başlık Yönet</span>
+                <button class="btn btn-secondary" onclick="openExportModal()" title="Download Prompts">
+                    <span class="material-symbols-outlined">download</span>
+                    <span>Prompts</span>
                 </button>
             </div>
         </div>
@@ -326,7 +308,7 @@
                 </select>
                 <input required type="text" name="id" placeholder="Record ID (must be unique)" class="form-input">
                 <input required type="text" name="name" placeholder="Name" class="form-input">
-                <input type="text" name="irk" placeholder="Race / Irk (optional)" class="form-input">
+                <input type="text" name="irk" placeholder="Race (optional)" class="form-input">
 
                 <div id="main-image-container">
                     <label class="block text-sm font-medium mb-1">Main Image</label>
@@ -542,6 +524,12 @@
             <span class="material-symbols-outlined">download</span> Start Download
         </button>
         <p id="export-status" class="text-center text-sm mt-2 text-gray-400"></p>
+        <div class="mt-4 pt-3 border-t" style="border-color:var(--outline-var);">
+            <button class="btn btn-secondary w-full text-sm py-2" onclick="closeExportModal();openBulkTitleModal()">
+                <span class="material-symbols-outlined" style="font-size:18px;">title</span>
+                Manage Prompt Titles
+            </button>
+        </div>
     </div>
 </div>
 
@@ -549,22 +537,22 @@
 <div id="bulk-title-modal" class="modal-backdrop hidden" onclick="closeBulkTitleModal()">
     <div class="modal-content !max-w-screen-md" style="max-height:90vh;overflow-y:auto;" onclick="event.stopPropagation()">
         <button class="icon-button absolute top-2 right-2" onclick="closeBulkTitleModal()"><span class="material-symbols-outlined">close</span></button>
-        <h2 class="text-2xl font-bold mb-1" style="color:var(--primary);">Prompt Başlıkları</h2>
+        <h2 class="text-2xl font-bold mb-1" style="color:var(--primary);">Prompt Titles</h2>
         <p class="text-sm mb-4 pb-3 border-b" style="color:var(--on-surface-var);border-color:var(--outline-var);">
-            Başlıkları seçip silebilirsiniz. Prompt metni korunur, yalnızca başlık temizlenir.
+            Select titles to delete. Prompt text is preserved — only the title field is cleared.
         </p>
         <div class="flex items-center gap-4 mb-4 flex-wrap">
             <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input type="checkbox" id="bulk-select-all" class="w-4 h-4 accent-[var(--primary)]">
-                <span class="text-sm font-semibold">Tümünü Seç</span>
+                <span class="text-sm font-semibold">Select All</span>
             </label>
             <button class="btn btn-danger text-sm py-2 px-4" onclick="deleteBulkTitles()">
-                <span class="material-symbols-outlined text-sm">delete_sweep</span>Seçilenlerin Başlığını Sil
+                <span class="material-symbols-outlined text-sm">delete_sweep</span>Delete Selected Titles
             </button>
             <span id="bulk-selected-count" class="text-xs text-gray-400"></span>
         </div>
         <div id="bulk-title-list" class="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
-            <p class="text-center text-gray-400 py-8">Yükleniyor…</p>
+            <p class="text-center text-gray-400 py-8">Loading…</p>
         </div>
         <p id="bulk-title-status" class="text-center text-sm mt-3 text-gray-400 min-h-[1.25rem]"></p>
     </div>
@@ -1639,7 +1627,7 @@ function populateIrkFilter() {
     [...characters, ...dismissed].forEach(c => { if (c.irk) irkSet.add(c.irk); });
     const sel = document.getElementById('irk-filter');
     const current = sel.value;
-    sel.innerHTML = '<option value="all">Tüm Irklar</option>';
+    sel.innerHTML = '<option value="all">All Races</option>';
     [...irkSet].sort((a, b) => a.localeCompare(b, 'tr')).forEach(irk => {
         const opt = document.createElement('option');
         opt.value = irk; opt.textContent = irk;
@@ -1728,7 +1716,7 @@ async function downloadPrompts() {
             let star=p.charStar;
             if(star==='1') star='Level 1'; else if(star==='2') star='Level 2'; else if(star==='3') star='Level 3'; else if(star==='FÜZYON') star='FUSION';
             txt+=`### ${name} - [${star}] ###\n`;
-            if(char?.irk) txt+=`Irk: ${char.irk}\n`;
+            if(char?.irk) txt+=`Race: ${char.irk}\n`;
             if(p.title) txt+=`Title: ${p.title}\n`;
             txt+=`${p.prompt}\n--------------------------------------------------\n\n`;
             count++;
@@ -1746,7 +1734,7 @@ async function downloadPrompts() {
                     const auDef = alternativeUniverses.find(a => a.id === auId);
                     const auName = auDef ? auDef.name : auId;
                     const type = char.isFusion ? 'FUSION' : '3★';
-                    const irkLine = char.irk ? `Irk: ${char.irk}\n` : '';
+                    const irkLine = char.irk ? `Race: ${char.irk}\n` : '';
                     auPromptLines.push(`### ${char.name} - [${auName} AU / ${type}] ###\n${irkLine}${entry.prompt}\n--------------------------------------------------\n\n`);
                 });
             });
@@ -1782,12 +1770,12 @@ function closeBulkTitleModal() {
 }
 async function renderBulkTitleList() {
     const list = document.getElementById('bulk-title-list');
-    list.innerHTML = '<p class="text-center text-gray-400 py-8">Yükleniyor…</p>';
+    list.innerHTML = '<p class="text-center text-gray-400 py-8">Loading…</p>';
     try {
         const snap = await db.collection('promptLibrary').get();
         const prompts = snap.docs.map(d => ({docId: d.id, ...d.data()})).filter(p => p.title && p.title.trim());
         if (!prompts.length) {
-            list.innerHTML = '<p class="text-center text-gray-400 py-8"><span class="material-symbols-outlined block text-4xl mb-2 opacity-40">check_circle</span>Başlıklı prompt bulunamadı.</p>';
+            list.innerHTML = '<p class="text-center text-gray-400 py-8"><span class="material-symbols-outlined block text-4xl mb-2 opacity-40">check_circle</span>No prompts with titles found.</p>';
             return;
         }
         prompts.sort((a, b) => a.charName.localeCompare(b.charName, 'tr'));
@@ -1811,29 +1799,29 @@ async function renderBulkTitleList() {
             cb.addEventListener('change', updateBulkSelectedCount);
         });
     } catch(e) {
-        list.innerHTML = `<p class="text-red-400 text-center py-4">Yükleme hatası: ${e.message}</p>`;
+        list.innerHTML = `<p class="text-red-400 text-center py-4">Load error: ${e.message}</p>`;
     }
 }
 function updateBulkSelectedCount() {
     const total = document.querySelectorAll('.bulk-title-check').length;
     const checked = document.querySelectorAll('.bulk-title-check:checked').length;
     const el = document.getElementById('bulk-selected-count');
-    if (el) el.textContent = checked > 0 ? `${checked} / ${total} seçili` : '';
+    if (el) el.textContent = checked > 0 ? `${checked} / ${total} selected` : '';
 }
 async function deleteBulkTitles() {
-    if (!firebase.auth().currentUser) { alert("Önce giriş yapın."); return; }
+    if (!firebase.auth().currentUser) { alert("Please sign in first."); return; }
     const checked = [...document.querySelectorAll('.bulk-title-check:checked')];
-    if (!checked.length) { alert("Hiçbir başlık seçilmedi."); return; }
-    if (!confirm(`${checked.length} promptun başlığını silmek istiyor musunuz?`)) return;
+    if (!checked.length) { alert("No titles selected."); return; }
+    if (!confirm(`Clear titles from ${checked.length} prompt(s)?`)) return;
     const statusEl = document.getElementById('bulk-title-status');
-    statusEl.textContent = 'Siliniyor…';
+    statusEl.textContent = 'Deleting…';
     try {
         const batch = db.batch();
         checked.forEach(cb => {
             batch.update(db.collection('promptLibrary').doc(cb.dataset.docId), { title: '' });
         });
         await batch.commit();
-        statusEl.textContent = `✓ ${checked.length} başlık silindi.`;
+        statusEl.textContent = `✓ ${checked.length} title(s) cleared.`;
         document.getElementById('bulk-select-all').checked = false;
         await renderBulkTitleList();
     } catch(e) {
@@ -2054,8 +2042,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const pct = Math.round((done / total) * 100);
             const elapsed = formatDuration(elapsedMs || 0);
 
-            let failTxt = failedCount ? ` · ${failedCount} hata` : '';
-            let skipTxt = skipped ? ` · ${skipped} zaten var` : '';
+            let failTxt = failedCount ? ` · ${failedCount} failed` : '';
+            let skipTxt = skipped ? ` · ${skipped} already cached` : '';
             showToast('cloud_download', `${done} / ${total}${skipTxt}${failTxt} — ${elapsed}`, pct, false,
                 currentBatch ? `${currentBatch.map(shortName).join(', ')}` :
                 batchDurationMs ? `Son batch: ${formatDuration(batchDurationMs)}` : '');
@@ -2073,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const summary = Object.entries(reasons).map(([r,c]) => `${c}x ${r}`).join(', ');
 
                 showToast('warning',
-                    `${total - failed.length}/${total} cached, ${failed.length} hata — ${elapsed}`,
+                    `${total - failed.length}/${total} cached, ${failed.length} failed — ${elapsed}`,
                     100, false,
                     summary);
 
@@ -2084,13 +2072,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.groupEnd();
             } else {
-                const detail = skipped ? `${newDownloads} yeni, ${skipped} zaten vardı` : '';
-                showToast('cloud_done', `${total} resim cached — ${elapsed}`, 100, true, detail);
+                const detail = skipped ? `${newDownloads} new, ${skipped} already cached` : '';
+                showToast('cloud_done', `${total} images cached — ${elapsed}`, 100, true, detail);
             }
             setBtnState('done');
         }
         if (d.type === 'CACHE_CLEARED') {
-            showToast('sync', 'Cache temizlendi — yeniden indiriliyor…', 0);
+            showToast('sync', 'Cache cleared — re-downloading…', 0);
         }
     });
 
@@ -2121,7 +2109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             controller.postMessage({ type: 'CLEAR_IMAGE_CACHE', urls });
         } else {
             setBtnState('loading');
-            showToast('cloud_download', `${urls.length} resim cache'leniyor…`, 0);
+            showToast('cloud_download', `Caching ${urls.length} images…`, 0);
             controller.postMessage({ type: 'PRECACHE_IMAGES', urls });
         }
     });
