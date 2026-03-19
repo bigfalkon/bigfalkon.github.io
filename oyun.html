@@ -159,31 +159,31 @@
             <p class="text-base mt-1" style="color:var(--on-surface-var)">Pick your favourite</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <a href="index.html" class="btn btn-secondary">
+            <a href="links.html" class="btn btn-secondary">
                 <span class="material-symbols-outlined">arrow_back</span>
                 <span class="hidden sm:inline">Back</span>
             </a>
             <!-- Zoom control -->
             <div id="zoom-control" class="flex items-center rounded-full overflow-hidden" style="border:1px solid var(--outline-var);background:var(--surface-high);">
-                <button id="zoom-out-btn" class="transition-colors hover:bg-white/10" style="padding:8px;cursor:pointer;display:flex;align-items:center;" aria-label="Zoom out">
-                    <span class="material-symbols-outlined" style="font-size:20px;">zoom_out</span>
+                <button id="zoom-out-btn" class="transition-colors hover:bg-white/10" style="padding:12px 8px;cursor:pointer;display:flex;align-items:center;" aria-label="Zoom out">
+                    <span class="material-symbols-outlined" style="font-size:20px;display:flex;">zoom_out</span>
                 </button>
                 <span id="size-label" class="px-2 text-sm font-bold border-x" style="border-color:var(--outline-var);">M</span>
-                <button id="zoom-in-btn" class="transition-colors hover:bg-white/10" style="padding:8px;cursor:pointer;display:flex;align-items:center;" aria-label="Zoom in">
-                    <span class="material-symbols-outlined" style="font-size:20px;">zoom_in</span>
+                <button id="zoom-in-btn" class="transition-colors hover:bg-white/10" style="padding:12px 8px;cursor:pointer;display:flex;align-items:center;" aria-label="Zoom in">
+                    <span class="material-symbols-outlined" style="font-size:20px;display:flex;">zoom_in</span>
                 </button>
             </div>
             <button id="leaderboard-btn" class="btn btn-secondary">
                 <span class="material-symbols-outlined">leaderboard</span>
-                <span class="hidden sm:inline">Leaderboard</span>
+                <span class="hidden lg:inline">Leaderboard</span>
             </button>
             <button id="manage-categories-btn" class="btn btn-secondary hidden">
                 <span class="material-symbols-outlined">category</span>
-                <span class="hidden sm:inline">Categories</span>
+                <span class="hidden lg:inline">Categories</span>
             </button>
             <button id="auth-action-btn" class="btn btn-secondary">
                 <span id="auth-action-icon" class="material-symbols-outlined">login</span>
-                <span id="auth-action-text">Sign In</span>
+                <span id="auth-action-text" class="hidden sm:inline">Sign In</span>
             </button>
         </div>
     </header>
