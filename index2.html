@@ -259,6 +259,7 @@
                 </select>
                 <input required type="text" name="id" placeholder="Record ID (must be unique)" class="form-input">
                 <input required type="text" name="name" placeholder="Name" class="form-input">
+                <input type="text" name="irk" placeholder="Race / Irk (optional)" class="form-input">
 
                 <div id="main-image-container">
                     <label class="block text-sm font-medium mb-1">Main Image</label>
@@ -887,7 +888,8 @@ function renderAdminPanel() {
         }).join('');
         const auDotsHtml = auDots ? `<div class="flex gap-1 flex-wrap mt-1 items-center"><span class="text-xs text-gray-500 mr-1">AU:</span>${auDots}</div>` : '';
 
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p><div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        const irkBadge = item.irk ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style="background:rgba(var(--primary-rgb),0.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);">${item.irk}</span>` : '';
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
@@ -1321,6 +1323,7 @@ const loadItemForEdit = async (itemId, itemType) => {
     const form = dom.addEditForm;
     form.elements['id'].value = itemId; form.elements['id'].readOnly = true;
     form.elements['name'].value = item.name || '';
+    form.elements['irk'].value = item.irk || '';
     if (item.eklenmeTarihi) {
         const d = item.eklenmeTarihi.toDate();
         form.elements['eklenmeTarihi'].value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1382,7 +1385,8 @@ const handleFormSubmit = async (e) => {
     dom.saveButton.textContent = 'Uploading...'; dom.saveButton.disabled = true;
     try {
         const type = dom.itemTypeSelect.value;
-        let data = { name: form.elements['name'].value.trim() };
+        const irkVal = form.elements['irk'].value.trim();
+        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null };
         const coll = 'characters';
         if (isEditing) {
             const dv = form.elements['eklenmeTarihi'].value;

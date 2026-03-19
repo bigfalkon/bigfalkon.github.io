@@ -397,6 +397,17 @@
                     <div id="au-select-list"></div>
                 </div>
             </div>
+
+            <!-- Race Filter Dropdown -->
+            <div class="relative" id="race-container">
+                <button id="race-toggle-btn" class="chip ripple-effect hidden" style="padding:8px 12px; gap:4px;" aria-label="Filter by Race">
+                    <span class="material-symbols-outlined" style="font-size:20px;">diversity_3</span>
+                    <span id="race-label-text" class="text-sm font-semibold hidden sm:inline">Irk</span>
+                </button>
+                <div id="race-menu" class="hidden absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+                    <div id="race-select-list"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Divider -->
@@ -435,6 +446,7 @@
         </div>
         <header class="p-4 flex-shrink-0">
             <h2 id="modal-char-name" class="text-3xl font-bold"></h2>
+            <p id="modal-char-irk" class="text-sm font-medium mt-1 hidden" style="color:var(--primary);"></p>
         </header>
         <div class="m3-dialog-content px-4 py-6 flex-grow flex flex-col items-center">
             <div id="modal-evolutions" class="grid gap-4 justify-center w-full"></div>
@@ -534,6 +546,7 @@ const state = {
     galleryMode: 'all',
     imageSizeIndex: 2,
     isFitToScreenMode: true,
+    raceFilter: null,
     currentModalCharId: null,
     currentModalType: null,
     sortBy: 'name',
@@ -698,6 +711,11 @@ function _doRender() {
         }
     }
 
+    // Race filter
+    if (state.raceFilter) {
+        items = items.filter(item => item.irk === state.raceFilter);
+    }
+
     // AU Only mode: filter to entries with AU data, show only their AU images (3★ for chars, fusion for fusions)
     if (state.activeAuId) {
         items = items.filter(item => hasAuEntry(item, state.activeAuId));
@@ -782,12 +800,14 @@ function _buildCard(char, index) {
         imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy">`;
     }
 
+    const irkBadgeHtml = char.irk ? `<div style="font-size:10px;color:var(--primary);opacity:0.85;margin-top:2px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${char.irk}</div>` : '';
     card.innerHTML = `
         <div class="character-card-image-wrapper">${imageHtml}</div>
         ${auBadgeHtml}
         <div class="card-info">
             <h3 class="character-name truncate ${nameClass}">${char.name}</h3>
             <div class="star-row">${stars}</div>
+            ${irkBadgeHtml}
         </div>
     `;
     return card;
@@ -848,6 +868,44 @@ function buildAuDropdown() {
         toggleBtn.style.color = '';
         toggleBtn.classList.remove('au-selected');
     }
+}
+
+// ─── Race filter dropdown builder ─────────────────────────────────────────────
+function buildRaceDropdown() {
+    const toggleBtn  = document.getElementById('race-toggle-btn');
+    const selectList = document.getElementById('race-select-list');
+    const labelText  = document.getElementById('race-label-text');
+    if (!toggleBtn || !selectList) return;
+
+    const allChars = [...characters, ...dismissedCharacters];
+    const races = [...new Set(allChars.map(c => c.irk).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
+
+    if (races.length === 0) { toggleBtn.classList.add('hidden'); return; }
+    toggleBtn.classList.remove('hidden');
+
+    selectList.innerHTML = '';
+
+    const noneItem = document.createElement('div');
+    noneItem.className = `au-menu-item ${!state.raceFilter ? 'active' : ''}`;
+    noneItem.innerHTML = `<span style="flex:1;">Tümü</span>${!state.raceFilter ? '<span class="material-symbols-outlined" style="font-size:16px;">check</span>' : ''}`;
+    noneItem.onclick = () => { state.raceFilter = null; labelText.textContent = 'Irk'; toggleBtn.classList.remove('selected'); buildRaceDropdown(); document.getElementById('race-menu').classList.add('hidden'); renderCharacters(); };
+    selectList.appendChild(noneItem);
+
+    races.forEach(race => {
+        const isSelected = state.raceFilter === race;
+        const item = document.createElement('div');
+        item.className = `au-menu-item ${isSelected ? 'active' : ''}`;
+        item.innerHTML = `<span style="flex:1;">${race}</span>${isSelected ? '<span class="material-symbols-outlined" style="font-size:16px;">check</span>' : ''}`;
+        item.onclick = () => {
+            state.raceFilter = isSelected ? null : race;
+            labelText.textContent = state.raceFilter || 'Irk';
+            toggleBtn.classList.toggle('selected', !!state.raceFilter);
+            buildRaceDropdown();
+            document.getElementById('race-menu').classList.add('hidden');
+            renderCharacters();
+        };
+        selectList.appendChild(item);
+    });
 }
 
 // ─── Secret unlock for locked AUs (5 clicks on gallery title) ────────────────
@@ -1084,6 +1142,8 @@ function openCharacterModal(charId, isDismissed = false) {
     if (!char) return;
     const m = dom.charModal;
     m.name.textContent = char.name;
+    const irkEl = document.getElementById('modal-char-irk');
+    if (irkEl) { irkEl.textContent = char.irk || ''; irkEl.classList.toggle('hidden', !char.irk); }
     m.evolutions.style.gridTemplateColumns = `repeat(auto-fit, ${sizeProfiles[state.imageSizeIndex].minCardWidth})`;
     m.evolutions.innerHTML = '';
 
@@ -1524,7 +1584,12 @@ async function initApp() {
         // AU dropdown
         const auToggleBtn = document.getElementById('au-toggle-btn');
         const auMenu = document.getElementById('au-menu');
-        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
+        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); document.getElementById('race-menu').classList.add('hidden'); });
+
+        // Race filter dropdown
+        const raceToggleBtn = document.getElementById('race-toggle-btn');
+        const raceMenu = document.getElementById('race-menu');
+        raceToggleBtn.addEventListener('click', e => { e.stopPropagation(); raceMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); auMenu.classList.add('hidden'); });
 
         document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
         dom.searchModal.input.addEventListener('input', renderSearchResults);
@@ -1535,6 +1600,9 @@ async function initApp() {
             if (!auMenu.classList.contains('hidden') && !e.target.closest('#au-container')) {
                 auMenu.classList.add('hidden');
             }
+            if (!raceMenu.classList.contains('hidden') && !e.target.closest('#race-container')) {
+                raceMenu.classList.add('hidden');
+            }
         });
         dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); }});
         dom.zoomOutBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); }});
@@ -1542,6 +1610,7 @@ async function initApp() {
         document.getElementById('au-banner-exit').addEventListener('click', () => { state.activeAuId = null; _applyAuMode(); });
 
         buildAuDropdown();
+        buildRaceDropdown();
         setupSecretUnlock();
         updateUI();
         renderCharacters();
