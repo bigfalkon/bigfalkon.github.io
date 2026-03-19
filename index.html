@@ -398,16 +398,6 @@
                 </div>
             </div>
 
-            <!-- Race Filter Dropdown -->
-            <div class="relative" id="race-container">
-                <button id="race-toggle-btn" class="chip ripple-effect hidden" style="padding:8px 12px; gap:4px;" aria-label="Filter by Race">
-                    <span class="material-symbols-outlined" style="font-size:20px;">diversity_3</span>
-                    <span id="race-label-text" class="text-sm font-semibold hidden sm:inline">Irk</span>
-                </button>
-                <div id="race-menu" class="hidden absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
-                    <div id="race-select-list"></div>
-                </div>
-            </div>
         </div>
 
         <!-- Divider -->
@@ -446,7 +436,7 @@
         </div>
         <header class="p-4 flex-shrink-0">
             <h2 id="modal-char-name" class="text-3xl font-bold"></h2>
-            <p id="modal-char-irk" class="text-sm font-medium mt-1 hidden" style="color:var(--primary);"></p>
+            <p id="modal-char-irk" class="hidden" style="margin-top:0.5rem;"></p>
         </header>
         <div class="m3-dialog-content px-4 py-6 flex-grow flex flex-col items-center">
             <div id="modal-evolutions" class="grid gap-4 justify-center w-full"></div>
@@ -471,6 +461,7 @@
         </div>
         <header class="p-4 flex-shrink-0">
             <h2 id="modal-fusion-name" class="text-3xl font-bold font-fantastical" style="color: var(--fusion);"></h2>
+            <p id="modal-fusion-irk" class="hidden" style="margin-top:0.5rem;"></p>
         </header>
         <div class="m3-dialog-content px-4 py-6 flex-grow">
             <div class="flex flex-col md:flex-row items-center justify-center gap-6">
@@ -478,6 +469,7 @@
                     <img id="modal-fusion-left-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
                     <p id="modal-fusion-left-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-left-star" class="text-lg font-medium"></p>
+                    <p id="modal-fusion-left-irk" class="hidden" style="margin-top:4px;"></p>
                 </div>
                 <div id="fusion-main-img-wrap" class="flex flex-col items-center text-center">
                     <img id="modal-fusion-img" src="" alt="" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl">
@@ -487,6 +479,7 @@
                     <img id="modal-fusion-right-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
                     <p id="modal-fusion-right-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-right-star" class="text-lg font-medium"></p>
+                    <p id="modal-fusion-right-irk" class="hidden" style="margin-top:4px;"></p>
                 </div>
             </div>
         </div>
@@ -800,14 +793,12 @@ function _buildCard(char, index) {
         imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy">`;
     }
 
-    const irkBadgeHtml = char.irk ? `<div style="font-size:10px;color:var(--primary);opacity:0.85;margin-top:2px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${char.irk}</div>` : '';
     card.innerHTML = `
         <div class="character-card-image-wrapper">${imageHtml}</div>
         ${auBadgeHtml}
         <div class="card-info">
             <h3 class="character-name truncate ${nameClass}">${char.name}</h3>
             <div class="star-row">${stars}</div>
-            ${irkBadgeHtml}
         </div>
     `;
     return card;
@@ -870,41 +861,44 @@ function buildAuDropdown() {
     }
 }
 
-// ─── Race filter dropdown builder ─────────────────────────────────────────────
+// ─── Race filter: injected into filter dropdown ────────────────────────────────
 function buildRaceDropdown() {
-    const toggleBtn  = document.getElementById('race-toggle-btn');
-    const selectList = document.getElementById('race-select-list');
-    const labelText  = document.getElementById('race-label-text');
-    if (!toggleBtn || !selectList) return;
+    const filterMenu = document.getElementById('filter-menu');
+    if (!filterMenu) return;
+
+    // Remove any previously injected race section
+    filterMenu.querySelectorAll('.race-section-el').forEach(el => el.remove());
 
     const allChars = [...characters, ...dismissedCharacters];
-    const races = [...new Set(allChars.map(c => c.irk).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
+    const races = [...new Set(allChars.map(c => c.irk).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'en'));
+    if (races.length === 0) return;
 
-    if (races.length === 0) { toggleBtn.classList.add('hidden'); return; }
-    toggleBtn.classList.remove('hidden');
+    const addEl = (tag, className, html) => {
+        const el = document.createElement(tag);
+        el.className = className;
+        if (html) el.innerHTML = html;
+        filterMenu.appendChild(el);
+        return el;
+    };
 
-    selectList.innerHTML = '';
+    addEl('hr', 'menu-divider race-section-el');
+    addEl('p', 'px-3 py-1 text-xs font-bold uppercase tracking-wider race-section-el', 'Race').style.color = 'var(--on-surface-var)';
 
-    const noneItem = document.createElement('div');
-    noneItem.className = `au-menu-item ${!state.raceFilter ? 'active' : ''}`;
-    noneItem.innerHTML = `<span style="flex:1;">Tümü</span>${!state.raceFilter ? '<span class="material-symbols-outlined" style="font-size:16px;">check</span>' : ''}`;
-    noneItem.onclick = () => { state.raceFilter = null; labelText.textContent = 'Irk'; toggleBtn.classList.remove('selected'); buildRaceDropdown(); document.getElementById('race-menu').classList.add('hidden'); renderCharacters(); };
-    selectList.appendChild(noneItem);
+    const allItem = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">diversity_3</span><span>All Races</span></div><span class="check-icon material-symbols-outlined">check</span>`);
+    allItem.dataset.raceValue = '';
+    allItem.classList.toggle('active', !state.raceFilter);
+    allItem.addEventListener('click', () => { state.raceFilter = null; filterMenu.classList.add('hidden'); _updateMenuSelection(); renderCharacters(); });
 
     races.forEach(race => {
-        const isSelected = state.raceFilter === race;
-        const item = document.createElement('div');
-        item.className = `au-menu-item ${isSelected ? 'active' : ''}`;
-        item.innerHTML = `<span style="flex:1;">${race}</span>${isSelected ? '<span class="material-symbols-outlined" style="font-size:16px;">check</span>' : ''}`;
-        item.onclick = () => {
-            state.raceFilter = isSelected ? null : race;
-            labelText.textContent = state.raceFilter || 'Irk';
-            toggleBtn.classList.toggle('selected', !!state.raceFilter);
-            buildRaceDropdown();
-            document.getElementById('race-menu').classList.add('hidden');
+        const item = addEl('button', 'menu-item race-section-el race-menu-item', `<div><span class="material-symbols-outlined">person</span><span>${race}</span></div><span class="check-icon material-symbols-outlined">check</span>`);
+        item.dataset.raceValue = race;
+        item.classList.toggle('active', state.raceFilter === race);
+        item.addEventListener('click', () => {
+            state.raceFilter = state.raceFilter === race ? null : race;
+            filterMenu.classList.add('hidden');
+            _updateMenuSelection();
             renderCharacters();
-        };
-        selectList.appendChild(item);
+        });
     });
 }
 
@@ -1067,18 +1061,23 @@ function updateUI() {
 
 function _updateMenuSelection() {
     document.querySelectorAll('#filter-menu .menu-item').forEach(btn => {
-        const isF = btn.dataset.filter === state.galleryMode;
-        const isS = btn.dataset.sort   === state.sortBy;
-        btn.classList.toggle('active', isF || isS);
+        if (btn.classList.contains('race-menu-item')) {
+            const rv = btn.dataset.raceValue;
+            btn.classList.toggle('active', rv === '' ? !state.raceFilter : state.raceFilter === rv);
+        } else {
+            const isF = btn.dataset.filter === state.galleryMode;
+            const isS = btn.dataset.sort   === state.sortBy;
+            btn.classList.toggle('active', isF || isS);
+        }
     });
     const active = document.querySelector(`#filter-menu button[data-filter="${state.galleryMode}"]`);
     if (active) {
         const icon = active.querySelector('div > .material-symbols-outlined')?.textContent || 'apps';
         const text = active.querySelector('div > span:last-child')?.textContent || 'All';
         dom.filterIcon.textContent = icon;
-        dom.filterText.textContent = text;
+        dom.filterText.textContent = state.raceFilter ? `${text} · ${state.raceFilter}` : text;
         dom.filterToggleBtn.classList.toggle('dismissed-selected', state.galleryMode === 'dismissed');
-        dom.filterToggleBtn.classList.toggle('selected', state.galleryMode !== 'dismissed');
+        dom.filterToggleBtn.classList.toggle('selected', state.galleryMode !== 'dismissed' || !!state.raceFilter);
     }
 }
 
@@ -1143,7 +1142,15 @@ function openCharacterModal(charId, isDismissed = false) {
     const m = dom.charModal;
     m.name.textContent = char.name;
     const irkEl = document.getElementById('modal-char-irk');
-    if (irkEl) { irkEl.textContent = char.irk || ''; irkEl.classList.toggle('hidden', !char.irk); }
+    if (irkEl) {
+        if (char.irk) {
+            irkEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:700;padding:4px 12px;border-radius:99px;background:rgba(var(--primary-rgb),0.14);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);letter-spacing:0.03em;"><span class="material-symbols-outlined" style="font-size:14px;">diversity_3</span>${char.irk}</span>`;
+            irkEl.classList.remove('hidden');
+        } else {
+            irkEl.innerHTML = '';
+            irkEl.classList.add('hidden');
+        }
+    }
     m.evolutions.style.gridTemplateColumns = `repeat(auto-fit, ${sizeProfiles[state.imageSizeIndex].minCardWidth})`;
     m.evolutions.innerHTML = '';
 
@@ -1248,6 +1255,11 @@ function openFusionModal(fusionId) {
     const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
 
     m.name.textContent = fusion.name;
+    const _irkChip = (irk) => irk
+        ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(var(--primary-rgb),0.14);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);letter-spacing:0.03em;"><span class="material-symbols-outlined" style="font-size:12px;">diversity_3</span>${irk}</span>`
+        : '';
+    const _setIrk = (elId, irk) => { const el = document.getElementById(elId); if (!el) return; if (irk) { el.innerHTML = _irkChip(irk); el.classList.remove('hidden'); } else { el.innerHTML = ''; el.classList.add('hidden'); } };
+    _setIrk('modal-fusion-irk', fusion.irk);
     m.imgWrap.style.width = w;
     // ── Clean old AU cards ──
     document.querySelectorAll('.fusion-au-extra-card').forEach(el => el.remove());
@@ -1297,16 +1309,17 @@ function openFusionModal(fusionId) {
         };
         const [p1, p2] = (fusion.fusionPartners || []).map(id =>
             characters.find(c => c.id === id) || dismissedCharacters.find(c => c.id === id));
-        const setPartner = (side, pChar) => {
+        const setPartner = (side, pChar, irkElId) => {
             if (!pChar) return;
             side.img.src = getOriginal3Star(pChar.id);
             side.container.style.width = `${parseInt(w) * 0.75}px`;
             side.name.textContent = pChar.name;
             side.container.dataset.characterId = pChar.id;
             side.star.innerHTML = getStarEmojis(false, false, 3);
+            _setIrk(irkElId, pChar.irk);
         };
-        setPartner(m.left, p1);
-        setPartner(m.right, p2);
+        setPartner(m.left, p1, 'modal-fusion-left-irk');
+        setPartner(m.right, p2, 'modal-fusion-right-irk');
 
         reachableAusWithEntry.forEach(au => {
             const auEntry = fusion.auData[au.id];
@@ -1574,7 +1587,7 @@ async function initApp() {
         dom.filterToggleBtn.addEventListener('click', e => { e.stopPropagation(); dom.filterMenu.classList.toggle('hidden'); document.getElementById('au-menu').classList.add('hidden'); });
         dom.filterMenu.addEventListener('click', e => {
             const btn = e.target.closest('.menu-item');
-            if (!btn) return;
+            if (!btn || btn.classList.contains('race-menu-item')) return;
             if (btn.dataset.filter) state.galleryMode = btn.dataset.filter;
             if (btn.dataset.sort)   state.sortBy = btn.dataset.sort;
             dom.filterMenu.classList.add('hidden');
@@ -1584,12 +1597,7 @@ async function initApp() {
         // AU dropdown
         const auToggleBtn = document.getElementById('au-toggle-btn');
         const auMenu = document.getElementById('au-menu');
-        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); document.getElementById('race-menu').classList.add('hidden'); });
-
-        // Race filter dropdown
-        const raceToggleBtn = document.getElementById('race-toggle-btn');
-        const raceMenu = document.getElementById('race-menu');
-        raceToggleBtn.addEventListener('click', e => { e.stopPropagation(); raceMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); auMenu.classList.add('hidden'); });
+        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
 
         document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
         dom.searchModal.input.addEventListener('input', renderSearchResults);
@@ -1599,9 +1607,6 @@ async function initApp() {
             }
             if (!auMenu.classList.contains('hidden') && !e.target.closest('#au-container')) {
                 auMenu.classList.add('hidden');
-            }
-            if (!raceMenu.classList.contains('hidden') && !e.target.closest('#race-container')) {
-                raceMenu.classList.add('hidden');
             }
         });
         dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); }});
