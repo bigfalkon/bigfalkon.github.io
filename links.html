@@ -17,9 +17,13 @@
             --primary-rgb: 189, 179, 255;
             --primary: rgb(var(--primary-rgb));
             --on-primary: #2d235c;
+            --primary-container: #443a74;
+            --on-primary-container: #e6deff;
             --bg: #131318;
             --on-bg: #e5e1e6;
             --surface: #201f25;
+            --surface-high: #2a2830;
+            --on-surface: #e5e1e6;
             --outline-var: #48454e;
             --on-surface-var: #c8c4d0;
         }
@@ -75,6 +79,36 @@
             background: linear-gradient(45deg, var(--primary), #443a74);
             padding: 3px; border-radius: 50%;
         }
+
+        .dev-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.6rem 1rem; border-radius: 12px;
+            background: transparent; border: 1px dashed var(--outline-var);
+            color: var(--on-surface-var); cursor: pointer; width: 100%;
+            font-family: 'Manrope', sans-serif; font-size: 0.85rem; font-weight: 600;
+            transition: all .2s;
+        }
+        .dev-toggle:hover { border-color: rgba(var(--primary-rgb),.4); color: var(--on-bg); }
+        .dev-toggle .chevron { font-size: 18px !important; transition: transform .25s; }
+        .dev-toggle.open .chevron { transform: rotate(180deg); }
+
+        .dev-tool-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.7rem 1rem; border-radius: 12px;
+            background: var(--surface-high); border: 1px solid var(--outline-var);
+            color: var(--on-bg); text-decoration: none; font-size: 0.85rem;
+            transition: all .2s;
+        }
+        .dev-tool-btn:hover { border-color: rgba(var(--primary-rgb),.4); transform: translateY(-2px); }
+        .dev-tool-btn .dev-icon { color: rgba(var(--primary-rgb),.6); font-size: 20px !important; }
+
+        .spinner-sm {
+            width: 16px; height: 16px; border-radius: 50%;
+            border: 2px solid rgba(var(--primary-rgb),.3);
+            border-top-color: var(--primary);
+            animation: spin .7s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="px-4 py-12">
@@ -133,9 +167,61 @@
             <span class="material-symbols-outlined arrow-icon">chevron_right</span>
         </a>
 
+        <!-- Dev Tools -->
+        <div class="mt-4">
+            <button id="dev-toggle" class="dev-toggle" aria-expanded="false">
+                <span class="flex items-center gap-2">
+                    <span class="material-symbols-outlined" style="font-size:18px!important">developer_mode</span>
+                    Developer Tools
+                </span>
+                <span class="material-symbols-outlined chevron">expand_more</span>
+            </button>
+            <div id="dev-list" class="flex flex-col gap-2 mt-2 hidden"></div>
+        </div>
+
     </div>
 
     <footer class="mt-10 text-xs" style="color:var(--outline-var)">© Character Gallery</footer>
+
+<script>
+(function() {
+    const MAIN_PAGES = new Set(['index.html','index2.html','oyun.html','rastgelekarakter.html','links.html']);
+    const toggle = document.getElementById('dev-toggle');
+    const list   = document.getElementById('dev-list');
+    let loaded = false;
+
+    toggle.addEventListener('click', () => {
+        const open = toggle.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', open);
+        list.classList.toggle('hidden', !open);
+        if (open && !loaded) { loaded = true; loadDevFiles(); }
+    });
+
+    async function loadDevFiles() {
+        list.innerHTML = '<div class="text-center py-3"><span class="spinner-sm"></span></div>';
+        try {
+            const res = await fetch('https://api.github.com/repos/bigfalkon/bigfalkon.github.io/contents/');
+            if (!res.ok) throw new Error('API error');
+            const items = await res.json();
+            const htmlFiles = items.filter(f => f.type === 'file' && f.name.endsWith('.html') && !MAIN_PAGES.has(f.name));
+            if (htmlFiles.length === 0) {
+                list.innerHTML = '<p class="text-center text-sm py-2" style="color:var(--on-surface-var)">No additional pages found.</p>';
+                return;
+            }
+            list.innerHTML = htmlFiles.map(f => `
+                <a href="${f.name}" class="dev-tool-btn">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined dev-icon">code</span>
+                        <span class="font-semibold">${f.name}</span>
+                    </div>
+                    <span class="material-symbols-outlined" style="opacity:.35;font-size:18px!important">open_in_new</span>
+                </a>`).join('');
+        } catch(e) {
+            list.innerHTML = '<p class="text-center text-sm py-2" style="color:var(--on-surface-var)">Could not load file list.</p>';
+        }
+    }
+})();
+</script>
 
 </body>
 </html>

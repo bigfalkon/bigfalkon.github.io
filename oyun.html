@@ -33,6 +33,9 @@
             --outline-var: #48454e;
             --danger: #ef5350;
             --gold: #FFD700;
+            --on-surface: #e5e1e6;
+            --primary-container: #443a74;
+            --on-primary-container: #e6deff;
         }
         body {
             font-family: 'Manrope', sans-serif;
@@ -150,27 +153,37 @@
     <!-- HEADER -->
     <header class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 pb-4 border-b gap-4" style="border-color:var(--outline-var)">
         <div>
-            <h1 class="text-4xl font-extrabold" style="color:var(--primary)">
+            <h1 class="text-4xl font-extrabold" style="color:var(--primary);font-family:'Metamorphous',serif">
                 <a href="oyun.html" class="hover:opacity-80 transition-opacity">Character Tournament</a>
             </h1>
             <p class="text-base mt-1" style="color:var(--on-surface-var)">Pick your favourite</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <a href="index.html" class="btn btn-secondary">
+            <a href="links.html" class="btn btn-secondary">
                 <span class="material-symbols-outlined">arrow_back</span>
-                <span class="hidden sm:inline">Gallery</span>
+                <span class="hidden sm:inline">Back</span>
             </a>
+            <!-- Zoom control -->
+            <div id="zoom-control" class="flex items-center rounded-full overflow-hidden" style="border:1px solid var(--outline-var);background:var(--surface-high);">
+                <button id="zoom-out-btn" class="transition-colors hover:bg-white/10" style="padding:12px 8px;cursor:pointer;display:flex;align-items:center;" aria-label="Zoom out">
+                    <span class="material-symbols-outlined" style="font-size:20px;display:flex;">zoom_out</span>
+                </button>
+                <span id="size-label" class="px-2 text-sm font-bold border-x" style="border-color:var(--outline-var);">M</span>
+                <button id="zoom-in-btn" class="transition-colors hover:bg-white/10" style="padding:12px 8px;cursor:pointer;display:flex;align-items:center;" aria-label="Zoom in">
+                    <span class="material-symbols-outlined" style="font-size:20px;display:flex;">zoom_in</span>
+                </button>
+            </div>
             <button id="leaderboard-btn" class="btn btn-secondary">
                 <span class="material-symbols-outlined">leaderboard</span>
-                <span class="hidden sm:inline">Leaderboard</span>
+                <span class="hidden lg:inline">Leaderboard</span>
             </button>
             <button id="manage-categories-btn" class="btn btn-secondary hidden">
                 <span class="material-symbols-outlined">category</span>
-                <span class="hidden sm:inline">Categories</span>
+                <span class="hidden lg:inline">Categories</span>
             </button>
             <button id="auth-action-btn" class="btn btn-secondary">
                 <span id="auth-action-icon" class="material-symbols-outlined">login</span>
-                <span id="auth-action-text">Sign In</span>
+                <span id="auth-action-text" class="hidden sm:inline">Sign In</span>
             </button>
         </div>
     </header>
@@ -245,7 +258,7 @@
 
     <!-- GAME SCREEN -->
     <main id="game-screen" class="screen hidden">
-        <div class="w-full max-w-3xl">
+        <div id="game-container" class="w-full" style="max-width:768px">
             <!-- Round info -->
             <div class="text-center mb-4">
                 <h2 id="round-title" class="text-2xl font-bold" style="color:var(--primary)"></h2>
@@ -257,14 +270,14 @@
             </div>
             <!-- Match -->
             <div class="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 relative">
-                <div class="w-full max-w-[200px] sm:max-w-[240px] flex flex-col items-center gap-3">
+                <div class="contestant-wrapper w-full flex flex-col items-center gap-3" style="max-width:var(--contestant-max-w,240px)">
                     <div id="contestant-1-card" class="contestant-card w-full">
                         <img id="contestant-1-img" src="" alt="">
                     </div>
                     <h3 id="contestant-1-name" class="text-lg font-bold text-center leading-tight"></h3>
                 </div>
                 <div class="vs-bubble flex-shrink-0">VS</div>
-                <div class="w-full max-w-[200px] sm:max-w-[240px] flex flex-col items-center gap-3">
+                <div class="contestant-wrapper w-full flex flex-col items-center gap-3" style="max-width:var(--contestant-max-w,240px)">
                     <div id="contestant-2-card" class="contestant-card w-full">
                         <img id="contestant-2-img" src="" alt="">
                     </div>
@@ -361,6 +374,29 @@ const db   = firebase.firestore();
 const auth = firebase.auth();
 
 // ─── State ────────────────────────────────────────────────────────────────────
+// ─── Zoom ─────────────────────────────────────────────────────────────────────
+const zoomProfiles = [
+    { name:'XS', maxWidth:'480px',  cardMax:'160px' },
+    { name:'S',  maxWidth:'600px',  cardMax:'190px' },
+    { name:'M',  maxWidth:'768px',  cardMax:'240px' },
+    { name:'L',  maxWidth:'900px',  cardMax:'290px' },
+    { name:'XL', maxWidth:'1080px', cardMax:'350px' },
+];
+let zoomIndex = 2;
+
+function applyZoom() {
+    const p = zoomProfiles[zoomIndex];
+    const gc = document.getElementById('game-container');
+    if (gc) gc.style.maxWidth = p.maxWidth;
+    document.documentElement.style.setProperty('--contestant-max-w', p.cardMax);
+    const lbl = document.getElementById('size-label');
+    if (lbl) lbl.textContent = p.name;
+    const zOut = document.getElementById('zoom-out-btn');
+    const zIn  = document.getElementById('zoom-in-btn');
+    if (zOut) zOut.disabled = zoomIndex === 0;
+    if (zIn)  zIn.disabled  = zoomIndex === zoomProfiles.length - 1;
+}
+
 const dom = {};
 let allCharacters      = [];   // raw Firestore docs
 let alternativeUniverses = []; // AU definitions
@@ -885,6 +921,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Enter key on new category input
     dom.newCategoryInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); }});
+
+    // Zoom controls
+    document.getElementById('zoom-out-btn').addEventListener('click', () => { if (zoomIndex > 0) { zoomIndex--; applyZoom(); } });
+    document.getElementById('zoom-in-btn').addEventListener('click',  () => { if (zoomIndex < zoomProfiles.length - 1) { zoomIndex++; applyZoom(); } });
+    applyZoom();
 
     showScreen('setup');
 });
