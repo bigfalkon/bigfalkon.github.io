@@ -987,16 +987,18 @@ function renderAdminPanel() {
         const retiredBadge = isRetired ? `<p class="text-xs font-bold mt-1" style="color:var(--warning);">RETIRED</p>` : '';
         const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${getDate(item).toLocaleDateString('en-US')}</p>` : '<p class="text-xs text-red-400 mt-1">No date</p>';
 
-        // AU coverage dots
+        // AU coverage badges (icon + colored circle)
         const auDots = Object.keys(item.auData||{}).filter(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             const auEntry = item.auData[auId];
             return def && (isFusion ? auEntry?.fusionImageUrl : auEntry?.star3ImageUrl);
         }).map(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
-            return `<span title="${def?.name||auId}" style="width:8px;height:8px;border-radius:50%;background:${def?.color||'#64dcb4'};display:inline-block;border:1px solid rgba(255,255,255,0.2);"></span>`;
+            const color = def?.color || '#64dcb4';
+            const icon  = def?.icon  || 'auto_fix_high';
+            return `<span title="${def?.name||auId}" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${color}22;border:2px solid ${color};flex-shrink:0;"><span class="material-symbols-outlined" style="font-size:14px;color:${color};line-height:1;">${icon}</span></span>`;
         }).join('');
-        const auDotsHtml = auDots ? `<div class="flex gap-1 flex-wrap mt-1 items-center"><span class="text-xs text-gray-500 mr-1">AU:</span>${auDots}</div>` : '';
+        const auDotsHtml = auDots ? `<div class="flex gap-1.5 flex-wrap mt-1.5 items-center"><span class="text-xs text-gray-500 mr-0.5">AU:</span>${auDots}</div>` : '';
 
         const irkBadge = item.irk ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style="background:rgba(var(--primary-rgb),0.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);">${item.irk}</span>` : '';
 
