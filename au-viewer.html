@@ -198,7 +198,7 @@
             <!-- Search + Type Filter -->
             <div class="mb-3 flex flex-col gap-2">
                 <input type="text" id="entry-search" placeholder="Search entries…" class="form-input" oninput="filterEntries()">
-                <div class="flex gap-2 flex-wrap">
+                <div class="flex gap-2 flex-wrap items-center">
                     <button class="type-pill active" data-type="all" onclick="setTypeFilter('all')">
                         <span class="material-symbols-outlined" style="font-size:14px;">groups</span>Her İkisi
                     </button>
@@ -207,6 +207,9 @@
                     </button>
                     <button class="type-pill" data-type="fusion" onclick="setTypeFilter('fusion')">
                         <span class="material-symbols-outlined" style="font-size:14px;">merge</span>Füzyon
+                    </button>
+                    <button class="type-pill ml-auto" onclick="openNameList()" title="İsimleri metin olarak göster">
+                        <span class="material-symbols-outlined" style="font-size:14px;">list_alt</span>Metin Listesi
                     </button>
                 </div>
             </div>
@@ -235,6 +238,27 @@
             </button>
         </div>
         <div id="prompt-modal-body"></div>
+    </div>
+</div>
+
+<!-- NAME LIST MODAL -->
+<div id="namelist-modal" onclick="closeNameList()" style="position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .25s;">
+    <div onclick="event.stopPropagation()" style="background:var(--surface-container);border-radius:20px;padding:1.75rem;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 12px 36px rgba(0,0,0,.4);transform:scale(.97);transition:transform .25s;" id="namelist-modal-box">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <h2 class="text-lg font-bold" style="color:var(--primary);">İsim Listesi</h2>
+                <p id="namelist-subtitle" class="text-xs text-gray-400 mt-0.5"></p>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button id="namelist-copy-btn" onclick="copyNameList()" class="btn btn-secondary" style="padding:6px 12px;font-size:.78rem;">
+                    <span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>Kopyala
+                </button>
+                <button class="flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/10 transition-colors" onclick="closeNameList()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+        </div>
+        <textarea id="namelist-text" readonly style="flex:1;resize:none;background:rgba(0,0,0,.25);border:1px solid var(--outline-var);border-radius:10px;padding:.75rem;color:var(--on-bg);font-family:ui-monospace,monospace;font-size:.82rem;line-height:1.7;min-height:260px;max-height:calc(80vh - 120px);overflow-y:auto;outline:none;"></textarea>
     </div>
 </div>
 
@@ -555,6 +579,51 @@ async function openPromptModal(charId, charName, auIdArg) {
 
 function closePromptModal() {
     document.getElementById('prompt-modal').classList.remove('visible');
+}
+
+// ── Name List Modal ───────────────────────────────────────────────────────────
+function openNameList() {
+    const list   = entriesCache[currentView] || [];
+    const q      = document.getElementById('entry-search').value.toLowerCase().trim();
+
+    const filtered = list.filter(({ char }) => {
+        const nameMatch = char.name.toLowerCase().includes(q) || char.id.toLowerCase().includes(q);
+        if (!nameMatch) return false;
+        if (currentTypeFilter === 'character') return !char.isFusion;
+        if (currentTypeFilter === 'fusion')    return  char.isFusion;
+        return true;
+    });
+
+    const names = filtered.map(({ char }) => char.name).join('\n');
+
+    const typeLabel = currentTypeFilter === 'character' ? 'Karakter' : currentTypeFilter === 'fusion' ? 'Füzyon' : 'Her İkisi';
+    const viewLabel = currentView === 'in' ? 'AU\'da var' : 'AU\'da yok';
+    const au = allAUs.find(a => a.id === selectedAuId);
+    document.getElementById('namelist-subtitle').textContent = `${au?.name || ''} — ${viewLabel} — ${typeLabel} (${filtered.length})`;
+    document.getElementById('namelist-text').value = names;
+
+    const modal = document.getElementById('namelist-modal');
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
+    document.getElementById('namelist-modal-box').style.transform = 'scale(1)';
+    document.getElementById('namelist-copy-btn').innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>Kopyala';
+}
+
+function closeNameList() {
+    const modal = document.getElementById('namelist-modal');
+    modal.style.opacity = '0';
+    modal.style.pointerEvents = 'none';
+    document.getElementById('namelist-modal-box').style.transform = 'scale(.97)';
+}
+
+async function copyNameList() {
+    const text = document.getElementById('namelist-text').value;
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('namelist-copy-btn');
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;">check</span>Kopyalandı';
+    setTimeout(() => {
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>Kopyala';
+    }, 2000);
 }
 
 // ── Image enlarge ─────────────────────────────────────────────────────────────
