@@ -110,6 +110,17 @@
         /* Spinner */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin .8s linear infinite; display: inline-block; }
+
+        /* Type filter pills */
+        .type-pill {
+            display: inline-flex; align-items: center; gap: 5px; padding: 5px 13px;
+            border-radius: 99px; font-size: .78rem; font-weight: 700; cursor: pointer;
+            border: 1.5px solid var(--outline-var); background: transparent;
+            color: var(--on-surface-var); transition: all .2s; white-space: nowrap;
+            font-family: inherit;
+        }
+        .type-pill:hover { border-color: var(--primary); color: var(--primary); }
+        .type-pill.active { background: rgba(var(--primary-rgb),.15); border-color: var(--primary); color: var(--primary); }
     </style>
 </head>
 <body>
@@ -184,9 +195,20 @@
 
         <!-- Entries panel -->
         <div class="panel mt-0 rounded-tl-none" style="border-top-left-radius:0;">
-            <!-- Search -->
-            <div class="mb-3">
+            <!-- Search + Type Filter -->
+            <div class="mb-3 flex flex-col gap-2">
                 <input type="text" id="entry-search" placeholder="Search entries…" class="form-input" oninput="filterEntries()">
+                <div class="flex gap-2 flex-wrap">
+                    <button class="type-pill active" data-type="all" onclick="setTypeFilter('all')">
+                        <span class="material-symbols-outlined" style="font-size:14px;">groups</span>Her İkisi
+                    </button>
+                    <button class="type-pill" data-type="character" onclick="setTypeFilter('character')">
+                        <span class="material-symbols-outlined" style="font-size:14px;">person</span>Karakter
+                    </button>
+                    <button class="type-pill" data-type="fusion" onclick="setTypeFilter('fusion')">
+                        <span class="material-symbols-outlined" style="font-size:14px;">merge</span>Füzyon
+                    </button>
+                </div>
             </div>
             <div id="loading-entries" class="text-center py-8 hidden">
                 <span class="material-symbols-outlined spin text-3xl" style="color:var(--au);">sync</span>
@@ -240,6 +262,7 @@ let allAUs        = [];
 let allCharacters = [];   // active + dismissed combined
 let selectedAuId  = null;
 let currentView   = 'in'; // 'in' | 'out'
+let currentTypeFilter = 'all'; // 'all' | 'character' | 'fusion'
 let entriesCache  = {};   // { in: [...], out: [...] }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -322,6 +345,8 @@ function selectAu(auId) {
     currentView  = 'in';
     entriesCache = {};
     document.getElementById('entry-search').value = '';
+    currentTypeFilter = 'all';
+    document.querySelectorAll('.type-pill').forEach(p => p.classList.toggle('active', p.dataset.type === 'all'));
 
     // Update pill styling
     renderAuPills();
@@ -386,9 +411,13 @@ function renderCurrentView() {
     const empty   = document.getElementById('entries-empty');
     grid.innerHTML = '';
 
-    const filtered = list.filter(({ char }) =>
-        char.name.toLowerCase().includes(q) || char.id.toLowerCase().includes(q)
-    );
+    const filtered = list.filter(({ char }) => {
+        const nameMatch = char.name.toLowerCase().includes(q) || char.id.toLowerCase().includes(q);
+        if (!nameMatch) return false;
+        if (currentTypeFilter === 'character') return !char.isFusion;
+        if (currentTypeFilter === 'fusion')    return  char.isFusion;
+        return true;
+    });
 
     if (!filtered.length) {
         empty.classList.remove('hidden');
@@ -456,12 +485,20 @@ function renderCurrentView() {
 
 function filterEntries() { renderCurrentView(); }
 
+function setTypeFilter(type) {
+    currentTypeFilter = type;
+    document.querySelectorAll('.type-pill').forEach(p => p.classList.toggle('active', p.dataset.type === type));
+    renderCurrentView();
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         currentView = btn.dataset.view;
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
         document.getElementById('entry-search').value = '';
+        currentTypeFilter = 'all';
+        document.querySelectorAll('.type-pill').forEach(p => p.classList.toggle('active', p.dataset.type === 'all'));
         renderCurrentView();
     });
 });
