@@ -273,7 +273,7 @@
                 <h2 class="text-lg font-bold" style="color:var(--primary);">Prompt Listesi</h2>
                 <p id="promptexport-subtitle" class="text-xs text-gray-400 mt-0.5"></p>
             </div>
-            <div class="flex gap-2 items-center">
+            <div class="flex gap-2 items-center flex-wrap justify-end">
                 <button id="promptexport-copy-btn" onclick="copyPromptExport()" class="btn btn-secondary" style="padding:6px 12px;font-size:.78rem;">
                     <span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>Kopyala
                 </button>
@@ -285,6 +285,15 @@
                 </button>
             </div>
         </div>
+        <!-- Split download toggle -->
+        <label id="split-toggle-row" class="hidden flex items-center gap-2 mb-3 cursor-pointer select-none" style="font-size:.8rem;color:var(--on-surface-var);">
+            <span style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;">
+                <input type="checkbox" id="split-download-toggle" style="opacity:0;width:0;height:0;position:absolute;">
+                <span id="split-toggle-track" style="position:absolute;inset:0;background:var(--outline-var);border-radius:99px;transition:.2s;"></span>
+                <span id="split-toggle-thumb" style="position:absolute;left:3px;top:3px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.2s;"></span>
+            </span>
+            10'arlı ayrı dosyalar olarak indir
+        </label>
         <div id="promptexport-loading" class="hidden text-center py-6">
             <span class="material-symbols-outlined spin text-3xl" style="color:var(--primary);">sync</span>
             <p class="text-sm mt-2 text-gray-400">Promptlar yükleniyor…</p>
@@ -568,18 +577,20 @@ async function openPromptModal(charId, charName, auIdArg) {
 
     try {
         // Load main prompts
-        const snap = await db.collection('prompts').where('characterId', '==', charId).get();
-        const prompts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const snap = await db.collection('promptLibrary').where('charId', '==', charId).get();
+        const starOrder = { '1': 0, '2': 1, '3': 2, 'fusion': 3, 'extra': 4 };
+        const prompts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => (starOrder[a.charStar] ?? 99) - (starOrder[b.charStar] ?? 99));
 
         let html = '';
 
         if (prompts.length) {
             html += `<p class="text-xs font-bold mb-3" style="color:var(--on-surface-var);">MAIN PROMPTS (${prompts.length})</p>`;
             prompts.forEach(p => {
-                const label = p.title || p.label || p.type || 'Prompt';
+                const label = p.title || (p.charStar ? `${p.charStar}★` : 'Prompt');
                 html += `<div class="prompt-block">
                     <div class="prompt-label">${label}</div>
-                    <div class="prompt-text">${escapeHtml(p.promptText || p.text || p.prompt || '')}</div>
+                    <div class="prompt-text">${escapeHtml(p.prompt || p.promptText || p.text || '')}</div>
                 </div>`;
             });
         } else {
@@ -686,7 +697,7 @@ async function openPromptExport() {
     // Fetch main prompts for all characters in parallel
     const results = await Promise.all(filtered.map(async ({ char, entry }) => {
         try {
-            const snap    = await db.collection('prompts').where('characterId', '==', char.id).get();
+            const snap    = await db.collection('promptLibrary').where('charId', '==', char.id).get();
             const prompts = snap.docs.map(d => d.data());
             return { char, entry, prompts };
         } catch(_) {
@@ -700,11 +711,13 @@ async function openPromptExport() {
         let block = `=== ${char.name} ===\n`;
 
         if (prompts.length) {
-            prompts.forEach(p => {
-                const label = p.title || p.label || p.type || 'Prompt';
-                const text  = (p.promptText || p.text || p.prompt || '').trim();
-                block += `\n[${label}]\n${text}\n`;
-            });
+            const star3 = prompts.find(p => p.charStar === '3');
+            if (star3) {
+                const text = (star3.prompt || star3.promptText || star3.text || '').trim();
+                block += `\n[3★]\n${text}\n`;
+            } else {
+                block += '\n(3★ prompt bulunamadı)\n';
+            }
         } else {
             block += '\n(Ana prompt bulunamadı)\n';
         }
@@ -722,6 +735,19 @@ async function openPromptExport() {
     textarea.value = output;
     document.getElementById('promptexport-copy-btn').innerHTML =
         '<span class="material-symbols-outlined" style="font-size:15px;">content_copy</span>Kopyala';
+
+    // Store raw results for split-download and show toggle if >10 chars
+    window._promptExportResults = results;
+    window._promptExportAu      = au;
+    const toggleRow = document.getElementById('split-toggle-row');
+    if (results.length > 10) {
+        toggleRow.classList.remove('hidden');
+    } else {
+        toggleRow.classList.add('hidden');
+        document.getElementById('split-download-toggle').checked = false;
+        document.getElementById('split-toggle-track').style.background = 'var(--outline-var)';
+        document.getElementById('split-toggle-thumb').style.left = '3px';
+    }
 }
 
 function closePromptExport() {
@@ -741,19 +767,65 @@ async function copyPromptExport() {
     }, 2000);
 }
 
-function downloadPromptExport() {
-    const text = document.getElementById('promptexport-text').value;
-    if (!text.trim()) return;
-    const au        = allAUs.find(a => a.id === selectedAuId);
-    const viewLabel = currentView === 'in' ? 'in' : 'out';
-    const typeLabel = currentTypeFilter === 'character' ? 'chars' : currentTypeFilter === 'fusion' ? 'fusions' : 'all';
-    const filename  = `prompts_${(au?.name || selectedAuId).replace(/\s+/g,'_')}_${viewLabel}_${typeLabel}.txt`;
+function _buildPromptBlock(results, au) {
+    const sep = '─'.repeat(48);
+    return results.map(({ char, entry, prompts }) => {
+        let block = `=== ${char.name} ===\n`;
+        const star3 = prompts.find(p => p.charStar === '3');
+        if (star3) {
+            const text = (star3.prompt || star3.promptText || star3.text || '').trim();
+            block += `\n[3★]\n${text}\n`;
+        } else {
+            block += '\n(3★ prompt bulunamadı)\n';
+        }
+        if (entry?.prompt) {
+            block += `\n[AU Prompt — ${au?.name || selectedAuId}]\n${entry.prompt.trim()}\n`;
+        }
+        return block;
+    }).join(`\n${sep}\n\n`);
+}
+
+function _triggerDownload(text, filename) {
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
     a.click();
     URL.revokeObjectURL(url);
 }
+
+function downloadPromptExport() {
+    const results = window._promptExportResults;
+    if (!results || !results.length) return;
+
+    const au        = window._promptExportAu || allAUs.find(a => a.id === selectedAuId);
+    const viewLabel = currentView === 'in' ? 'in' : 'out';
+    const typeLabel = currentTypeFilter === 'character' ? 'chars' : currentTypeFilter === 'fusion' ? 'fusions' : 'all';
+    const auSlug    = (au?.name || selectedAuId).replace(/\s+/g,'_');
+    const splitMode = document.getElementById('split-download-toggle').checked;
+
+    if (splitMode) {
+        const chunkSize = 10;
+        const chunks = [];
+        for (let i = 0; i < results.length; i += chunkSize) chunks.push(results.slice(i, i + chunkSize));
+        chunks.forEach((chunk, idx) => {
+            const from     = idx * chunkSize + 1;
+            const to       = Math.min((idx + 1) * chunkSize, results.length);
+            const filename = `prompts_${auSlug}_${viewLabel}_${typeLabel}_${from}-${to}.txt`;
+            const text     = _buildPromptBlock(chunk, au);
+            setTimeout(() => _triggerDownload(text, filename), idx * 300);
+        });
+    } else {
+        const filename = `prompts_${auSlug}_${viewLabel}_${typeLabel}.txt`;
+        const text     = _buildPromptBlock(results, au);
+        _triggerDownload(text, filename);
+    }
+}
+
+// Toggle switch visual
+document.getElementById('split-download-toggle').addEventListener('change', function() {
+    document.getElementById('split-toggle-track').style.background = this.checked ? 'var(--primary)' : 'var(--outline-var)';
+    document.getElementById('split-toggle-thumb').style.left       = this.checked ? '19px' : '3px';
+});
 
 // ── Image enlarge ─────────────────────────────────────────────────────────────
 function enlargeImg(src) {
