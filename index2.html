@@ -152,6 +152,71 @@
         .au-entry-card:hover { border-color: rgba(var(--au-rgb), 0.5); }
         .au-entry-card img { width: 64px; height: 80px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 
+        /* ── Stat cards ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--surface-container);
+            border: 1px solid var(--outline-var);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.06;
+            background: radial-gradient(circle at 80% 20%, var(--stat-color, var(--primary)) 0%, transparent 70%);
+        }
+        .stat-card .stat-icon {
+            font-size: 18px;
+            color: var(--stat-color, var(--primary));
+            margin-bottom: 2px;
+        }
+        .stat-card .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--on-surface);
+        }
+        .stat-card .stat-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--on-surface-var);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .stat-card .stat-sub {
+            font-size: 0.7rem;
+            color: var(--stat-color, var(--primary));
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .stat-card.skeleton .stat-value {
+            width: 48px; height: 28px;
+            background: var(--surface-high);
+            border-radius: 6px;
+            animation: skeleton-pulse 1.4s ease-in-out infinite;
+        }
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
         /* Scrollbars */
         .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
         .modal-content::-webkit-scrollbar-track, #selector-grid::-webkit-scrollbar-track, #qp-content::-webkit-scrollbar-track { background: transparent; }
@@ -247,6 +312,46 @@
         </div>
     </header>
 
+    <!-- STAT CARDS -->
+    <div class="stat-grid" id="stat-grid">
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--primary-rgb))">
+            <span class="material-symbols-outlined stat-icon">person</span>
+            <div class="stat-value" id="stat-chars">—</div>
+            <div class="stat-label">Characters</div>
+            <div class="stat-sub" id="stat-chars-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: #e0b3ff">
+            <span class="material-symbols-outlined stat-icon">merge_type</span>
+            <div class="stat-value" id="stat-fusions">—</div>
+            <div class="stat-label">Fusions</div>
+            <div class="stat-sub" id="stat-fusions-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--au-rgb))">
+            <span class="material-symbols-outlined stat-icon">auto_fix_high</span>
+            <div class="stat-value" id="stat-aus">—</div>
+            <div class="stat-label">Universes</div>
+            <div class="stat-sub" id="stat-aus-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--warning-rgb))">
+            <span class="material-symbols-outlined stat-icon">archive</span>
+            <div class="stat-value" id="stat-retired">—</div>
+            <div class="stat-label">Retired</div>
+            <div class="stat-sub" id="stat-retired-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: #7ec8ff">
+            <span class="material-symbols-outlined stat-icon">photo_library</span>
+            <div class="stat-value" id="stat-images">—</div>
+            <div class="stat-label">Images</div>
+            <div class="stat-sub" id="stat-images-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--success-rgb))">
+            <span class="material-symbols-outlined stat-icon">content_paste</span>
+            <div class="stat-value" id="stat-evos">—</div>
+            <div class="stat-label">Full Sets</div>
+            <div class="stat-sub" id="stat-evos-sub"></div>
+        </div>
+    </div>
+
     <!-- TAB BAR -->
     <div class="flex gap-1 mb-0 border-b" style="border-color: var(--outline-var);">
         <button class="tab-btn active" data-tab="characters">
@@ -317,8 +422,20 @@
                     <option value="character">Normal Character</option>
                     <option value="fusion">Fusion</option>
                 </select>
-                <input required type="text" name="id" placeholder="Record ID (must be unique)" class="form-input">
-                <input required type="text" name="name" placeholder="Name" class="form-input">
+                <div>
+                    <input required type="text" name="id" id="id-input" placeholder="Record ID (must be unique)" class="form-input">
+                    <div id="id-rename-warning" class="hidden mt-2 px-3 py-2 rounded-xl text-sm font-medium flex items-start gap-2" style="background:rgba(255,183,77,0.12);border:1px solid rgba(255,183,77,0.35);color:var(--warning);">
+                        <span class="material-symbols-outlined flex-shrink-0" style="font-size:17px;margin-top:1px;">warning</span>
+                        <span>Renaming the ID will delete the old document and create a new one. All prompts and AU data will be migrated automatically. Make sure the new ID is unique.</span>
+                    </div>
+                </div>
+                <div>
+                    <input required type="text" name="name" id="name-input" placeholder="Name" class="form-input">
+                    <div id="duplicate-name-warning" class="hidden mt-2 px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2" style="background:rgba(255,183,77,0.1);border:1px solid rgba(255,183,77,0.3);color:var(--warning);">
+                        <span class="material-symbols-outlined flex-shrink-0" style="font-size:17px;">person_search</span>
+                        <span id="duplicate-name-text"></span>
+                    </div>
+                </div>
                 <input type="text" name="irk" id="irk-input" placeholder="Race (optional)" class="form-input" list="irk-datalist" autocomplete="off">
                 <datalist id="irk-datalist"></datalist>
 
@@ -330,9 +447,10 @@
                             <option value="vgy">VGY.ME Upload</option>
                             <option value="link">Direct Link</option>
                         </select>
-                        <input type="file" name="imageFile" class="form-input flex-grow image-upload-file">
+                        <input type="file" name="imageFile" class="form-input flex-grow image-upload-file" accept="image/*">
                         <input type="text" name="imageUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                     </div>
+                    <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                 </div>
 
                 <div id="character-fields" class="flex flex-col gap-3">
@@ -340,17 +458,19 @@
                         <label class="block text-sm font-medium mb-1">2★ Image</label>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="evolutions_1_file" class="form-input flex-grow image-upload-file">
+                            <input type="file" name="evolutions_1_file" class="form-input flex-grow image-upload-file" accept="image/*">
                             <input type="text" name="evolutions_1_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
+                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                     </div>
                     <div id="evo2-image-container">
                         <label class="block text-sm font-medium mb-1">3★ Image</label>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="evolutions_2_file" class="form-input flex-grow image-upload-file">
+                            <input type="file" name="evolutions_2_file" class="form-input flex-grow image-upload-file" accept="image/*">
                             <input type="text" name="evolutions_2_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
+                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                     </div>
                 </div>
 
@@ -369,42 +489,48 @@
                         <label class="block text-sm font-medium mb-1">Fusion Preview Image (PNG/JPG)</label>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file">
+                            <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file" accept="image/*">
                             <input type="text" name="previewUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                         </div>
+                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                     </div>
                 </div>
 
                 <div id="prompt-management-section" class="hidden">
                     <h3 class="prompt-section-header">Prompt Management</h3>
                     <div id="prompt-block-1" class="prompt-block hidden" data-level="1">
-                        <div class="prompt-label"><span>Level 1 Prompt (Default)</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <div class="prompt-label"><span>1★ Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
                         <input type="text" id="prompt-title-1" class="form-input mb-2 text-sm" placeholder="Prompt Title (Optional)">
                         <textarea id="prompt-text-1" class="form-input text-sm font-mono" rows="4" placeholder="Enter prompt text here..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
                         <input type="hidden" id="prompt-docId-1">
                     </div>
                     <div id="prompt-block-2" class="prompt-block hidden" data-level="2">
-                        <div class="prompt-label"><span>Level 2 Prompt (Evolution 1)</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <div class="prompt-label"><span>2★ Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
                         <input type="text" id="prompt-title-2" class="form-input mb-2 text-sm" placeholder="Prompt Title">
                         <textarea id="prompt-text-2" class="form-input text-sm font-mono" rows="4" placeholder="Level 2 prompt text..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
                         <input type="hidden" id="prompt-docId-2">
                     </div>
                     <div id="prompt-block-3" class="prompt-block hidden" data-level="3">
-                        <div class="prompt-label"><span>Level 3 Prompt (Evolution 2)</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <div class="prompt-label"><span>3★ Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
                         <input type="text" id="prompt-title-3" class="form-input mb-2 text-sm" placeholder="Prompt Title">
                         <textarea id="prompt-text-3" class="form-input text-sm font-mono" rows="4" placeholder="Level 3 prompt text..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
                         <input type="hidden" id="prompt-docId-3">
                     </div>
                     <div id="prompt-block-FUSION" class="prompt-block hidden" data-level="FUSION">
                         <div class="prompt-label"><span class="text-fuchsia-400">Fusion Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
                         <input type="text" id="prompt-title-FUSION" class="form-input mb-2 text-sm" placeholder="Fusion Title">
                         <textarea id="prompt-text-FUSION" class="form-input text-sm font-mono" rows="4" placeholder="Fusion prompt text..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
                         <input type="hidden" id="prompt-docId-FUSION">
                     </div>
                     <div id="prompt-block-EK" class="prompt-block" data-level="EK">
                         <div class="prompt-label"><span>Extra / Alternative Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
                         <input type="text" id="prompt-title-EK" class="form-input mb-2 text-sm" placeholder="Extra Prompt Title">
                         <textarea id="prompt-text-EK" class="form-input text-sm font-mono" rows="4" placeholder="Extra prompt text..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
                         <input type="hidden" id="prompt-docId-EK">
                     </div>
                 </div>
@@ -520,20 +646,86 @@
 <div id="export-modal" class="modal-backdrop hidden" onclick="closeExportModal()">
     <div class="modal-content !max-w-sm" onclick="event.stopPropagation()">
         <button class="icon-button absolute top-2 right-2" onclick="closeExportModal()"><span class="material-symbols-outlined">close</span></button>
-        <h2 class="text-xl font-bold mb-4" style="color: var(--primary);">Download Prompts</h2>
-        <p class="text-sm text-gray-400 mb-4">Downloads all prompts in the library as a single .txt file.</p>
-        <div class="flex flex-col gap-3 mb-6">
-            <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
-                <input type="checkbox" id="export-include-retired" class="w-5 h-5 accent-[var(--primary)]">
-                <span class="text-sm font-medium">Include Retired</span>
+        <h2 class="text-xl font-bold mb-1" style="color: var(--primary);">Download Prompts</h2>
+        <p class="text-sm mb-5" style="color:var(--on-surface-var);">Exports as <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:4px;">.md</code> — AU prompts grouped under each character.</p>
+
+        <style>
+        .export-toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; border-radius: 14px; cursor: pointer;
+            border: 1.5px solid var(--outline-var);
+            background: var(--surface-high);
+            transition: border-color 0.2s, background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .export-toggle-row.disabled-row { opacity: 0.4; pointer-events: none; }
+        .export-toggle-row:active { background: rgba(255,255,255,0.06); }
+        .export-toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+        .export-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .export-toggle-slider {
+            position: absolute; inset: 0; border-radius: 99px;
+            background: var(--outline-var); transition: background 0.2s;
+        }
+        .export-toggle-slider::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: white; transition: transform 0.2s;
+        }
+        .export-toggle input:checked + .export-toggle-slider { background: var(--primary); }
+        .export-toggle input:checked + .export-toggle-slider::after { transform: translateX(20px); }
+        .export-toggle.au-toggle input:checked + .export-toggle-slider { background: var(--au); }
+        .export-section-label {
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em;
+            text-transform: uppercase; color: var(--on-surface-var);
+            padding: 0 2px; margin-bottom: 8px; margin-top: 4px;
+        }
+        #au-sub-options { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s; max-height: 200px; opacity: 1; }
+        #au-sub-options.collapsed { max-height: 0; opacity: 0; pointer-events: none; }
+        </style>
+
+        <div class="flex flex-col gap-2 mb-6">
+            <!-- Include Retired -->
+            <label class="export-toggle-row" for="export-include-retired">
+                <div class="flex flex-col gap-0.5 pr-3">
+                    <span class="text-sm font-semibold">Include Retired</span>
+                </div>
+                <div class="export-toggle">
+                    <input type="checkbox" id="export-include-retired">
+                    <div class="export-toggle-slider"></div>
+                </div>
             </label>
-            <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
-                <input type="checkbox" id="export-include-au" class="w-5 h-5 accent-[var(--au)]">
-                <span class="text-sm font-medium" style="color: var(--on-au-container);">Include AU Prompts</span>
+
+            <!-- AU section header -->
+            <div class="export-section-label" style="margin-top:8px;">Alt. Universe Prompts</div>
+
+            <!-- Include Unlocked AUs -->
+            <label class="export-toggle-row" for="export-include-au-unlocked" id="export-au-unlocked-row">
+                <div class="flex flex-col gap-0.5 pr-3">
+                    <span class="text-sm font-semibold" style="color:var(--au);">Include Unlocked AUs</span>
+                    <span class="text-xs" style="color:var(--on-surface-var);">Publicly visible universes</span>
+                </div>
+                <div class="export-toggle au-toggle">
+                    <input type="checkbox" id="export-include-au-unlocked" checked onchange="syncAuToggleState()">
+                    <div class="export-toggle-slider"></div>
+                </div>
             </label>
+
+            <!-- Include Locked AUs — indented sub-option -->
+            <div id="au-sub-options" style="padding-left:12px;">
+                <label class="export-toggle-row" for="export-include-au-locked" style="border-color:rgba(100,220,180,0.25); background:rgba(100,220,180,0.04);">
+                    <div class="flex flex-col gap-0.5 pr-3">
+                        <span class="text-sm font-semibold" style="color:rgba(var(--au-rgb),0.7);">Include Locked AUs 🔒</span>
+                        <span class="text-xs" style="color:var(--on-surface-var);">Secret / hidden universes</span>
+                    </div>
+                    <div class="export-toggle au-toggle">
+                        <input type="checkbox" id="export-include-au-locked">
+                        <div class="export-toggle-slider"></div>
+                    </div>
+                </label>
+            </div>
         </div>
         <button id="export-action-btn" class="btn btn-primary w-full" onclick="downloadPrompts()">
-            <span class="material-symbols-outlined">download</span> Start Download
+            <span class="material-symbols-outlined">download</span> Export as .md
         </button>
         <p id="export-status" class="text-center text-sm mt-2 text-gray-400"></p>
         <div class="mt-4 pt-3 border-t" style="border-color:var(--outline-var);">
@@ -757,7 +949,7 @@ Object.assign(dom, {
     qpEmpty:            document.getElementById('qp-empty'),
     exportModal:        document.getElementById('export-modal'),
     exportIncludeRetired: document.getElementById('export-include-retired'),
-    exportIncludeAu:    document.getElementById('export-include-au'),
+    exportIncludeAu:    null, // replaced by export-include-au-unlocked / export-include-au-locked
     exportStatus:       document.getElementById('export-status'),
     exportBtn:          document.getElementById('export-action-btn'),
     // AU tab
@@ -1002,20 +1194,38 @@ function renderAdminPanel() {
 
         const irkBadge = item.irk ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style="background:rgba(var(--primary-rgb),0.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);">${item.irk}</span>` : '';
 
-        // Fusion mini-row (only for non-fusion characters)
+        // Fusion mini-row (only for non-fusion characters) — scrollable name links
         let fusionMiniRow = '';
         if (!isFusion) {
             const charFusions = characters.filter(c => c.isFusion && c.fusionPartners?.includes(item.id));
             if (charFusions.length) {
-                const thumbs = charFusions.map(f => {
-                    const url = f.previewUrl || f.imageUrl || '';
-                    return `<img src="${url}" alt="${f.name}" title="${f.name}" class="w-5 h-7 object-cover rounded cursor-zoom-in flex-shrink-0" onclick="enlargeImage(event,'${url}')">`;
-                }).join('');
-                fusionMiniRow = `<div class="flex items-center gap-1 mt-1 flex-wrap"><span class="material-symbols-outlined" style="font-size:14px;color:var(--fusion);">merge_type</span>${thumbs}</div>`;
+                const nameLinks = charFusions.map(f =>
+                    `<a href="#card-${f.id}" class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 transition-colors"
+                        style="background:rgba(224,179,255,0.12);color:#e0b3ff;border:1px solid rgba(224,179,255,0.25);"
+                        onclick="event.preventDefault();document.getElementById('card-${f.id}')?.scrollIntoView({behavior:'smooth',block:'center'});"
+                    ><span class="material-symbols-outlined" style="font-size:11px;vertical-align:-1px;">merge_type</span> ${f.name}</a>`
+                ).join('');
+                fusionMiniRow = `<div class="flex items-center gap-1 mt-1.5 flex-wrap">${nameLinks}</div>`;
             }
         }
 
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        // For fusion cards — show parent name links
+        let parentRow = '';
+        if (isFusion && item.fusionPartners?.length) {
+            const allPool = [...characters, ...dismissed];
+            const parentLinks = item.fusionPartners.map(pid => {
+                const p = allPool.find(c => c.id === pid);
+                if (!p) return `<span class="text-xs text-red-400">Unknown</span>`;
+                return `<a href="#card-${pid}" class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 transition-colors"
+                    style="background:rgba(var(--primary-rgb),0.1);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.25);"
+                    onclick="event.preventDefault();document.getElementById('card-${pid}')?.scrollIntoView({behavior:'smooth',block:'center'});"
+                >${p.name}</a>`;
+            }).join('<span class="text-xs text-gray-500">+</span>');
+            parentRow = `<div class="flex items-center gap-1 mt-1.5 flex-wrap">${parentLinks}</div>`;
+        }
+
+        card.id = `card-${item.id}`;
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${parentRow}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
@@ -1418,8 +1628,106 @@ function setupImageInputTogglers() {
             const isLink = e.target.value === 'link';
             f.classList.toggle('hidden', isLink);
             l.classList.toggle('hidden', !isLink);
+            // reset preview when method changes
+            const container = p.closest('[id$="-container"], [id$="-field"]') || p.parentElement;
+            _hidePreview(container);
         });
     });
+
+    // Image preview: file input
+    document.querySelectorAll('.image-upload-file').forEach(inp => {
+        if (inp.dataset.preview) return;
+        inp.dataset.preview = '1';
+        inp.addEventListener('change', e => {
+            const file = e.target.files[0];
+            const container = inp.closest('[class*="flex flex-col"]')?.parentElement || inp.parentElement.parentElement;
+            if (!file) { _hidePreview(container); return; }
+            const reader = new FileReader();
+            reader.onload = ev => _showPreview(container, ev.target.result);
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Image preview: link input (debounced)
+    document.querySelectorAll('.image-upload-link').forEach(inp => {
+        if (inp.dataset.preview) return;
+        inp.dataset.preview = '1';
+        let t;
+        inp.addEventListener('input', e => {
+            clearTimeout(t);
+            const url = e.target.value.trim();
+            const container = inp.closest('[class*="flex flex-col"]')?.parentElement || inp.parentElement.parentElement;
+            if (!url) { _hidePreview(container); return; }
+            t = setTimeout(() => _showPreview(container, url), 600);
+        });
+    });
+}
+
+function _showPreview(container, src) {
+    const wrap = container?.querySelector?.('.img-preview');
+    if (!wrap) return;
+    const img = wrap.querySelector('img');
+    img.onerror = () => { wrap.classList.add('hidden'); };
+    img.onload  = () => { wrap.classList.remove('hidden'); };
+    img.src = src;
+}
+function _hidePreview(container) {
+    const wrap = container?.querySelector?.('.img-preview');
+    if (wrap) { wrap.classList.add('hidden'); const img = wrap.querySelector('img'); if (img) img.src = ''; }
+}
+
+// ── Prompt char counters ──────────────────────────────────────────────────────
+function setupPromptCharCounters() {
+    document.querySelectorAll('.prompt-block').forEach(block => {
+        const ta = block.querySelector('textarea');
+        const counter = block.querySelector('.prompt-char-count');
+        if (!ta || !counter || ta.dataset.counter) return;
+        ta.dataset.counter = '1';
+        const update = () => {
+            const n = ta.value.length;
+            counter.textContent = n > 0 ? `${n.toLocaleString()} chars` : '';
+        };
+        ta.addEventListener('input', update);
+        update();
+    });
+}
+
+// ── ID rename warning ─────────────────────────────────────────────────────────
+function setupIdRenameWarning() {
+    const idInput = document.getElementById('id-input');
+    const warning = document.getElementById('id-rename-warning');
+    if (!idInput || !warning || idInput.dataset.renameWatcher) return;
+    idInput.dataset.renameWatcher = '1';
+    idInput.addEventListener('input', () => {
+        if (!editingItemId) return;
+        const changed = idInput.value.trim() !== editingItemId;
+        warning.classList.toggle('hidden', !changed);
+    });
+}
+
+// ── Duplicate name warning ────────────────────────────────────────────────────
+function setupDuplicateNameWarning() {
+    const nameInput = document.getElementById('name-input');
+    const warning   = document.getElementById('duplicate-name-warning');
+    const warningTx = document.getElementById('duplicate-name-text');
+    if (!nameInput || !warning || nameInput.dataset.dupWatcher) return;
+    nameInput.dataset.dupWatcher = '1';
+    nameInput.addEventListener('blur', () => {
+        const val = nameInput.value.trim().toLowerCase();
+        if (!val) { warning.classList.add('hidden'); return; }
+        const all = [...characters, ...dismissed];
+        const matches = all.filter(c => {
+            if (editingItemId && c.id === editingItemId) return false;
+            return c.name.toLowerCase().includes(val) || val.includes(c.name.toLowerCase());
+        });
+        if (matches.length) {
+            warningTx.textContent = `Similar name exists: ${matches.map(c=>c.name).slice(0,3).join(', ')}`;
+            warning.classList.remove('hidden');
+        } else {
+            warning.classList.add('hidden');
+        }
+    });
+    nameInput.addEventListener('focus', () => warning.classList.add('hidden'));
 }
 
 function resetForm() {
@@ -1439,13 +1747,19 @@ function resetForm() {
         p.querySelector('.image-upload-link')?.classList.add('hidden');
         if(p.querySelector('.image-upload-link')) p.querySelector('.image-upload-link').value = '';
     });
+    // Clear image previews
+    document.querySelectorAll('.img-preview').forEach(w => { w.classList.add('hidden'); const img = w.querySelector('img'); if(img) img.src=''; });
     ['1','2','3','FUSION','EK'].forEach(l => {
         const t = document.getElementById(`prompt-title-${l}`);
         const tx = document.getElementById(`prompt-text-${l}`);
         const d = document.getElementById(`prompt-docId-${l}`);
         if(t) t.value=''; if(tx) tx.value=''; if(d) d.value='';
         document.querySelector(`#prompt-block-${l} .saved-indicator`)?.classList.remove('active');
+        document.querySelector(`#prompt-block-${l} .prompt-char-count`)?.textContent && (document.querySelector(`#prompt-block-${l} .prompt-char-count`).textContent = '');
     });
+    // Hide warnings
+    document.getElementById('id-rename-warning')?.classList.add('hidden');
+    document.getElementById('duplicate-name-warning')?.classList.add('hidden');
     dom.dateEditContainer.classList.add('hidden');
     ['fusionPartners_0','fusionPartners_1','originalCharacterId'].forEach(id => {
         const dp = document.getElementById(`${id}_display`);
@@ -1464,7 +1778,11 @@ const loadItemForEdit = async (itemId, itemType) => {
     dom.formTitle.textContent = "Edit Record";
     dom.itemTypeSelect.value = itemType; dom.itemTypeSelect.disabled = true;
     const form = dom.addEditForm;
-    form.elements['id'].value = itemId; form.elements['id'].readOnly = true;
+    form.elements['id'].value = itemId; form.elements['id'].readOnly = false;
+    // Show rename warning listener (reset watcher so it re-attaches cleanly)
+    const idInp = document.getElementById('id-input');
+    if (idInp) { delete idInp.dataset.renameWatcher; }
+    setupIdRenameWarning();
     form.elements['name'].value = item.name || '';
     form.elements['irk'].value = item.irk || '';
     if (item.eklenmeTarihi) {
@@ -1480,6 +1798,7 @@ const loadItemForEdit = async (itemId, itemType) => {
         const f = c.querySelector('.image-upload-file');
         const l = c.querySelector('.image-upload-link');
         s.value='link'; f?.classList.add('hidden'); l?.classList.remove('hidden'); if(l) l.value=url;
+        _showPreview(c, url);
     };
     setupImg('main-image-container', item.imageUrl);
     if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
@@ -1512,6 +1831,15 @@ const loadItemForEdit = async (itemId, itemType) => {
     } catch(e) { console.warn("Prompt load error:", e); }
 
     toggleFormFields();
+    // Refresh listeners for newly shown elements
+    setupImageInputTogglers();
+    setupPromptCharCounters();
+    // Trigger char counters for loaded prompt text
+    ['1','2','3','FUSION','EK'].forEach(l => {
+        const tx = document.getElementById(`prompt-text-${l}`);
+        const counter = document.querySelector(`#prompt-block-${l} .prompt-char-count`);
+        if (tx && counter) counter.textContent = tx.value.length > 0 ? `${tx.value.length.toLocaleString()} chars` : '';
+    });
     dom.cancelButton.classList.remove('hidden');
     dom.saveButton.textContent = 'Update';
     dom.addEditFormContainer.classList.remove('hidden');
@@ -1522,9 +1850,10 @@ const loadItemForEdit = async (itemId, itemType) => {
 const handleFormSubmit = async (e) => {
     e.preventDefault();
     const form = dom.addEditForm;
-    const id = form.elements['id'].value.trim();
-    if (!id || !firebase.auth().currentUser) return alert(!id ? "ID cannot be empty." : "Please sign in.");
+    const newId = form.elements['id'].value.trim();
+    if (!newId || !firebase.auth().currentUser) return alert(!newId ? "ID cannot be empty." : "Please sign in.");
     const isEditing = !!editingItemId;
+    const isRename  = isEditing && newId !== editingItemId;
     dom.saveButton.textContent = 'Uploading...'; dom.saveButton.disabled = true;
     try {
         const type = dom.itemTypeSelect.value;
@@ -1540,37 +1869,68 @@ const handleFormSubmit = async (e) => {
             data.isFusion=false; data.star=1;
             const [u1,u2,u3] = await Promise.all([processImageInput('main-image-container'),processImageInput('evo1-image-container'),processImageInput('evo2-image-container')]);
             if (!u1&&!isEditing) throw new Error("Main image is required.");
-            data.imageUrl=u1; data.evolutions=[];
-            if(u2) data.evolutions.push({star:2,imageUrl:u2});
-            if(u3) data.evolutions.push({star:3,imageUrl:u3});
+            // On rename, carry over existing images if no new one provided
+            if (isRename) {
+                const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
+                data.imageUrl = u1 || old?.imageUrl || null;
+                data.evolutions = [];
+                const eu2 = u2 || old?.evolutions?.find(e=>e.star===2)?.imageUrl;
+                const eu3 = u3 || old?.evolutions?.find(e=>e.star===3)?.imageUrl;
+                if(eu2) data.evolutions.push({star:2,imageUrl:eu2});
+                if(eu3) data.evolutions.push({star:3,imageUrl:eu3});
+                // Carry over auData
+                if (old?.auData) data.auData = old.auData;
+            } else {
+                data.imageUrl=u1; data.evolutions=[];
+                if(u2) data.evolutions.push({star:2,imageUrl:u2});
+                if(u3) data.evolutions.push({star:3,imageUrl:u3});
+            }
         } else if (type==='fusion') {
             data.isFusion=true; data.star=4;
             data.fusionPartners=[form.elements['fusionPartners_0'].value.trim(),form.elements['fusionPartners_1'].value.trim()].filter(Boolean);
             const [u1,u2] = await Promise.all([processImageInput('main-image-container'),processImageInput('preview-image-container')]);
-            if (!u2&&!isEditing) throw new Error("Fusion preview image is required.");
-            data.imageUrl=u1||null; data.previewUrl=u2||null;
+            if (isRename) {
+                const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
+                data.imageUrl  = u1 || old?.imageUrl  || null;
+                data.previewUrl= u2 || old?.previewUrl || null;
+                if (old?.auData) data.auData = old.auData;
+            } else {
+                if (!u2&&!isEditing) throw new Error("Fusion preview image is required.");
+                data.imageUrl=u1||null; data.previewUrl=u2||null;
+            }
         }
 
         const batch = db.batch();
-        batch.set(db.collection(coll).doc(id), data, {merge:true});
+
+        // If renaming: delete old doc first
+        if (isRename) {
+            batch.delete(db.collection(coll).doc(editingItemId));
+        }
+
+        batch.set(db.collection(coll).doc(newId), data, {merge: !isRename});
 
         if (type==='character'||type==='fusion') {
             const levels = type==='character' ? ['1','2','3','EK'] : ['FUSION','EK'];
             levels.forEach(suffix => {
                 const dbKey = suffix==='FUSION' ? 'FÜZYON' : suffix;
-                const tv = document.getElementById(`prompt-title-${suffix}`)?.value.trim();
+                const tv  = document.getElementById(`prompt-title-${suffix}`)?.value.trim();
                 const txv = document.getElementById(`prompt-text-${suffix}`)?.value.trim();
                 const docId = document.getElementById(`prompt-docId-${suffix}`)?.value;
                 if (txv) {
-                    const ref = docId ? db.collection('promptLibrary').doc(docId) : db.collection('promptLibrary').doc();
-                    batch.set(ref, { charId:id, charName:data.name, charStar:dbKey, title:tv||`${data.name} ${dbKey}`, prompt:txv, createdAt: docId?(existingPrompts[suffix]?.createdAt||firebase.firestore.FieldValue.serverTimestamp()):firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+                    // On rename: always create new prompt doc with new charId
+                    const ref = (isRename || !docId) ? db.collection('promptLibrary').doc() : db.collection('promptLibrary').doc(docId);
+                    batch.set(ref, { charId: newId, charName: data.name, charStar: dbKey, title: tv||'', prompt: txv,
+                        createdAt: (isRename || !docId) ? firebase.firestore.FieldValue.serverTimestamp() : (existingPrompts[suffix]?.createdAt || firebase.firestore.FieldValue.serverTimestamp())
+                    }, {merge: true});
+                    // On rename: delete old prompt doc
+                    if (isRename && docId) batch.delete(db.collection('promptLibrary').doc(docId));
                 } else if (docId) {
                     batch.delete(db.collection('promptLibrary').doc(docId));
                 }
             });
         }
         await batch.commit();
-        alert(`Record ${isEditing?'updated':'saved'} successfully!`);
+        alert(`Record ${isEditing ? (isRename ? 'renamed & updated' : 'updated') : 'saved'} successfully!`);
         await fetchItems();
         dom.addEditFormContainer.classList.add('hidden');
         dom.toggleFormText.textContent='Add New'; dom.toggleFormIcon.textContent='add';
@@ -1699,6 +2059,63 @@ function populateIrkFilter() {
     }
 }
 
+// ─── Stat Cards ───────────────────────────────────────────────────────────────
+function renderStats() {
+    const normals  = characters.filter(c => !c.isFusion);
+    const fusions  = characters.filter(c => c.isFusion);
+    const auCount  = alternativeUniverses.length;
+    const retCount = dismissed.length;
+
+    // Characters with all 3 evolutions = "full set"
+    const fullSets = normals.filter(c => c.imageUrl && c.evolutions?.length >= 2 && c.evolutions[1]?.imageUrl);
+
+    // Total unique images (1★ + all evos + fusions)
+    let imgCount = 0;
+    normals.forEach(c => {
+        if (c.imageUrl) imgCount++;
+        (c.evolutions || []).forEach(e => { if (e.imageUrl) imgCount++; });
+    });
+    fusions.forEach(f => { if (f.imageUrl) imgCount++; });
+
+    // Fusion usage: how many chars are fused at least once
+    const fusedIds = new Set(fusions.flatMap(f => f.fusionPartners || []));
+
+    // Most common race
+    const raceCounts = {};
+    [...normals, ...dismissed].forEach(c => { if (c.irk) raceCounts[c.irk] = (raceCounts[c.irk] || 0) + 1; });
+    const topRace = Object.entries(raceCounts).sort((a,b) => b[1]-a[1])[0];
+
+    // Newest char
+    const newest = [...normals].sort((a,b) => getDate(b) - getDate(a))[0];
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) { el.textContent = val; el.closest('.stat-card')?.classList.remove('skeleton'); } };
+    const setSub = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    set('stat-chars',   normals.length);
+    setSub('stat-chars-sub', fusedIds.size > 0 ? `${fusedIds.size} in fusions` : '');
+
+    set('stat-fusions',  fusions.length);
+    setSub('stat-fusions-sub', fusions.length > 0 ? `${Math.round(fusions.length/Math.max(normals.length,1)*100)}% fusion rate` : '');
+
+    set('stat-aus',  auCount);
+    // Count locked vs unlocked AUs
+    const lockedAuCount   = alternativeUniverses.filter(a => a.locked).length;
+    const unlockedAuCount = alternativeUniverses.filter(a => !a.locked).length;
+    const auSubParts = [];
+    if (unlockedAuCount > 0) auSubParts.push(`${unlockedAuCount} unlocked`);
+    if (lockedAuCount > 0)   auSubParts.push(`${lockedAuCount} locked 🔒`);
+    setSub('stat-aus-sub', auSubParts.join(' · '));
+
+    set('stat-retired', retCount);
+    setSub('stat-retired-sub', topRace ? `Top: ${topRace[0]}` : '');
+
+    set('stat-images', imgCount);
+    setSub('stat-images-sub', newest ? `Latest: ${newest.name}` : '');
+
+    set('stat-evos', fullSets.length);
+    setSub('stat-evos-sub', normals.length > 0 ? `${Math.round(fullSets.length/normals.length*100)}% complete` : '');
+}
+
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 const fetchItems = async () => {
     try {
@@ -1713,6 +2130,7 @@ const fetchItems = async () => {
         window.dismissed  = dismissed;
         alternativeUniverses = aus.docs.map(d=>({id:d.id,...d.data()}));
         populateIrkFilter();
+        renderStats();
         renderAdminPanel();
         renderAuDefinitions();
         if (selectedAuId) renderAuEntries();
@@ -1763,7 +2181,7 @@ async function openQuickPromptModal(charId, charName) {
                         <button onclick="copyQpText(${idx},this)" class="flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors" style="background:rgba(var(--primary-rgb),.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),.3);" title="Copy"><span class="material-symbols-outlined" style="font-size:14px;">content_copy</span></button>
                     </div>
                 </div>
-                <textarea readonly class="w-full bg-transparent text-sm font-mono text-gray-300 focus:outline-none resize-none" rows="4" onclick="this.select()">${p.prompt}</textarea>
+                <textarea class="w-full bg-transparent text-sm font-mono text-gray-300 focus:outline-none resize-y min-h-[6rem]" rows="4" spellcheck="false" autocomplete="off" style="user-select:text;-webkit-user-select:text;">${p.prompt}</textarea>
             </div>`;
         });
         dom.qpContent.innerHTML=html; dom.qpLoading.classList.add('hidden'); dom.qpContent.classList.remove('hidden');
@@ -1771,69 +2189,144 @@ async function openQuickPromptModal(charId, charName) {
 }
 
 // ─── Export ───────────────────────────────────────────────────────────────────
-function openExportModal() { dom.exportModal.classList.add('visible'); dom.exportModal.classList.remove('hidden'); dom.exportStatus.textContent=''; dom.exportBtn.disabled=false; }
+function openExportModal() {
+    dom.exportModal.classList.add('visible'); dom.exportModal.classList.remove('hidden');
+    dom.exportStatus.textContent=''; dom.exportBtn.disabled=false;
+    syncAuToggleState();
+}
 function closeExportModal() { dom.exportModal.classList.remove('visible'); dom.exportModal.classList.add('hidden'); }
+function syncAuToggleState() {
+    const unlocked = document.getElementById('export-include-au-unlocked');
+    const subOpts  = document.getElementById('au-sub-options');
+    if (!unlocked || !subOpts) return;
+    subOpts.classList.toggle('collapsed', !unlocked.checked);
+    if (!unlocked.checked) {
+        const locked = document.getElementById('export-include-au-locked');
+        if (locked) locked.checked = false;
+    }
+}
 async function downloadPrompts() {
-    const incRetired = dom.exportIncludeRetired.checked, incAU = dom.exportIncludeAu.checked;
+    const incRetired       = dom.exportIncludeRetired.checked;
+    const incAuUnlocked    = document.getElementById('export-include-au-unlocked')?.checked ?? false;
+    const incAuLocked      = document.getElementById('export-include-au-locked')?.checked ?? false;
+    const incAU            = incAuUnlocked || incAuLocked;
     dom.exportBtn.disabled=true; dom.exportStatus.textContent='Fetching data...';
     try {
         const snap = await db.collection('promptLibrary').get();
-        if (snap.empty) throw new Error("No prompts found.");
-        let all = snap.docs.map(d=>d.data());
-        all.sort((a,b)=>a.charName.localeCompare(b.charName,'en'));
-        let txt='', count=0;
-        all.forEach(p => {
-            const charId=p.charId;
-            let char=characters.find(c=>c.id===charId), type='active';
-            if(!char){char=dismissed.find(c=>c.id===charId);type='retired';}
-            if(type==='retired'&&!incRetired) return;
-            if(!char&&!incRetired) return;
-            let name=p.charName;
-            if(char?.isFusion&&char.fusionPartners){
-                const pNames=char.fusionPartners.map(pid=>[...characters,...dismissed].find(c=>c.id===pid)?.name||'Unknown');
-                name+=` (${pNames.join(' + ')})`;
-            }
-            let star=p.charStar;
-            if(star==='1') star='Level 1'; else if(star==='2') star='Level 2'; else if(star==='3') star='Level 3'; else if(star==='FÜZYON') star='FUSION';
-            txt+=`### ${name} - [${star}] ###\n`;
-            if(char?.irk) txt+=`Race: ${char.irk}\n`;
-            if(p.title) txt+=`Title: ${p.title}\n`;
-            txt+=`${p.prompt}\n--------------------------------------------------\n\n`;
-            count++;
+        if (snap.empty && !incAU) throw new Error("No prompts found.");
+
+        // ── Build prompt lookup: charId → { star → promptData } ──
+        const promptsByChar = {};
+        snap.docs.map(d => d.data()).forEach(p => {
+            if (!promptsByChar[p.charId]) promptsByChar[p.charId] = {};
+            promptsByChar[p.charId][p.charStar] = p;
         });
-        if(!count && !incAU) throw new Error("No prompts match the selected criteria.");
 
-        // ── AU prompts ──
-        if (incAU) {
-            const allChars = [...characters, ...(incRetired ? dismissed : [])];
-            const auPromptLines = [];
-            allChars.forEach(char => {
-                if (!char.auData) return;
-                Object.entries(char.auData).forEach(([auId, entry]) => {
-                    if (!entry.prompt) return;
-                    const auDef = alternativeUniverses.find(a => a.id === auId);
-                    const auName = auDef ? auDef.name : auId;
-                    const type = char.isFusion ? 'FUSION' : '3★';
-                    const irkLine = char.irk ? `Race: ${char.irk}\n` : '';
-                    auPromptLines.push(`### ${char.name} - [${auName} AU / ${type}] ###\n${irkLine}${entry.prompt}\n--------------------------------------------------\n\n`);
-                });
+        // ── Star label helper ──
+        const starLabel = (star) => {
+            if (star === '1') return '1★';
+            if (star === '2') return '2★';
+            if (star === '3') return '3★';
+            if (star === 'FÜZYON' || star === 'FUSION') return 'Fusion';
+            if (star === 'EK') return 'Extra';
+            return star;
+        };
+
+        // ── AU section helper ──
+        const buildAuSection = (char) => {
+            if (!char.auData || !incAU) return '';
+
+            const unlockedLines = [], lockedLines = [];
+            Object.entries(char.auData).forEach(([auId, entry]) => {
+                if (!entry.prompt) return;
+                const auDef = alternativeUniverses.find(a => a.id === auId);
+                const auName = auDef ? auDef.name : auId;
+                const isLocked = auDef?.locked ? true : false;
+                if (isLocked && !incAuLocked) return;
+                if (!isLocked && !incAuUnlocked) return;
+                const type = char.isFusion ? 'Fusion' : '3★';
+                const line = `#### ${auName} AU (${type})\n\n${entry.prompt}\n`;
+                if (isLocked) lockedLines.push(line);
+                else unlockedLines.push(line);
             });
-            if (auPromptLines.length) {
-                if (count) txt += '\n\n========== AU PROMPTS ==========\n\n';
-                txt += auPromptLines.join('');
-                count += auPromptLines.length;
-            }
-        }
 
-        if(!count) throw new Error("No prompts match the selected criteria.");
-        const blob=new Blob([txt],{type:'text/plain'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a'); a.href=url; a.download=`prompt_archive_${new Date().toISOString().slice(0,10)}.txt`;
+            let out = '';
+            if (unlockedLines.length) {
+                out += `\n##### 🌿 Unlocked AUs\n\n` + unlockedLines.join('\n---\n\n');
+            }
+            if (lockedLines.length) {
+                out += `\n##### 🔒 Locked AUs\n\n` + lockedLines.join('\n---\n\n');
+            }
+            return out;
+        };
+
+        // ── Collect all chars in sorted order ──
+        const allPool = [...characters, ...(incRetired ? dismissed : [])];
+        const normals = allPool.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
+        const fusions = allPool.filter(c => c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
+        const sorted = [...normals, ...fusions];
+
+        const date = new Date().toISOString().slice(0,10);
+        let md = `# Prompt Archive\n_Generated: ${date}_\n\n---\n\n`;
+        let count = 0;
+
+        sorted.forEach(char => {
+            const charPrompts = promptsByChar[char.id] || {};
+            const auSection = buildAuSection(char);
+            const hasPrompts = Object.keys(charPrompts).length > 0;
+
+            if (!hasPrompts && !auSection) return;
+
+            // ── Character heading ──
+            let heading = `## ${char.name}`;
+            if (char.isFusion && char.fusionPartners) {
+                const allPeople = [...characters, ...dismissed];
+                const pNames = char.fusionPartners.map(pid => allPeople.find(c=>c.id===pid)?.name || 'Unknown');
+                heading += ` *(${pNames.join(' + ')})*`;
+            }
+            if (char.isRetired) heading += ' *(Retired)*';
+            md += heading + '\n\n';
+            if (char.irk) md += `**Race:** ${char.irk}\n\n`;
+
+            // ── Star prompts in order: 1★, 2★, 3★, Fusion, Extra ──
+            const starOrder = ['1','2','3','FÜZYON','FUSION','EK'];
+            let addedPromptsForChar = false;
+            starOrder.forEach(star => {
+                const p = charPrompts[star];
+                if (!p) return;
+                const label = starLabel(star);
+                md += `### ${label} Prompt`;
+                if (p.title) md += ` — *${p.title}*`;
+                md += `\n\n${p.prompt}\n\n`;
+                count++;
+                addedPromptsForChar = true;
+            });
+
+            // ── AU prompts right after this character ──
+            if (auSection) {
+                md += `### Alt. Universe Prompts\n${auSection}\n\n`;
+                count++;
+            }
+
+            md += '---\n\n';
+        });
+
+        if (count === 0) throw new Error("No prompts match the selected criteria.");
+
+        const blob = new Blob([md], {type: 'text/markdown'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `prompt_archive_${date}.md`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        dom.exportStatus.textContent=`${count} prompt(s) downloaded!`;
-        setTimeout(closeExportModal,2000);
-    } catch(e) { dom.exportStatus.textContent=`Error: ${e.message}`; dom.exportStatus.classList.add('text-red-400');
-    } finally { dom.exportBtn.disabled=false; }
+        dom.exportStatus.textContent = `✓ ${count} prompt block(s) exported as .md`;
+        setTimeout(closeExportModal, 2200);
+    } catch(e) {
+        dom.exportStatus.textContent = `Error: ${e.message}`;
+        dom.exportStatus.classList.add('text-red-400');
+    } finally {
+        dom.exportBtn.disabled = false;
+    }
 }
 
 // ─── Bulk Title Manager ───────────────────────────────────────────────────────
@@ -1926,6 +2419,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ─── DOMContentLoaded ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     setupImageInputTogglers();
+    setupPromptCharCounters();
+    setupIdRenameWarning();
+    setupDuplicateNameWarning();
     dom.loginSubmitBtn.addEventListener('click', async () => {
         const email=dom.adminEmailInput.value, pw=dom.adminPasswordInput.value;
         dom.loginStatus.textContent='';
