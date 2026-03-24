@@ -1069,7 +1069,7 @@ function renderCharacterSelector(q) {
     filtered.forEach(char => {
         const item = document.createElement('div');
         item.className = 'character-selector-item';
-        item.innerHTML = `<img src="${char.imageUrl}" alt="${char.name}" class="w-12 h-12 object-cover rounded-md"><div><p class="font-bold">${char.name}</p><p class="text-sm text-gray-400">ID: ${char.id}</p></div>`;
+        item.innerHTML = `<img src="${char.previewUrl || char.imageUrl}" alt="${char.name}" class="w-12 h-12 object-cover rounded-md"><div><p class="font-bold">${char.name}</p><p class="text-sm text-gray-400">ID: ${char.id}</p></div>`;
         item.onclick = () => selectCharacter(char);
         dom.selectorGrid.appendChild(item);
     });
