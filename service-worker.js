@@ -50,7 +50,7 @@ self.addEventListener('fetch', event => {
                     if (cached) return cached;
                     return fetch(event.request).then(res => {
                         if (res.ok || res.type === 'opaque') {
-                            imgCache.put(cleanUrl, res.clone());
+                            imgCache.put(cleanUrl, res.clone()).catch(() => {});
                         }
                         return res;
                     }).catch(() => cached || new Response('', { status: 404 }));
