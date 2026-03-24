@@ -1383,7 +1383,7 @@ function renderSearchResults() {
     pool.forEach(char => {
         if (!char.name.toLowerCase().includes(term) && !char.id.toLowerCase().includes(term)) return;
         if (char.isFusion) {
-            results.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+            results.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl || char.imageUrl });
         } else {
             results.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
             char.evolutions?.forEach(evo => results.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
