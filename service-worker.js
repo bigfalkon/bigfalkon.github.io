@@ -1,5 +1,5 @@
 const CACHE_NAME        = 'karakter-app-v1';
-const IMAGE_CACHE_NAME  = 'karakter-images-v1';
+const IMAGE_CACHE_NAME  = 'karakter-images-v2';
 
 const urlsToCache = [
     './',
