@@ -730,7 +730,7 @@ function _doRender() {
                 if (!seen.has(item.id)) {
                     seen.add(item.id);
                     const auImg = item.auData?.[state.activeAuId]?.fusionImageUrl;
-                    auOnlyItems.push({ ...item, displayStar: 4, displayImageUrl: auImg || item.imageUrl });
+                    auOnlyItems.push({ ...item, displayStar: 4, displayImageUrl: auImg || item.previewUrl || item.imageUrl });
                 }
             } else if (item.displayStar === 3) {
                 const auImg = item.auData?.[state.activeAuId]?.star3ImageUrl;
@@ -1251,7 +1251,7 @@ function openCharacterModal(charId, isDismissed = false) {
             fc.className = 'rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105';
             fc.style.backgroundColor = 'var(--fusion-container)';
             fc.onclick = e => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
-            fc.innerHTML = `<img src="${fusion.imageUrl || fusion.previewUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center font-fantastical" style="color:var(--on-fusion-container);">${fusion.name}</p>`;
+            fc.innerHTML = `<img src="${fusion.previewUrl || fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center font-fantastical" style="color:var(--on-fusion-container);">${fusion.name}</p>`;
             m.fusionList.appendChild(fc);
         });
     }
@@ -1288,7 +1288,7 @@ function openFusionModal(fusionId) {
         const auImg  = fusion.auData?.[state.activeAuId]?.fusionImageUrl;
         const color  = auDef?.color || '#64dcb4';
 
-        m.img.src = auImg || fusion.imageUrl || '';
+        m.img.src = auImg || fusion.previewUrl || fusion.imageUrl || '';
         m.img.setAttribute('onclick', `enlargeImage('${m.img.src}')`);
         m.star.innerHTML = auDef
             ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${color}"><span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version</span>`
@@ -1302,7 +1302,7 @@ function openFusionModal(fusionId) {
             <p class="text-xs font-bold mb-2 flex items-center gap-1 justify-center" style="color:var(--on-surface-var);">
                 <span class="material-symbols-outlined" style="font-size:14px;">star</span>Original
             </p>
-            <img src="${fusion.imageUrl||''}" alt="${fusion.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+            <img src="${fusion.previewUrl || fusion.imageUrl||''}" alt="${fusion.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
         `;
         m.imgWrap.insertAdjacentElement('afterend', origCard);
 
@@ -1311,8 +1311,8 @@ function openFusionModal(fusionId) {
         document.getElementById('fusion-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
     } else {
         // Normal mode
-        m.img.src = fusion.imageUrl || '';
-        m.img.setAttribute('onclick', `enlargeImage('${fusion.imageUrl||''}')`);
+        m.img.src = fusion.previewUrl || fusion.imageUrl || '';
+        m.img.setAttribute('onclick', `enlargeImage('${fusion.previewUrl || fusion.imageUrl||''}')`);
         m.star.innerHTML = getStarEmojis(true, false, 4);
         m.left.container.style.display = '';
         m.right.container.style.display = '';

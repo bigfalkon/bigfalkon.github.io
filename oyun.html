@@ -680,7 +680,7 @@ function setContestant(imgEl, nameEl, cardEl, contestant) {
     // Force fresh load every time — append a timestamp so the browser never
     // serves a cached/stalled frame, even if this URL appeared earlier in the same tournament.
     imgEl.alt = contestant.name;
-    imgEl.src = contestant.imageUrl;
+    imgEl.src = contestant.previewUrl || contestant.imageUrl;
 
     // Name + optional star label + AU badge
     let nameHtml = `<strong>${contestant.name}</strong>`;
@@ -761,7 +761,7 @@ async function saveWin(character, category) {
 }
 
 function showWinner(winner) {
-    dom.winnerImg.src = winner.imageUrl;
+    dom.winnerImg.src = winner.previewUrl || winner.imageUrl;
     dom.winnerName.textContent = winner.name + (winner.label ? ` (${winner.label})` : '');
     dom.resultTitle.textContent = gameState.settings.mode === 'absolute_war' ? 'ABSOLUTE WAR CHAMPION!' : 'Tournament Champion!';
     const catRadio = dom.setupForm.querySelector('input[name="category"]:checked');
