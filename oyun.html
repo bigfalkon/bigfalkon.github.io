@@ -522,8 +522,8 @@ function prepareContestants(settings) {
     const sourceList = allCharacters.filter(c => !c.isDismissed);
     let pool = [];
 
-    // Helper: pick the correct image for a fusion (always gif/imageUrl, never previewUrl for the card)
-    const fusionImg = (char) => char.imageUrl || char.previewUrl || '';
+    // Helper: pick the correct image for a fusion (previewUrl = static image, imageUrl = GIF fallback)
+    const fusionImg = (char) => char.previewUrl || char.imageUrl || '';
 
     if (mode.startsWith('au_')) {
         // AU mode: only chars/fusions that have an entry in this AU

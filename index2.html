@@ -439,6 +439,18 @@
                 <input type="text" name="irk" id="irk-input" placeholder="Race (optional)" class="form-input" list="irk-datalist" autocomplete="off">
                 <datalist id="irk-datalist"></datalist>
 
+                <div id="fusion-preview-image-field" class="hidden flex flex-col gap-3">
+                    <div id="preview-image-container">
+                        <label class="block text-sm font-medium mb-1">Main Fusion Image (PNG/JPG)</label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                            <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file" accept="image/*">
+                            <input type="text" name="previewUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                        </div>
+                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
+                    </div>
+                </div>
+
                 <div id="main-image-container">
                     <label class="block text-sm font-medium mb-1">Main Image</label>
                     <div class="flex flex-col sm:flex-row gap-2">
@@ -484,18 +496,6 @@
                         <div class="flex items-center gap-2"><div id="fusionPartners_1_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Not selected</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('fusionPartners_1')">Select</button><input type="hidden" name="fusionPartners_1"></div>
                     </div>
                 </div>
-                <div id="fusion-preview-image-field" class="hidden flex flex-col gap-3">
-                    <div id="preview-image-container">
-                        <label class="block text-sm font-medium mb-1">Fusion Preview Image (PNG/JPG)</label>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file" accept="image/*">
-                            <input type="text" name="previewUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
-                        </div>
-                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
-                    </div>
-                </div>
-
                 <div id="prompt-management-section" class="hidden">
                     <h3 class="prompt-section-header">Prompt Management</h3>
                     <div id="prompt-block-1" class="prompt-block hidden" data-level="1">
@@ -1608,7 +1608,7 @@ function toggleFormFields() {
     dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', t !== 'fusion');
     dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'fusion');
     dom.addEditForm.querySelector('#main-image-container > label').textContent =
-        t === 'fusion' ? 'Main Fusion Image (GIF – Optional)' : 'Main Image';
+        t === 'fusion' ? 'Fusion GIF (Optional)' : 'Main Image';
     dom.promptSection.classList.remove('hidden');
     const show1 = t==='character', showF = t==='fusion';
     ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));

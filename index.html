@@ -680,7 +680,7 @@ function _doRender() {
 
     if (state.galleryMode === 'fusion') {
         items = activeChars.filter(c => c.isFusion)
-            .map(c => ({ ...c, displayStar: 4, displayImageUrl: c.imageUrl }))
+            .map(c => ({ ...c, displayStar: 4, displayImageUrl: c.previewUrl }))
             .sort(sortFn);
     } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
         activeChars.filter(c => !c.isFusion).sort(sortFn).forEach(char => {
@@ -688,7 +688,7 @@ function _doRender() {
             char.evolutions?.forEach(evo => items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
         });
         activeChars.filter(c => c.isFusion).sort(sortFn).forEach(char => {
-            items.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+            items.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl });
         });
     } else if (state.galleryMode === 'reachable-au') {
         // Show all items (all stars) that have at least one reachable AU entry
@@ -697,7 +697,7 @@ function _doRender() {
             char.evolutions?.forEach(evo => items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
         });
         characters.filter(c => c.isFusion).sort(sortFn).forEach(char => {
-            items.push({ ...char, displayStar: 4, displayImageUrl: char.imageUrl });
+            items.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl });
         });
         // Keep only entries where the base character has a reachable AU
         items = items.filter(item => hasReachableAuEntry(item));
@@ -795,11 +795,10 @@ function _buildCard(char, index) {
 
     const resolvedImgUrl = resolveCardImage(char);
     let imageHtml;
-    if (isFusion && char.imageUrl && char.previewUrl) {
+    if (isFusion && char.previewUrl) {
         const auFusionImg = state.activeAuId ? char.auData?.[state.activeAuId]?.fusionImageUrl : null;
         const previewSrc = auFusionImg || char.previewUrl;
-        const gifSrc     = auFusionImg || char.imageUrl;
-        imageHtml = `<img src="${previewSrc}" data-gif-src="${gifSrc}" data-preview-src="${previewSrc}" alt="${char.name}" class="character-card-image">`;
+        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy">`;
     } else {
         imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy">`;
     }
