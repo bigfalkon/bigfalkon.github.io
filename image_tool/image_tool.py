@@ -12,6 +12,8 @@ Kullanım:
 
 import argparse
 import base64
+import hashlib
+import json
 import os
 import re
 import sys
@@ -53,6 +55,7 @@ CHARACTERS_COLLECTION = os.getenv("CHARACTERS_COLLECTION", "characters")
 DISMISSED_COLLECTION = os.getenv("DISMISSED_COLLECTION", "dismissed")
 
 VALID_CATEGORIES = ["all", "star1", "star2", "star3", "fusion", "dismissed", "au"]
+MANIFEST_FILENAME = ".manifest.json"
 
 # ─────────────────────────────────────────────
 # FİRESTORE BAĞLANTISI
@@ -302,6 +305,32 @@ def build_image_list(characters, dismissed, category, au_id=None):
     return items
 
 
+def md5_hash(filepath):
+    """Dosyanın MD5 hash'ini döndürür."""
+    h = hashlib.md5()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def load_manifest(directory):
+    """manifest.json varsa yükler, yoksa boş dict döner."""
+    path = Path(directory) / MANIFEST_FILENAME
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+    return {}
+
+
+def save_manifest(directory, manifest):
+    """manifest.json dosyasını kaydeder."""
+    path = Path(directory) / MANIFEST_FILENAME
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def download_image(url, output_path, skip_existing=True):
     """Bir URL'yi dosyaya indirir. skip_existing=True ise mevcut dosyaları atlar."""
     if skip_existing and output_path.exists():
@@ -334,6 +363,9 @@ def cmd_download(args):
 
     print(f"\n{len(items)} resim indirilecek → {output_dir}")
 
+    # Mevcut manifest'i yükle (varsa); force modunda sıfırla
+    manifest = {} if args.force else load_manifest(output_dir)
+
     ok = skipped = errors = 0
     iterator = tqdm(items, unit="resim") if HAS_TQDM else items
 
@@ -342,17 +374,23 @@ def cmd_download(args):
         status = download_image(url, out_path, skip_existing=not args.force)
         if status == "ok":
             ok += 1
+            manifest[filename] = md5_hash(out_path)
             if not HAS_TQDM:
                 print(f"  ✓ {filename}")
         elif status == "skipped":
             skipped += 1
+            # Mevcut dosyanın hash'ini kaydet (manifest'te yoksa)
+            if filename not in manifest and out_path.exists():
+                manifest[filename] = md5_hash(out_path)
             if not HAS_TQDM:
                 print(f"  ~ {filename} (atlandı)")
         else:
             errors += 1
             print(f"  ✗ {filename}: {status}")
 
+    save_manifest(output_dir, manifest)
     print(f"\nTamamlandı: {ok} indirildi, {skipped} atlandı, {errors} hata.")
+    print(f"Manifest kaydedildi: {output_dir / MANIFEST_FILENAME}")
 
 
 # ─────────────────────────────────────────────
@@ -391,6 +429,7 @@ def cmd_upload(args):
     """Yükleme komutu."""
     input_dir = Path(args.input)
     dry_run = args.dry_run
+    upload_all = args.all
 
     if not input_dir.exists():
         sys.exit(f"Hata: Klasör bulunamadı: {input_dir}")
@@ -404,17 +443,44 @@ def cmd_upload(args):
         print("Klasörde resim dosyası bulunamadı.")
         return
 
-    print(f"{len(image_files)} resim dosyası bulundu.")
+    # Manifest yükle — değişiklik tespiti için
+    manifest = load_manifest(input_dir)
+    if manifest:
+        print(f"Manifest bulundu ({len(manifest)} kayıt). Sadece değişen dosyalar yüklenecek.")
+        print("  (Tümünü yüklemek için --all kullanın)\n")
+    else:
+        if not upload_all:
+            print("Uyarı: Manifest bulunamadı (.manifest.json).")
+            print("  Önce 'download' çalıştırırsanız sadece değişen dosyalar yüklenir.")
+            print("  Şu an klasördeki TÜM resimler yüklenecek.\n")
+
+    # Hangi dosyaların değiştiğini belirle
+    to_upload = []
+    unchanged = []
+    for filepath in image_files:
+        if upload_all or not manifest:
+            to_upload.append(filepath)
+        else:
+            current_hash = md5_hash(filepath)
+            if manifest.get(filepath.name) != current_hash:
+                to_upload.append(filepath)
+            else:
+                unchanged.append(filepath)
+
+    print(f"{len(to_upload)} değişmiş dosya yüklenecek, {len(unchanged)} dosya atlanacak.")
+
+    if not to_upload:
+        print("Yüklenecek değişiklik yok.")
+        return
 
     if not dry_run:
         characters, dismissed = get_all_characters()
-        all_chars = characters + dismissed
     else:
-        all_chars = []
+        characters, dismissed = [], []
 
     ok = skipped = errors = 0
 
-    for filepath in image_files:
+    for filepath in to_upload:
         parsed = parse_filename(filepath.name)
         if not parsed:
             print(f"  ? {filepath.name} — dosya adı tanınamadı, atlandı.")
@@ -450,6 +516,8 @@ def cmd_upload(args):
         try:
             update_image_url(doc["_doc_id"], collection, field_path, new_url)
             print(f"    ✓ Firestore güncellendi: {collection}/{doc['_doc_id']}.{field_path}")
+            # Manifest'i yeni hash ile güncelle (bir dahaki upload'da atlanır)
+            manifest[filepath.name] = md5_hash(filepath)
             ok += 1
         except Exception as e:
             print(f"    ✗ Firestore güncelleme hatası: {e}")
@@ -458,10 +526,13 @@ def cmd_upload(args):
         # Rate limiting — ImgBB ücretsiz tier için küçük bekleme
         time.sleep(0.5)
 
+    if not dry_run and ok > 0:
+        save_manifest(input_dir, manifest)
+
     if dry_run:
-        print(f"\n[DRY-RUN] {ok} işlem yapılacaktı, {skipped} atlandı.")
+        print(f"\n[DRY-RUN] {ok} dosya yüklenecekti, {skipped} atlanacaktı.")
     else:
-        print(f"\nTamamlandı: {ok} güncellendi, {skipped} atlandı, {errors} hata.")
+        print(f"\nTamamlandı: {ok} güncellendi, {len(unchanged)} değişmemiş atlandı, {errors} hata.")
 
 
 # ─────────────────────────────────────────────
@@ -515,6 +586,10 @@ def main():
     ul.add_argument(
         "--dry-run", action="store_true",
         help="Gerçek yükleme yapmadan hangi işlemlerin yapılacağını göster"
+    )
+    ul.add_argument(
+        "--all", action="store_true",
+        help="Manifest olsa bile klasördeki TÜM resimleri yükle"
     )
 
     args = parser.parse_args()
