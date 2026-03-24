@@ -2513,10 +2513,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const all = [...(window.characters||[]), ...(window.dismissed||[])];
 
         all.forEach(c => {
-            if (c.imageUrl) urls.add(c.imageUrl);
+            if (c.imageUrl && !c.isFusion) urls.add(c.imageUrl);
             (c.evolutions || []).forEach(e => { if (e.imageUrl) urls.add(e.imageUrl); });
             if (c.isFusion) {
-                if (c.imageUrl)   urls.add(c.imageUrl);
                 if (c.previewUrl) urls.add(c.previewUrl);
             }
             const auData = c.auData || {};
