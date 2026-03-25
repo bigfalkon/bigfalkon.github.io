@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karakter Göçü — Tinder Style</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Metamorphous&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0c0c14; --surface:#16162a; --surface2:#1e1e38;
+  --accent:#c084fc; --accent2:#f472b6; --green:#34d399; --red:#f87171;
+  --text:#e8e4f0; --text2:#9892a6; --border:rgba(255,255,255,0.07);
+  --card-w:min(420px,92vw);
+}
+html{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;}
+body{min-height:100dvh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(192,132,252,0.08),transparent),
+             radial-gradient(ellipse 60% 40% at 80% 100%,rgba(244,114,182,0.06),transparent),
+             var(--bg);}
+
+/* ── Loading ── */
+#loading-screen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg);gap:20px;transition:opacity .5s,visibility .5s;}
+#loading-screen.hide{opacity:0;visibility:hidden;}
+.loader{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-text{font-size:.95rem;color:var(--text2);}
+
+/* ── Header ── */
+header{text-align:center;padding:40px 20px 10px;width:100%;}
+header h1{font-size:clamp(1.6rem,5vw,2.4rem);font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+header p{color:var(--text2);margin-top:6px;font-size:.9rem;}
+
+/* ── Phase indicators ── */
+#phases{display:flex;gap:8px;justify-content:center;margin:20px 0 10px;flex-wrap:wrap;}
+.phase-dot{padding:6px 16px;border-radius:99px;font-size:.78rem;font-weight:600;
+  background:var(--surface);border:1px solid var(--border);color:var(--text2);transition:all .3s;}
+.phase-dot.active{background:var(--accent);color:#1a0a2e;border-color:var(--accent);}
+.phase-dot.done{background:rgba(52,211,153,0.15);color:var(--green);border-color:var(--green);}
+
+/* ── Counter ── */
+#counter{text-align:center;color:var(--text2);font-size:.85rem;margin:8px 0 16px;font-weight:500;}
+
+/* ── Card Stack ── */
+#card-area{position:relative;width:var(--card-w);height:auto;min-height:500px;display:flex;align-items:flex-start;justify-content:center;perspective:800px;}
+
+/* ── Character Card (Phase 1) ── */
+.char-card{width:var(--card-w);background:var(--surface);border-radius:24px;border:1px solid var(--border);
+  overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .4s;}
+.char-card.exit-left{transform:translateX(-120%) rotate(-12deg);opacity:0;}
+.char-card.exit-right{transform:translateX(120%) rotate(12deg);opacity:0;}
+.char-card-name{padding:16px 20px 8px;font-size:1.5rem;font-weight:700;text-align:center;}
+.char-card-irk{text-align:center;font-size:.8rem;color:var(--accent);font-weight:600;margin-bottom:10px;}
+
+.star-selector{display:flex;gap:12px;padding:10px 16px;justify-content:center;flex-wrap:wrap;}
+.star-option{position:relative;border-radius:16px;overflow:hidden;cursor:pointer;border:3px solid transparent;
+  transition:border-color .25s,transform .2s,box-shadow .2s;flex:1;min-width:90px;max-width:160px;}
+.star-option:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.star-option.selected{border-color:var(--green);box-shadow:0 0 20px rgba(52,211,153,0.25);}
+.star-option.selected .star-check{opacity:1;transform:scale(1);}
+.star-option img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;}
+.star-label{position:absolute;bottom:0;left:0;right:0;padding:6px;text-align:center;
+  background:linear-gradient(transparent,rgba(0,0,0,0.85));font-size:.85rem;font-weight:700;color:#fff;}
+.star-check{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;
+  background:var(--green);display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:scale(0.5);transition:all .25s cubic-bezier(.34,1.56,.64,1);}
+.star-check .material-symbols-outlined{font-size:18px;color:#fff;font-variation-settings:'FILL' 1;}
+
+/* ── Tinder card (fusions & AUs) ── */
+.tinder-card{width:var(--card-w);background:var(--surface);border-radius:24px;border:1px solid var(--border);
+  overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);position:relative;
+  transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .45s;touch-action:pan-y;}
+.tinder-card.exit-left{transform:translateX(-140%) rotate(-18deg);opacity:0;}
+.tinder-card.exit-right{transform:translateX(140%) rotate(18deg);opacity:0;}
+.tinder-card.dragging{transition:none;}
+.tinder-img{width:100%;max-height:55vh;object-fit:contain;display:block;background:#0a0a16;padding:8px;}
+.tinder-name{padding:14px 20px 4px;font-size:1.6rem;font-weight:700;text-align:center;font-family:'Metamorphous',serif;}
+.tinder-sub{text-align:center;font-size:.85rem;color:var(--text2);padding:0 20px 16px;}
+.tinder-stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-12deg) scale(0);
+  font-size:3rem;font-weight:900;padding:10px 30px;border:5px solid;border-radius:16px;
+  pointer-events:none;opacity:0;transition:all .2s;}
+.tinder-stamp.nope{color:var(--red);border-color:var(--red);}
+.tinder-stamp.like{color:var(--green);border-color:var(--green);}
+.tinder-card.swiping-left .tinder-stamp.nope,
+.tinder-card.swiping-right .tinder-stamp.like{opacity:.85;transform:translate(-50%,-50%) rotate(-12deg) scale(1);}
+
+/* ── AU card extras ── */
+.au-card-header{display:flex;align-items:center;gap:10px;padding:16px 20px 8px;justify-content:center;}
+.au-dot{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);}
+.au-char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;padding:12px 16px 16px;}
+.au-char-thumb{border-radius:10px;overflow:hidden;text-align:center;}
+.au-char-thumb img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;}
+.au-char-thumb p{font-size:.7rem;padding:4px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── Buttons ── */
+.btn-row{display:flex;gap:16px;justify-content:center;margin:20px 0 30px;}
+.btn-circle{width:64px;height:64px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;background:var(--surface);transition:all .2s;font-size:28px;}
+.btn-circle:active{transform:scale(0.9);}
+.btn-nope{border-color:var(--red);color:var(--red);}
+.btn-nope:hover{background:rgba(248,113,113,0.15);box-shadow:0 0 20px rgba(248,113,113,0.2);}
+.btn-like{border-color:var(--green);color:var(--green);}
+.btn-like:hover{background:rgba(52,211,153,0.15);box-shadow:0 0 20px rgba(52,211,153,0.2);}
+.btn-confirm{border:none;border-radius:99px;padding:12px 32px;font-size:1rem;font-weight:700;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;
+  box-shadow:0 4px 20px rgba(192,132,252,0.3);}
+.btn-confirm:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(192,132,252,0.4);}
+.btn-confirm:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-skip{border:1px solid var(--border);border-radius:99px;padding:10px 24px;font-size:.9rem;font-weight:500;
+  cursor:pointer;background:transparent;color:var(--text2);transition:all .2s;}
+.btn-skip:hover{background:var(--surface2);color:var(--text);}
+
+/* ── Remap preview ── */
+.remap-preview{display:flex;align-items:center;gap:6px;justify-content:center;padding:8px 16px 14px;flex-wrap:wrap;}
+.remap-arrow{color:var(--accent);font-size:1.2rem;}
+.remap-tag{font-size:.75rem;font-weight:600;padding:3px 10px;border-radius:99px;border:1px solid var(--border);background:var(--surface2);}
+.remap-tag.new{border-color:var(--green);color:var(--green);}
+
+/* ── Summary / Migration ── */
+#summary{width:min(600px,95vw);margin:0 auto 40px;}
+.summary-section{margin:24px 0;}
+.summary-section h3{font-size:1.1rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;}
+.summary-item{background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--border);text-align:center;}
+.summary-item img{width:100%;aspect-ratio:2/3;object-fit:cover;}
+.summary-item p{font-size:.72rem;padding:5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.summary-item .star-info{font-size:.65rem;color:var(--accent);padding:0 5px 5px;}
+
+#log{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;
+  max-height:300px;overflow-y:auto;font-size:.8rem;line-height:1.8;margin-top:16px;font-family:monospace;}
+.log-ok{color:var(--green);}
+.log-err{color:var(--red);}
+.log-info{color:var(--accent);}
+
+/* ── Progress bar ── */
+#progress{margin:12px 0;background:var(--surface2);border-radius:8px;height:8px;overflow:hidden;}
+#bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:8px;transition:width .3s;}
+
+/* ── Dismissed section ── */
+.dismissed-badge{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:700;
+  padding:3px 8px;border-radius:99px;background:rgba(121,102,119,0.3);color:#c8b4c6;margin-bottom:4px;}
+
+/* ── Responsive ── */
+@media(max-width:480px){
+  .star-option{min-width:80px;}
+  .btn-circle{width:54px;height:54px;font-size:24px;}
+  .tinder-name{font-size:1.3rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="loader"></div>
+  <div id="loading-text">Firebase'den veriler çekiliyor...</div>
+</div>
+
+<!-- Header -->
+<header>
+  <h1>Karakter Göçü</h1>
+  <p>Eski Firebase → Yeni Firebase</p>
+</header>
+
+<!-- Phase Indicators -->
+<div id="phases">
+  <span class="phase-dot active" data-phase="1">① Karakterler</span>
+  <span class="phase-dot" data-phase="2">② Füzyonlar</span>
+  <span class="phase-dot" data-phase="3">③ AU'lar</span>
+  <span class="phase-dot" data-phase="4">④ Taşı!</span>
+</div>
+
+<div id="counter"></div>
+<div id="card-area"></div>
+<div id="action-area" style="width:100%;"></div>
+
+<!-- Firebase v8 SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+// ─── Firebase Configs ─────────────────────────────────────────────────────────
+const OLD_CONFIG = {
+  apiKey: "AIzaSyDAmMtRBGyNOb6R2ZjSZrhN5NnGA_p-L3w",
+  authDomain: "character-gallery-e23ee.firebaseapp.com",
+  projectId: "character-gallery-e23ee",
+  storageBucket: "character-gallery-e23ee.firebasestorage.app",
+  messagingSenderId: "737596044949",
+  appId: "1:737596044949:web:5ddf2bda9fcfce9f990d9c"
+};
+const NEW_CONFIG = {
+  apiKey: "AIzaSyDqFUuGo9cVOniOta5Takvwtlnb5SIYl8A",
+  authDomain: "character-gallery-v2.firebaseapp.com",
+  projectId: "character-gallery-v2",
+  storageBucket: "character-gallery-v2.firebasestorage.app",
+  messagingSenderId: "81948037217",
+  appId: "1:81948037217:web:2b256c16c53634a17d9a20"
+};
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let oldDb, newDb;
+let characters = [], dismissedChars = [], fusions = [], dismissedFusions = [], alternativeUniverses = [];
+let currentPhase = 1;
+
+// Decisions
+const charDecisions = {}; // charId -> { selectedStars: [1,2,3], maxStar: 3 }
+const fusionDecisions = {}; // fusionId -> true/false
+const auDecisions = {}; // auId -> true/false
+const settingsDocs = [];
+const promptDocs = [];
+
+let currentCharIndex = 0;
+let currentFusionIndex = 0;
+let currentAuIndex = 0;
+let allNonFusionChars = []; // combined characters + dismissed for phase 1
+let allFusions = []; // combined fusions + dismissed fusions for phase 2
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const $ = s => document.querySelector(s);
+const getMaxStar = c => 1 + (c.evolutions?.length || 0);
+const getStarImages = c => {
+  const images = [{ star: 1, url: c.imageUrl || '' }];
+  (c.evolutions || []).forEach(e => images.push({ star: e.star, url: e.imageUrl || '' }));
+  return images.sort((a,b) => a.star - b.star);
+};
+const starEmoji = n => '⭐'.repeat(n);
+
+function setPhase(n) {
+  currentPhase = n;
+  document.querySelectorAll('.phase-dot').forEach(d => {
+    const p = +d.dataset.phase;
+    d.classList.toggle('active', p === n);
+    d.classList.toggle('done', p < n);
+  });
+}
+
+function setCounter(current, total, label) {
+  $('#counter').textContent = `${label}: ${current} / ${total}`;
+}
+
+// ─── PHASE 1: Characters ──────────────────────────────────────────────────────
+function showCharacter(index) {
+  if (index >= allNonFusionChars.length) {
+    startPhase2();
+    return;
+  }
+  currentCharIndex = index;
+  const char = allNonFusionChars[index];
+  const images = getStarImages(char);
+  const maxStar = getMaxStar(char);
+  setCounter(index + 1, allNonFusionChars.length, 'Karakter');
+
+  // Default: select all
+  if (!charDecisions[char.id]) {
+    charDecisions[char.id] = { selectedStars: images.map(i => i.star), maxStar };
+  }
+  const sel = charDecisions[char.id].selectedStars;
+
+  const area = $('#card-area');
+  area.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'char-card';
+  card.innerHTML = `
+    ${char.isDismissed ? '<div style="text-align:center;padding-top:12px;"><span class="dismissed-badge"><span class="material-symbols-outlined" style="font-size:14px;">badge</span> Retired</span></div>' : ''}
+    <div class="char-card-name">${char.name}</div>
+    ${char.irk ? `<div class="char-card-irk">${char.irk}</div>` : '<div style="height:8px;"></div>'}
+    <div class="star-selector" id="star-sel">
+      ${images.map(img => `
+        <div class="star-option ${sel.includes(img.star)?'selected':''}" data-star="${img.star}" onclick="toggleStar('${char.id}',${img.star},this)">
+          <img src="${img.url}" alt="${img.star} Star" onerror="this.style.background='#222';this.alt='Resim yüklenemedi';">
+          <div class="star-label">${starEmoji(img.star)}</div>
+          <div class="star-check"><span class="material-symbols-outlined">check</span></div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="remap-preview" id="remap-preview-${char.id}"></div>
+  `;
+  area.appendChild(card);
+  updateRemapPreview(char.id);
+
+  // Action buttons
+  const actionArea = $('#action-area');
+  actionArea.innerHTML = `
+    <div class="btn-row">
+      <button class="btn-circle btn-nope" onclick="skipChar()" title="Hiçbirini seçme">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">close</span>
+      </button>
+      <button class="btn-confirm" onclick="confirmChar()">Onayla →</button>
+    </div>
+  `;
+
+  // Animate in
+  requestAnimationFrame(() => card.style.opacity = 1);
+}
+
+function toggleStar(charId, star, el) {
+  const dec = charDecisions[charId];
+  const idx = dec.selectedStars.indexOf(star);
+  if (idx > -1) dec.selectedStars.splice(idx, 1);
+  else dec.selectedStars.push(star);
+  dec.selectedStars.sort((a,b) => a-b);
+  el.classList.toggle('selected');
+  updateRemapPreview(charId);
+}
+
+function updateRemapPreview(charId) {
+  const dec = charDecisions[charId];
+  const preview = document.getElementById(`remap-preview-${charId}`);
+  if (!preview) return;
+  if (dec.selectedStars.length === 0) {
+    preview.innerHTML = '<span style="color:var(--red);font-size:.85rem;font-weight:600;">⚠ Bu karakter taşınmayacak</span>';
+    return;
+  }
+  const mappings = dec.selectedStars.map((oldStar, i) => {
+    const newStar = i + 1;
+    return `<span class="remap-tag">${starEmoji(oldStar)} Eski ${oldStar}★</span>
+            <span class="remap-arrow">→</span>
+            <span class="remap-tag new">Yeni ${newStar}★</span>`;
+  });
+  preview.innerHTML = mappings.join('<span style="margin:0 6px;color:var(--border);">|</span>');
+}
+
+function skipChar() {
+  const char = allNonFusionChars[currentCharIndex];
+  charDecisions[char.id].selectedStars = [];
+  animateOut('left', () => showCharacter(currentCharIndex + 1));
+}
+
+function confirmChar() {
+  animateOut('right', () => showCharacter(currentCharIndex + 1));
+}
+
+function animateOut(dir, cb) {
+  const card = $('#card-area').firstElementChild;
+  if (!card) { cb(); return; }
+  card.classList.add(dir === 'left' ? 'exit-left' : 'exit-right');
+  setTimeout(cb, 400);
+}
+
+// ─── PHASE 2: Fusions (Tinder) ───────────────────────────────────────────────
+function startPhase2() {
+  setPhase(2);
+  // Filter fusions whose BOTH partners are being migrated
+  allFusions = [...fusions, ...dismissedFusions].filter(f => {
+    if (!f.fusionPartners || f.fusionPartners.length < 2) return true; // show anyway
+    return f.fusionPartners.every(pid => {
+      const dec = charDecisions[pid];
+      return dec && dec.selectedStars.length > 0;
+    });
+  });
+
+  if (allFusions.length === 0) {
+    startPhase3();
+    return;
+  }
+  currentFusionIndex = 0;
+  showFusion(0);
+}
+
+function showFusion(index) {
+  if (index >= allFusions.length) {
+    startPhase3();
+    return;
+  }
+  currentFusionIndex = index;
+  const f = allFusions[index];
+  setCounter(index + 1, allFusions.length, 'Füzyon');
+
+  const imgUrl = f.previewUrl || f.imageUrl || '';
+  const partners = (f.fusionPartners || []).map(pid =>
+    allNonFusionChars.find(c => c.id === pid)
+  ).filter(Boolean);
+  const partnerText = partners.map(p => p.name).join(' + ') || '';
+
+  const area = $('#card-area');
+  area.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'tinder-card';
+  card.id = 'tinder-current';
+  card.innerHTML = `
+    ${f.isDismissed ? '<div style="text-align:center;padding-top:12px;"><span class="dismissed-badge"><span class="material-symbols-outlined" style="font-size:14px;">badge</span> Retired</span></div>' : ''}
+    <img class="tinder-img" src="${imgUrl}" alt="${f.name}" onerror="this.style.background='#222';">
+    <div class="tinder-name">${f.name}</div>
+    <div class="tinder-sub">${partnerText}${f.irk ? ` · ${f.irk}` : ''}</div>
+    <div class="tinder-stamp nope">NOPE</div>
+    <div class="tinder-stamp like">KEEP</div>
+  `;
+  area.appendChild(card);
+  setupSwipe(card, 'fusion');
+
+  const actionArea = $('#action-area');
+  actionArea.innerHTML = `
+    <div class="btn-row">
+      <button class="btn-circle btn-nope" onclick="decideFusion(false)" title="Taşıma">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">close</span>
+      </button>
+      <button class="btn-circle btn-like" onclick="decideFusion(true)" title="Taşı">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">favorite</span>
+      </button>
+    </div>
+  `;
+}
+
+function decideFusion(keep) {
+  const f = allFusions[currentFusionIndex];
+  fusionDecisions[f.id] = keep;
+  const card = document.getElementById('tinder-current');
+  card.classList.add(keep ? 'exit-right' : 'exit-left');
+  setTimeout(() => showFusion(currentFusionIndex + 1), 400);
+}
+
+// ─── PHASE 3: AUs (Tinder) ───────────────────────────────────────────────────
+function startPhase3() {
+  setPhase(3);
+  if (alternativeUniverses.length === 0) {
+    startPhase4();
+    return;
+  }
+  currentAuIndex = 0;
+  showAU(0);
+}
+
+function showAU(index) {
+  if (index >= alternativeUniverses.length) {
+    startPhase4();
+    return;
+  }
+  currentAuIndex = index;
+  const au = alternativeUniverses[index];
+  setCounter(index + 1, alternativeUniverses.length, 'AU');
+
+  // Find characters that have this AU
+  const allChars = [...allNonFusionChars, ...fusions, ...dismissedFusions];
+  const withAu = allChars.filter(c => c.auData?.[au.id] && (
+    c.isFusion ? c.auData[au.id].fusionImageUrl : c.auData[au.id].maxStarImageUrl
+  ));
+
+  const area = $('#card-area');
+  area.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'tinder-card';
+  card.id = 'tinder-current';
+  card.innerHTML = `
+    <div class="au-card-header">
+      <div class="au-dot" style="background:${au.color||'#64dcb4'};"></div>
+      <span style="font-size:1.5rem;">${au.icon ? `<span class="material-symbols-outlined" style="font-size:28px;color:${au.color||'#64dcb4'};">${au.icon}</span>` : ''}</span>
+    </div>
+    <div class="tinder-name" style="color:${au.color||'#64dcb4'};">${au.name}</div>
+    <div class="tinder-sub">${withAu.length} karakter/füzyonda mevcut${au.locked ? ' · 🔒 Kilitli' : ''}</div>
+    ${withAu.length > 0 ? `
+      <div class="au-char-grid">
+        ${withAu.slice(0, 12).map(c => {
+          const img = c.isFusion
+            ? (c.auData[au.id].fusionImageUrl || c.previewUrl || c.imageUrl || '')
+            : (c.auData[au.id].maxStarImageUrl || '');
+          return `<div class="au-char-thumb"><img src="${img}" alt="${c.name}" onerror="this.style.background='#222';"><p>${c.name}</p></div>`;
+        }).join('')}
+        ${withAu.length > 12 ? `<div class="au-char-thumb" style="display:flex;align-items:center;justify-content:center;aspect-ratio:2/3;background:var(--surface2);border-radius:10px;"><p style="font-size:.9rem;">+${withAu.length-12}</p></div>` : ''}
+      </div>
+    ` : '<div style="padding:20px;text-align:center;color:var(--text2);">Bu AU için karakter yok</div>'}
+    <div class="tinder-stamp nope">NOPE</div>
+    <div class="tinder-stamp like">KEEP</div>
+  `;
+  area.appendChild(card);
+  setupSwipe(card, 'au');
+
+  const actionArea = $('#action-area');
+  actionArea.innerHTML = `
+    <div class="btn-row">
+      <button class="btn-circle btn-nope" onclick="decideAU(false)" title="Taşıma">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">close</span>
+      </button>
+      <button class="btn-circle btn-like" onclick="decideAU(true)" title="Taşı">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">favorite</span>
+      </button>
+    </div>
+  `;
+}
+
+function decideAU(keep) {
+  const au = alternativeUniverses[currentAuIndex];
+  auDecisions[au.id] = keep;
+  const card = document.getElementById('tinder-current');
+  card.classList.add(keep ? 'exit-right' : 'exit-left');
+  setTimeout(() => showAU(currentAuIndex + 1), 400);
+}
+
+// ─── Swipe Gesture ────────────────────────────────────────────────────────────
+function setupSwipe(card, type) {
+  let startX = 0, currentX = 0, isDragging = false;
+  const threshold = 100;
+
+  const onStart = e => {
+    isDragging = true;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    card.classList.add('dragging');
+  };
+  const onMove = e => {
+    if (!isDragging) return;
+    currentX = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
+    card.style.transform = `translateX(${currentX}px) rotate(${currentX * 0.06}deg)`;
+    card.classList.toggle('swiping-left', currentX < -40);
+    card.classList.toggle('swiping-right', currentX > 40);
+  };
+  const onEnd = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    card.classList.remove('dragging');
+    if (Math.abs(currentX) > threshold) {
+      const keep = currentX > 0;
+      if (type === 'fusion') decideFusion(keep);
+      else decideAU(keep);
+    } else {
+      card.style.transform = '';
+      card.classList.remove('swiping-left', 'swiping-right');
+    }
+  };
+
+  card.addEventListener('mousedown', onStart);
+  card.addEventListener('mousemove', onMove);
+  card.addEventListener('mouseup', onEnd);
+  card.addEventListener('mouseleave', onEnd);
+  card.addEventListener('touchstart', onStart, { passive: true });
+  card.addEventListener('touchmove', onMove, { passive: true });
+  card.addEventListener('touchend', onEnd);
+}
+
+// ─── PHASE 4: Summary & Migration ────────────────────────────────────────────
+function startPhase4() {
+  setPhase(4);
+  $('#counter').textContent = '';
+  $('#card-area').innerHTML = '';
+  $('#action-area').innerHTML = '';
+
+  const summary = document.createElement('div');
+  summary.id = 'summary';
+
+  // Characters to migrate
+  const migratingChars = allNonFusionChars.filter(c => charDecisions[c.id]?.selectedStars.length > 0);
+  const skippedChars = allNonFusionChars.filter(c => !charDecisions[c.id]?.selectedStars.length);
+  const migratingFusions = allFusions.filter(f => fusionDecisions[f.id]);
+  const skippedFusions = allFusions.filter(f => !fusionDecisions[f.id]);
+  const migratingAUs = alternativeUniverses.filter(a => auDecisions[a.id]);
+
+  summary.innerHTML = `
+    <div class="summary-section">
+      <h3><span class="material-symbols-outlined" style="color:var(--green);">check_circle</span> Taşınacak Karakterler (${migratingChars.length})</h3>
+      <div class="summary-grid">
+        ${migratingChars.map(c => {
+          const dec = charDecisions[c.id];
+          const newMax = dec.selectedStars.length;
+          // Show the highest selected star's image
+          const imgs = getStarImages(c);
+          const topStar = dec.selectedStars[dec.selectedStars.length - 1];
+          const topImg = imgs.find(i => i.star === topStar)?.url || c.imageUrl;
+          return `<div class="summary-item">
+            <img src="${topImg}" alt="${c.name}">
+            <p>${c.name}</p>
+            <div class="star-info">${dec.selectedStars.map((s,i) => `${s}★→${i+1}★`).join(', ')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    ${skippedChars.length ? `
+    <div class="summary-section">
+      <h3><span class="material-symbols-outlined" style="color:var(--red);">cancel</span> Atlanacak Karakterler (${skippedChars.length})</h3>
+      <div class="summary-grid">
+        ${skippedChars.map(c => `<div class="summary-item" style="opacity:0.4;">
+          <img src="${c.imageUrl}" alt="${c.name}">
+          <p>${c.name}</p>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="summary-section">
+      <h3><span class="material-symbols-outlined" style="color:var(--accent);">merge</span> Füzyonlar: ${migratingFusions.length} taşınacak, ${skippedFusions.length} atlanacak</h3>
+      ${migratingFusions.length ? `<div class="summary-grid">
+        ${migratingFusions.map(f => `<div class="summary-item">
+          <img src="${f.previewUrl||f.imageUrl||''}" alt="${f.name}">
+          <p>${f.name}</p>
+        </div>`).join('')}
+      </div>` : ''}
+    </div>
+
+    <div class="summary-section">
+      <h3><span class="material-symbols-outlined" style="color:var(--green);">auto_fix_high</span> AU'lar: ${migratingAUs.length} taşınacak</h3>
+      ${migratingAUs.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${migratingAUs.map(a => `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;
+          background:rgba(255,255,255,0.05);border:1px solid ${a.color||'#64dcb4'};color:${a.color||'#64dcb4'};font-size:.85rem;font-weight:600;">
+          <span class="material-symbols-outlined" style="font-size:16px;">${a.icon||'auto_fix_high'}</span>${a.name}
+        </span>`).join('')}
+      </div>` : '<p style="color:var(--text2);font-size:.85rem;">Hiçbir AU taşınmayacak</p>'}
+    </div>
+
+    <div style="text-align:center;margin:30px 0;">
+      <button class="btn-confirm" onclick="executeMigration()" id="btn-migrate">
+        🚀 Migration'ı Başlat
+      </button>
+      <p style="color:var(--text2);font-size:.75rem;margin-top:8px;">
+        Yeni Firebase'e yazacak · Eski Firebase'e dokunmayacak
+      </p>
+    </div>
+
+    <div id="progress" style="display:none;"><div id="bar"></div></div>
+    <div id="log" style="display:none;"></div>
+  `;
+
+  document.body.appendChild(summary);
+}
+
+// ─── Execute Migration ────────────────────────────────────────────────────────
+function logMsg(msg, cls = '') {
+  const log = $('#log');
+  log.style.display = 'block';
+  const d = document.createElement('div');
+  d.className = cls;
+  d.innerHTML = msg;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function executeMigration() {
+  const btn = $('#btn-migrate');
+  btn.disabled = true;
+  btn.textContent = '⏳ Taşınıyor...';
+  $('#progress').style.display = 'block';
+
+  const migratingChars = allNonFusionChars.filter(c => charDecisions[c.id]?.selectedStars.length > 0);
+  const migratingFusions = allFusions.filter(f => fusionDecisions[f.id]);
+  const migratingAUs = alternativeUniverses.filter(a => auDecisions[a.id]);
+
+  const totalSteps = migratingChars.length + migratingFusions.length + migratingAUs.length + 2; // +2 for settings & prompts
+  let done = 0;
+  const setProgress = () => { $('#bar').style.width = `${Math.round((done/totalSteps)*100)}%`; };
+
+  // ── 1. Migrate characters ──
+  logMsg('📂 <strong>Karakterler taşınıyor...</strong>', 'log-info');
+  for (const char of migratingChars) {
+    try {
+      const dec = charDecisions[char.id];
+      const newData = buildNewCharData(char, dec);
+      const collection = char.isDismissed ? 'dismissed' : 'characters';
+      await newDb.collection(collection).doc(char.id).set(newData);
+      logMsg(`✓ ${char.name} (${dec.selectedStars.length}★ max)`, 'log-ok');
+    } catch (e) {
+      logMsg(`✗ ${char.name}: ${e.message}`, 'log-err');
+    }
+    done++; setProgress();
+  }
+
+  // ── 2. Migrate fusions ──
+  logMsg('<br>📂 <strong>Füzyonlar taşınıyor...</strong>', 'log-info');
+  for (const fusion of migratingFusions) {
+    try {
+      const newData = buildNewFusionData(fusion);
+      const collection = fusion.isDismissed ? 'dismissed' : 'characters';
+      await newDb.collection(collection).doc(fusion.id).set(newData);
+      logMsg(`✓ ${fusion.name}`, 'log-ok');
+    } catch (e) {
+      logMsg(`✗ ${fusion.name}: ${e.message}`, 'log-err');
+    }
+    done++; setProgress();
+  }
+
+  // ── 3. Migrate AUs ──
+  logMsg('<br>📂 <strong>AU\'lar taşınıyor...</strong>', 'log-info');
+  for (const au of migratingAUs) {
+    try {
+      await newDb.collection('alternativeUniverses').doc(au.id).set({ ...au });
+      logMsg(`✓ ${au.name}`, 'log-ok');
+    } catch (e) {
+      logMsg(`✗ ${au.name}: ${e.message}`, 'log-err');
+    }
+    done++; setProgress();
+  }
+
+  // ── 4. Migrate settings ──
+  logMsg('<br>📂 <strong>Ayarlar taşınıyor...</strong>', 'log-info');
+  for (const doc of settingsDocs) {
+    try {
+      await newDb.collection('settings').doc(doc.id).set(doc.data);
+      logMsg(`✓ settings/${doc.id}`, 'log-ok');
+    } catch (e) {
+      logMsg(`✗ settings/${doc.id}: ${e.message}`, 'log-err');
+    }
+  }
+  done++; setProgress();
+
+  // ── 5. Migrate promptLibrary ──
+  logMsg('<br>📂 <strong>Prompt kütüphanesi taşınıyor...</strong>', 'log-info');
+  for (const doc of promptDocs) {
+    try {
+      await newDb.collection('promptLibrary').doc(doc.id).set(doc.data);
+      logMsg(`✓ promptLibrary/${doc.id}`, 'log-ok');
+    } catch (e) {
+      logMsg(`✗ promptLibrary/${doc.id}: ${e.message}`, 'log-err');
+    }
+  }
+  done++; setProgress();
+
+  $('#bar').style.width = '100%';
+  logMsg('<br>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', '');
+  logMsg(`🎉 Migration tamamlandı!`, 'log-ok');
+  logMsg('⚠️ Yeni Firebase Firestore kurallarını güvenli hale getirmeyi unutma!', 'log-info');
+  btn.textContent = '✅ Tamamlandı!';
+}
+
+function buildNewCharData(char, dec) {
+  const data = { ...char };
+  delete data.id;
+  delete data.isDismissed;
+
+  const selectedStars = dec.selectedStars; // e.g. [1, 3] -> new 1★, 2★
+  const oldImages = getStarImages(char);
+
+  // New imageUrl = first selected star's image
+  data.imageUrl = oldImages.find(i => i.star === selectedStars[0])?.url || char.imageUrl;
+
+  // New evolutions = remaining selected stars remapped
+  data.evolutions = [];
+  for (let i = 1; i < selectedStars.length; i++) {
+    const oldStar = selectedStars[i];
+    const newStar = i + 1;
+    const url = oldImages.find(im => im.star === oldStar)?.url || '';
+    data.evolutions.push({ star: newStar, imageUrl: url });
+  }
+  if (data.evolutions.length === 0) delete data.evolutions;
+
+  // Clean AU data — only keep accepted AUs, and remap references
+  if (data.auData) {
+    const newAuData = {};
+    for (const auId of Object.keys(data.auData)) {
+      if (auDecisions[auId]) {
+        newAuData[auId] = data.auData[auId];
+      }
+    }
+    data.auData = Object.keys(newAuData).length ? newAuData : undefined;
+    if (!data.auData) delete data.auData;
+  }
+
+  return data;
+}
+
+function buildNewFusionData(fusion) {
+  const data = { ...fusion };
+  delete data.id;
+  delete data.isDismissed;
+
+  // Clean AU data
+  if (data.auData) {
+    const newAuData = {};
+    for (const auId of Object.keys(data.auData)) {
+      if (auDecisions[auId]) {
+        newAuData[auId] = data.auData[auId];
+      }
+    }
+    data.auData = Object.keys(newAuData).length ? newAuData : undefined;
+    if (!data.auData) delete data.auData;
+  }
+
+  return data;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const oldApp = firebase.initializeApp(OLD_CONFIG, 'old');
+    const newApp = firebase.initializeApp(NEW_CONFIG, 'new');
+    oldDb = oldApp.firestore();
+    newDb = newApp.firestore();
+
+    $('#loading-text').textContent = 'Koleksiyonlar okunuyor...';
+
+    const [charsSnap, dismissedSnap, auSnap, settingsSnap, promptSnap] = await Promise.all([
+      oldDb.collection('characters').get(),
+      oldDb.collection('dismissed').get(),
+      oldDb.collection('alternativeUniverses').get(),
+      oldDb.collection('settings').get(),
+      oldDb.collection('promptLibrary').get(),
+    ]);
+
+    const allChars = charsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const allDismissed = dismissedSnap.docs.map(d => ({ id: d.id, ...d.data(), isDismissed: true }));
+    alternativeUniverses = auSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    settingsDocs = settingsSnap.docs.map(d => ({ id: d.id, data: d.data() }));
+    promptDocs = promptSnap.docs.map(d => ({ id: d.id, data: d.data() }));
+
+    // Separate chars vs fusions
+    characters = allChars.filter(c => !c.isFusion);
+    fusions = allChars.filter(c => c.isFusion);
+    dismissedChars = allDismissed.filter(c => !c.isFusion);
+    dismissedFusions = allDismissed.filter(c => c.isFusion);
+
+    allNonFusionChars = [...characters, ...dismissedChars].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+    allFusions = [...fusions, ...dismissedFusions].sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+
+    $('#loading-text').textContent = `${allNonFusionChars.length} karakter, ${allFusions.length} füzyon, ${alternativeUniverses.length} AU bulundu!`;
+
+    setTimeout(() => {
+      $('#loading-screen').classList.add('hide');
+      showCharacter(0);
+    }, 800);
+
+  } catch (e) {
+    $('#loading-text').textContent = '❌ Hata: ' + e.message;
+    console.error(e);
+  }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (currentPhase === 1) {
+    if (e.key === 'ArrowRight' || e.key === 'Enter') confirmChar();
+    if (e.key === 'ArrowLeft' || e.key === 'Backspace') skipChar();
+  } else if (currentPhase === 2) {
+    if (e.key === 'ArrowRight') decideFusion(true);
+    if (e.key === 'ArrowLeft') decideFusion(false);
+  } else if (currentPhase === 3) {
+    if (e.key === 'ArrowRight') decideAU(true);
+    if (e.key === 'ArrowLeft') decideAU(false);
+  }
+});
+
+init();
+</script>
+</body>
+</html>
