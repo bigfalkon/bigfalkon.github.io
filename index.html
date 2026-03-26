@@ -219,6 +219,8 @@
         .m3-dialog-footer { display: flex; justify-content: space-between; align-items: center; }
         .modal-transform-paused { transform: none !important; }
         @media (min-width: 1000px) { .m3-dialog { width: 1400px; max-height: 100vh; } }
+        @media (min-width: 1920px) { .m3-dialog { width: 1700px; } }
+        @media (min-width: 2560px) { .m3-dialog { width: 2000px; } }
 
         /* Nav buttons */
         .modal-nav-btn { display: flex; align-items: center; gap: 8px; color: var(--on-surface-var); border-radius: 99px; padding: 4px 8px; cursor: pointer; transition: background-color 0.2s; }
@@ -334,10 +336,10 @@
         #au-mode-banner.visible { display: flex; }
     </style>
 </head>
-<body class="p-4 sm:p-6 md:p-8">
+<body class="p-4 sm:p-6 md:p-8 xl:px-12 2xl:px-20">
 
-<div id="app" class="max-w-screen-2xl mx-auto">
-    <header class="mb-8 text-center" style="border-color: var(--outline-var); padding-top: calc(env(safe-area-inset-top) + 1rem);">
+<div id="app" class="max-w-[2560px] mx-auto">
+    <header class="mb-8 text-center lg:text-left lg:flex lg:items-end lg:justify-between" style="border-color: var(--outline-var); padding-top: calc(env(safe-area-inset-top) + 1rem);">
         <div>
             <h1 id="gallery-title" class="text-4xl md:text-5xl font-extrabold" style="color: var(--primary); font-family: 'Metamorphous', serif; cursor: pointer;">
                 Character Gallery
