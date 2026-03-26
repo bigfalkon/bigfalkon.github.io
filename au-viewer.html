@@ -142,7 +142,7 @@
 </div>
 
 <!-- MAIN APP -->
-<div id="app" class="hidden max-w-screen-xl mx-auto px-4 py-6 sm:px-6 md:px-8">
+<div id="app" class="hidden max-w-screen-xl xl:max-w-screen-2xl mx-auto px-4 py-6 sm:px-6 md:px-8">
 
     <!-- Header -->
     <header class="flex justify-between items-center mb-6 pb-4 border-b" style="border-color:var(--outline-var);">
@@ -158,74 +158,84 @@
         </div>
     </header>
 
-    <!-- AU Pill Selector -->
-    <div class="panel mb-5">
-        <p class="text-xs font-semibold mb-3" style="color:var(--on-surface-var);">UNIVERSES</p>
-        <div id="au-pills" class="flex flex-wrap gap-2">
-            <span class="text-sm text-gray-500">Loading…</span>
-        </div>
-    </div>
+    <!-- Two-column layout on xl+: sidebar (universes) + main content -->
+    <div class="xl:flex xl:gap-6 xl:items-start">
 
-    <!-- Content (hidden until AU selected) -->
-    <div id="au-content" class="hidden">
-        <!-- AU header -->
-        <div class="flex items-center gap-3 mb-4">
-            <div id="au-icon-badge" class="flex items-center justify-center w-10 h-10 rounded-full" style="background:rgba(100,220,180,.15);border:2px solid var(--au);">
-                <span id="au-icon-el" class="material-symbols-outlined" style="color:var(--au);font-size:20px;">auto_fix_high</span>
-            </div>
-            <div>
-                <h2 id="au-title" class="text-2xl font-extrabold" style="color:var(--au);">Universe</h2>
-                <p id="au-desc" class="text-sm" style="color:var(--on-surface-var);"></p>
-            </div>
-            <div class="ml-auto text-sm font-semibold" style="color:var(--on-surface-var);">
-                <span id="au-count-in" class="mr-3">✓ <span>0</span></span>
-                <span id="au-count-out">✗ <span>0</span></span>
+        <!-- AU Pill Selector — sidebar on xl+ -->
+        <div class="panel mb-5 xl:mb-0 xl:w-64 xl:flex-shrink-0 xl:sticky xl:top-6">
+            <p class="text-xs font-semibold mb-3" style="color:var(--on-surface-var);">UNIVERSES</p>
+            <div id="au-pills" class="flex flex-wrap gap-2 xl:flex-col">
+                <span class="text-sm text-gray-500">Loading…</span>
             </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="flex gap-1 border-b mb-0" style="border-color:var(--outline-var);">
-            <button class="tab-btn active" data-view="in">
-                <span class="material-symbols-outlined align-middle mr-1" style="font-size:16px;">check_circle</span>In AU
-            </button>
-            <button class="tab-btn" data-view="out">
-                <span class="material-symbols-outlined align-middle mr-1" style="font-size:16px;">radio_button_unchecked</span>Not in AU
-            </button>
-        </div>
+        <!-- Right column: content + select prompt -->
+        <div class="xl:flex-1 xl:min-w-0">
 
-        <!-- Entries panel -->
-        <div class="panel mt-0 rounded-tl-none" style="border-top-left-radius:0;">
-            <!-- Search + Type Filter -->
-            <div class="mb-3 flex flex-col gap-2">
-                <input type="text" id="entry-search" placeholder="Search entries…" class="form-input" oninput="filterEntries()">
-                <div class="flex gap-2 flex-wrap items-center">
-                    <button class="type-pill active" data-type="all" onclick="setTypeFilter('all')">
-                        <span class="material-symbols-outlined" style="font-size:14px;">groups</span>Her İkisi
+            <!-- Content (hidden until AU selected) -->
+            <div id="au-content" class="hidden">
+                <!-- AU header -->
+                <div class="flex items-center gap-3 mb-4">
+                    <div id="au-icon-badge" class="flex items-center justify-center w-10 h-10 rounded-full" style="background:rgba(100,220,180,.15);border:2px solid var(--au);">
+                        <span id="au-icon-el" class="material-symbols-outlined" style="color:var(--au);font-size:20px;">auto_fix_high</span>
+                    </div>
+                    <div>
+                        <h2 id="au-title" class="text-2xl font-extrabold" style="color:var(--au);">Universe</h2>
+                        <p id="au-desc" class="text-sm" style="color:var(--on-surface-var);"></p>
+                    </div>
+                    <div class="ml-auto text-sm font-semibold" style="color:var(--on-surface-var);">
+                        <span id="au-count-in" class="mr-3">✓ <span>0</span></span>
+                        <span id="au-count-out">✗ <span>0</span></span>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-1 border-b mb-0" style="border-color:var(--outline-var);">
+                    <button class="tab-btn active" data-view="in">
+                        <span class="material-symbols-outlined align-middle mr-1" style="font-size:16px;">check_circle</span>In AU
                     </button>
-                    <button class="type-pill" data-type="character" onclick="setTypeFilter('character')">
-                        <span class="material-symbols-outlined" style="font-size:14px;">person</span>Karakter
-                    </button>
-                    <button class="type-pill" data-type="fusion" onclick="setTypeFilter('fusion')">
-                        <span class="material-symbols-outlined" style="font-size:14px;">merge</span>Füzyon
-                    </button>
-                    <button class="type-pill ml-auto" onclick="openNameList()" title="İsimleri metin olarak göster">
-                        <span class="material-symbols-outlined" style="font-size:14px;">list_alt</span>Metin Listesi
-                    </button>
-                    <button class="type-pill" onclick="openPromptExport()" title="Promptları listele ve indir">
-                        <span class="material-symbols-outlined" style="font-size:14px;">article</span>Prompt Listesi
+                    <button class="tab-btn" data-view="out">
+                        <span class="material-symbols-outlined align-middle mr-1" style="font-size:16px;">radio_button_unchecked</span>Not in AU
                     </button>
                 </div>
-            </div>
-            <div id="loading-entries" class="text-center py-8 hidden">
-                <span class="material-symbols-outlined spin text-3xl" style="color:var(--au);">sync</span>
-                <p class="text-sm mt-2 text-gray-400">Loading…</p>
-            </div>
-            <div id="entries-grid" class="scroll-panel flex flex-col gap-2"></div>
-            <p id="entries-empty" class="hidden text-center py-8 text-gray-500 text-sm">No entries found.</p>
-        </div>
-    </div>
 
-    <p id="select-prompt" class="text-center text-gray-500 mt-12 text-sm">← Select a universe above to get started</p>
+                <!-- Entries panel -->
+                <div class="panel mt-0 rounded-tl-none" style="border-top-left-radius:0;">
+                    <!-- Search + Type Filter -->
+                    <div class="mb-3 flex flex-col gap-2">
+                        <input type="text" id="entry-search" placeholder="Search entries…" class="form-input" oninput="filterEntries()">
+                        <div class="flex gap-2 flex-wrap items-center">
+                            <button class="type-pill active" data-type="all" onclick="setTypeFilter('all')">
+                                <span class="material-symbols-outlined" style="font-size:14px;">groups</span>Her İkisi
+                            </button>
+                            <button class="type-pill" data-type="character" onclick="setTypeFilter('character')">
+                                <span class="material-symbols-outlined" style="font-size:14px;">person</span>Karakter
+                            </button>
+                            <button class="type-pill" data-type="fusion" onclick="setTypeFilter('fusion')">
+                                <span class="material-symbols-outlined" style="font-size:14px;">merge</span>Füzyon
+                            </button>
+                            <button class="type-pill ml-auto" onclick="openNameList()" title="İsimleri metin olarak göster">
+                                <span class="material-symbols-outlined" style="font-size:14px;">list_alt</span>Metin Listesi
+                            </button>
+                            <button class="type-pill" onclick="openPromptExport()" title="Promptları listele ve indir">
+                                <span class="material-symbols-outlined" style="font-size:14px;">article</span>Prompt Listesi
+                            </button>
+                        </div>
+                    </div>
+                    <div id="loading-entries" class="text-center py-8 hidden">
+                        <span class="material-symbols-outlined spin text-3xl" style="color:var(--au);">sync</span>
+                        <p class="text-sm mt-2 text-gray-400">Loading…</p>
+                    </div>
+                    <div id="entries-grid" class="scroll-panel flex flex-col gap-2"></div>
+                    <p id="entries-empty" class="hidden text-center py-8 text-gray-500 text-sm">No entries found.</p>
+                </div>
+            </div>
+
+            <p id="select-prompt" class="text-center text-gray-500 mt-12 text-sm">← Select a universe above to get started</p>
+
+        </div><!-- end right column -->
+
+    </div><!-- end two-column layout -->
 </div>
 
 <!-- PROMPT MODAL -->

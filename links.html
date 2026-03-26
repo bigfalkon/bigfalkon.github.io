@@ -111,17 +111,20 @@
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="px-4 py-12">
+<body class="px-4 py-12 lg:py-20">
 
-    <div class="w-full max-w-sm flex flex-col gap-3">
+    <div class="w-full max-w-sm md:max-w-2xl lg:max-w-3xl xl:max-w-4xl flex flex-col gap-3">
 
         <!-- Title -->
         <div class="text-center mb-6">
-            <h1 class="text-3xl font-extrabold" style="color:var(--primary);font-family:'Metamorphous',serif">
+            <h1 class="text-3xl md:text-4xl font-extrabold" style="color:var(--primary);font-family:'Metamorphous',serif">
                 Character Gallery
             </h1>
             <p class="text-sm mt-1" style="color:var(--on-surface-var)">Choose a destination</p>
         </div>
+
+        <!-- Main nav grid: 1 col on mobile, 2 col on md+ -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 
         <a href="index.html" class="link-btn group">
             <div class="flex items-center gap-3">
@@ -167,6 +170,8 @@
             <span class="material-symbols-outlined arrow-icon">chevron_right</span>
         </a>
 
+        </div><!-- end grid -->
+
         <!-- Dev Tools -->
         <div class="mt-4">
             <button id="dev-toggle" class="dev-toggle" aria-expanded="false">
@@ -176,7 +181,7 @@
                 </span>
                 <span class="material-symbols-outlined chevron">expand_more</span>
             </button>
-            <div id="dev-list" class="flex flex-col gap-2 mt-2 hidden"></div>
+            <div id="dev-list" class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 hidden"></div>
         </div>
 
     </div>
