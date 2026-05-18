@@ -1,0 +1,20 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="_base.css">
+<style>
+.inp{background:#2A2830;border:1px solid #48454e;color:#e5e1e6;border-radius:8px;padding:11px 14px;font-family:inherit;font-size:14px;outline:none;}
+.inp.focus{border-color:#BDB3FF;box-shadow:0 0 0 3px rgba(189,179,255,.18);}
+.inp::placeholder{color:#8a8693;}
+.search{background:#201F25;border:2px solid #48454e;border-radius:99px;padding:11px 18px;font-size:14px;color:#e5e1e6;width:100%;outline:none;}
+.search.focus{border-color:#BDB3FF;}
+.label{font-size:11px;font-weight:700;color:#c8c4d0;text-transform:uppercase;letter-spacing:.06em;}
+</style></head><body>
+<div class="col" style="gap:10px;">
+  <div class="eyebrow">Form inputs</div>
+  <div class="col" style="gap:5px;">
+    <span class="label">Search</span>
+    <input class="search focus" placeholder="Enter character name or ID...">
+  </div>
+  <div class="row" style="gap:10px;">
+    <div class="col grow" style="gap:5px;"><span class="label">Email</span><input class="inp focus" placeholder="you@example.com" style="width:100%;"></div>
+    <div class="col grow" style="gap:5px;"><span class="label">Category</span><input class="inp" value="Hero" style="width:100%;"></div>
+  </div>
+</div></body></html>

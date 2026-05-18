@@ -1,0 +1,70 @@
+/* Shared base for preview cards — each card is a 700px wide dark specimen */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    background: #131318;
+    color: #e5e1e6;
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+}
+
+body {
+    width: 700px;
+    padding: 20px 24px;
+    position: relative;
+}
+
+/* Subtle aurora bleed inside each card */
+body::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+        radial-gradient(circle at 12% 20%, rgba(189, 179, 255, 0.10) 0%, transparent 45%),
+        radial-gradient(circle at 88% 70%, rgba(224, 179, 255, 0.07) 0%, transparent 50%);
+    z-index: 0;
+}
+
+.row { position: relative; z-index: 1; display: flex; gap: 14px; align-items: stretch; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.grow { flex: 1; }
+
+.eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #c8c4d0;
+    opacity: 0.7;
+}
+
+.token-label {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    color: #c8c4d0;
+}
+
+.value-label {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    color: #8a8693;
+}
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Karakter Evreni — UI Kit</title>
+  <link rel="icon" href="assets/icon-source.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root" data-screen-label="00 Loading">Loading UI kit…</div>
+
+  <!-- Order matters — Primitives first, then data, then screens, then host -->
+  <script type="text/babel" src="Primitives.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="Screen-Gallery.jsx"></script>
+  <script type="text/babel" src="Screen-CharacterModal.jsx"></script>
+  <script type="text/babel" src="Screen-Tournament.jsx"></script>
+  <script type="text/babel" src="Screen-Hub.jsx"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const SCREENS = [
+      { id: 'hub',         label: 'Hub',         icon: 'home' },
+      { id: 'gallery',     label: 'Gallery',     icon: 'collections' },
+      { id: 'modal',       label: 'Detail Modal', icon: 'description' },
+      { id: 'tournament',  label: 'Tournament',  icon: 'sports_esports' },
+    ];
+
+    function App() {
+      const [screen, setScreen] = useState('gallery');
+      const [openCharId, setOpenCharId] = useState(null);
+
+      const openChar = window.CHARACTERS.find(c => c.id === openCharId);
+
+      const handlePick = (c) => setOpenCharId(c.id);
+
+      return (
+        <div data-screen-label={`${String(SCREENS.findIndex(s=>s.id===screen)+1).padStart(2,'0')} ${SCREENS.find(s=>s.id===screen)?.label}`}>
+          <nav className="kit-tabs">
+            <div className="brand">
+              <img src="assets/icon-source.png" alt="Karakter Evreni" />
+              <span>Karakter Evreni</span>
+            </div>
+            {SCREENS.map(s => (
+              <button
+                key={s.id}
+                className={`kit-tab ${screen === s.id ? 'active' : ''}`}
+                onClick={() => {
+                  setScreen(s.id);
+                  if (s.id === 'modal') {
+                    setOpenCharId('aria');
+                  } else {
+                    setOpenCharId(null);
+                  }
+                }}
+              >
+                <span className="material-symbols-outlined">{s.icon}</span>
+                {s.label}
+              </button>
+            ))}
+            <div className="spacer"></div>
+            <span className="meta">UI kit · click-thru demo</span>
+          </nav>
+
+          {screen === 'hub' && <HubScreen onNavigate={id => {
+            const map = { gallery: 'gallery', tournament: 'tournament', random: 'gallery', admin: 'gallery' };
+            setScreen(map[id] || 'gallery');
+          }} />}
+
+          {screen === 'gallery' && <GalleryScreen onPickCharacter={handlePick} />}
+
+          {screen === 'modal' && (
+            <>
+              <GalleryScreen onPickCharacter={handlePick} />
+              {openChar && (
+                <CharacterModal
+                  character={openChar}
+                  onClose={() => setOpenCharId(null)}
+                  onNext={() => {
+                    const i = window.CHARACTERS.findIndex(c => c.id === openChar.id);
+                    setOpenCharId(window.CHARACTERS[(i + 1) % window.CHARACTERS.length].id);
+                  }}
+                  onPrev={() => {
+                    const i = window.CHARACTERS.findIndex(c => c.id === openChar.id);
+                    setOpenCharId(window.CHARACTERS[(i - 1 + window.CHARACTERS.length) % window.CHARACTERS.length].id);
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {screen === 'tournament' && <TournamentScreen />}
+
+          {/* Inline modal launcher when on gallery */}
+          {screen === 'gallery' && openChar && (
+            <CharacterModal
+              character={openChar}
+              onClose={() => setOpenCharId(null)}
+              onNext={() => {
+                const i = window.CHARACTERS.findIndex(c => c.id === openChar.id);
+                setOpenCharId(window.CHARACTERS[(i + 1) % window.CHARACTERS.length].id);
+              }}
+              onPrev={() => {
+                const i = window.CHARACTERS.findIndex(c => c.id === openChar.id);
+                setOpenCharId(window.CHARACTERS[(i - 1 + window.CHARACTERS.length) % window.CHARACTERS.length].id);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

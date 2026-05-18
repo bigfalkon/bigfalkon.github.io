@@ -1,0 +1,62 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="_base.css">
+<style>
+.tile{display:flex;flex-direction:column;align-items:center;gap:8px;background:#201F25;border:1px solid #48454e;border-radius:14px;padding:14px 12px;min-width:96px;flex:1;}
+.tile .icons{display:flex;gap:1px;height:22px;align-items:center;}
+.tile .icons .material-symbols-outlined{font-size:20px;font-variation-settings:'FILL' 1;}
+.tile .label{font-size:11px;font-weight:700;color:#e5e1e6;letter-spacing:.02em;}
+.tile .val{font-size:10px;font-family:ui-monospace,monospace;color:#8a8693;}
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:22px;padding:0 9px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+.pill .material-symbols-outlined{font-size:13px;}
+</style></head><body>
+<div class="col" style="gap:12px;">
+  <div class="eyebrow">Star tiers</div>
+  <div class="row" style="gap:10px;">
+    <div class="tile">
+      <div class="icons"><span class="material-symbols-outlined" style="color:#fb923c;">star</span></div>
+      <div class="label" style="color:#fb923c;">1★</div>
+      <div class="val">orange-400</div>
+    </div>
+    <div class="tile">
+      <div class="icons">
+        <span class="material-symbols-outlined" style="color:#94a3b8;">star</span>
+        <span class="material-symbols-outlined" style="color:#94a3b8;">star</span>
+      </div>
+      <div class="label" style="color:#94a3b8;">2★</div>
+      <div class="val">slate-400</div>
+    </div>
+    <div class="tile">
+      <div class="icons">
+        <span class="material-symbols-outlined" style="color:#fbbf24;">star</span>
+        <span class="material-symbols-outlined" style="color:#fbbf24;">star</span>
+        <span class="material-symbols-outlined" style="color:#fbbf24;">star</span>
+      </div>
+      <div class="label" style="color:#fbbf24;">3★</div>
+      <div class="val">amber-400</div>
+    </div>
+    <div class="tile">
+      <div class="icons">
+        <span class="material-symbols-outlined" style="color:#e879f9;">star</span>
+        <span class="material-symbols-outlined" style="color:#e879f9;">star</span>
+        <span class="material-symbols-outlined" style="color:#e879f9;">star</span>
+        <span class="material-symbols-outlined" style="color:#e879f9;">star</span>
+      </div>
+      <div class="label" style="color:#e879f9;">Fusion 4★</div>
+      <div class="val">fuchsia-400</div>
+    </div>
+    <div class="tile">
+      <div class="icons"><span class="material-symbols-outlined" style="color:#94a3b8;">badge</span></div>
+      <div class="label" style="color:#94a3b8;">Retired</div>
+      <div class="val">dismissed</div>
+    </div>
+  </div>
+
+  <div class="eyebrow" style="margin-top:6px;">Badges</div>
+  <div class="row" style="gap:8px;flex-wrap:wrap;">
+    <span class="pill" style="background:rgba(10,79,58,.85);border:1px solid #64DCB4;color:#64DCB4;">Solaris</span>
+    <span class="pill" style="background:rgba(68,58,116,.6);border:1px solid #BDB3FF;color:#BDB3FF;">Eclipse</span>
+    <span class="pill" style="background:rgba(122,48,48,.6);border:1px solid #fb923c;color:#fb923c;">Ember</span>
+    <span class="pill" style="background:rgba(224,179,255,.15);border:1px solid rgba(224,179,255,.4);color:#E0B3FF;"><span class="material-symbols-outlined">merge</span>Fusion</span>
+    <span class="pill" style="background:rgba(251,146,60,.10);border:1px solid rgba(251,146,60,.35);color:#fb923c;">Retired</span>
+    <span class="pill" style="background:rgba(189,179,255,.15);border:1px solid rgba(189,179,255,.3);color:#BDB3FF;text-transform:none;letter-spacing:0;"><span class="material-symbols-outlined">people</span>248</span>
+  </div>
+</div></body></html>

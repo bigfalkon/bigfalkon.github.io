@@ -1,0 +1,24 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="_base.css">
+<style>
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;font-weight:600;font-size:14px;border:1px solid #48454e;background:#2A2830;color:#c8c4d0;cursor:pointer;}
+.chip.selected{background:#BDB3FF;color:#2D235C;border-color:#BDB3FF;font-weight:700;}
+.chip.au-selected{background:#0A4F3A;color:#A0F5D8;border-color:#64DCB4;}
+.chip .material-symbols-outlined{font-size:18px;}
+</style></head><body>
+<div class="col" style="gap:10px;">
+  <div class="eyebrow">Chips · filter pills</div>
+  <div class="row" style="gap:8px;flex-wrap:wrap;">
+    <span class="chip selected"><span class="material-symbols-outlined">apps</span>All</span>
+    <span class="chip"><span class="material-symbols-outlined" style="color:#fb923c;">filter_1</span>1 Star</span>
+    <span class="chip"><span class="material-symbols-outlined" style="color:#94a3b8;">filter_2</span>2 Star</span>
+    <span class="chip"><span class="material-symbols-outlined" style="color:#fbbf24;">filter_3</span>3 Star</span>
+    <span class="chip"><span class="material-symbols-outlined" style="color:#e879f9;">filter_4</span>Fusions</span>
+    <span class="chip au-selected"><span class="material-symbols-outlined" style="color:#64DCB4;">auto_fix_high</span>Solaris AU</span>
+  </div>
+  <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+    <div class="eyebrow" style="margin-right:4px;">Mode chips</div>
+    <span class="chip" style="border:2px solid #48454e;border-radius:12px;background:#2A2830;font-weight:600;"><span class="material-symbols-outlined">shuffle</span>Random</span>
+    <span class="chip" style="border:2px solid #BDB3FF;border-radius:12px;background:rgba(189,179,255,.12);color:#BDB3FF;"><span class="material-symbols-outlined">apps</span>All (selected)</span>
+    <span class="chip" style="border:2px solid #48454e;border-radius:12px;background:#2A2830;color:#fca5a5;"><span class="material-symbols-outlined" style="color:#f87171;">whatshot</span>ABSOLUTE WAR</span>
+  </div>
+</div></body></html>
