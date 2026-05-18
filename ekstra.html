@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ekstra Galeri</title>
+<link rel="icon" href="favicon.ico">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap');
+
+:root {
+    --primary-rgb: 189, 179, 255;
+    --primary: rgb(var(--primary-rgb));
+    --on-primary: #2d235c;
+    --primary-container: #443a74;
+    --on-primary-container: #e6deff;
+    --fusion-rgb: 224, 179, 255;
+    --fusion: rgb(var(--fusion-rgb));
+    --au-rgb: 100, 220, 180;
+    --au: rgb(var(--au-rgb));
+    --bg: #131318;
+    --on-bg: #e5e1e6;
+    --surface: #201f25;
+    --surface-container: #1a191f;
+    --surface-high: #2a2830;
+    --on-surface: #e5e1e6;
+    --on-surface-var: #c8c4d0;
+    --outline-var: #48454e;
+    --danger: #ef5350;
+    --success: #4caf92;
+    --font-display: 'Metamorphous', serif;
+    --font-ui: 'Manrope', system-ui, sans-serif;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+    --fw-extrabold: 800;
+    --fs-body-sm: 0.875rem;
+    --fs-caption: 0.75rem;
+    --fs-micro: 0.65rem;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+    --radius-3xl: 28px;
+    --radius-pill: 99px;
+    --shadow-card: 0 4px 12px rgba(0,0,0,.30);
+    --shadow-card-hover: 0 12px 28px rgba(0,0,0,.45);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,.50);
+    --dur-hover: 0.20s;
+    --dur-aurora: 20s;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--on-bg);
+    min-height: 100vh;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: -1;
+    background:
+        radial-gradient(circle at 15% 25%, rgba(var(--primary-rgb), 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 65%, rgba(var(--fusion-rgb), 0.12) 0%, transparent 45%);
+    animation: aurora var(--dur-aurora) infinite alternate ease-in-out;
+}
+@keyframes aurora {
+    from { transform: translate(0,0) rotate(0deg) scale(1.2); }
+    to   { transform: translate(5vw,-5vh) rotate(10deg) scale(1.2); }
+}
+
+.glass {
+    background-color: rgba(27,27,32,0.75);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(146,143,153,0.20);
+}
+.glass-dialog {
+    background-color: rgba(32,31,37,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(146,143,153,0.20);
+    border-radius: var(--radius-3xl);
+}
+
+.chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 20px;
+    font-weight: var(--fw-semibold); font-size: var(--fs-body-sm);
+    border: 1px solid var(--outline-var);
+    background: var(--surface-high); color: var(--on-surface-var);
+    transition: all var(--dur-hover); cursor: pointer; user-select: none;
+}
+.chip:hover { background: rgba(255,255,255,0.08); }
+.chip.selected { background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: var(--fw-bold); }
+
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 18px; border-radius: var(--radius-pill);
+    font-weight: var(--fw-bold); font-family: inherit;
+    border: 1px solid transparent; cursor: pointer;
+    transition: all var(--dur-hover); font-size: var(--fs-body-sm);
+}
+.btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-secondary { background: var(--surface-high); color: var(--on-surface-var); border-color: var(--outline-var); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-sm { padding: 5px 12px; font-size: var(--fs-caption); }
+
+.ms { font-family: 'Material Symbols Outlined'; font-size: 20px; line-height: 1; vertical-align: middle; user-select: none; }
+
+/* ── Login Wall ─────────────────────────────────────────────── */
+#login-wall {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(19,19,24,0.96);
+    backdrop-filter: blur(12px);
+}
+#login-box {
+    width: min(380px, 90vw);
+    padding: 36px 32px;
+    border-radius: var(--radius-3xl);
+}
+#login-box h1 { font-family: var(--font-display); font-size: 1.6rem; color: var(--primary); margin-bottom: 6px; }
+#login-box p { font-size: var(--fs-caption); color: var(--on-surface-var); margin-bottom: 24px; }
+.form-input {
+    width: 100%; padding: 10px 14px; border-radius: var(--radius-md);
+    background: var(--surface-high); border: 1px solid var(--outline-var);
+    color: var(--on-bg); font-family: inherit; font-size: var(--fs-body-sm);
+    outline: none; transition: border-color var(--dur-hover);
+}
+.form-input:focus { border-color: var(--primary); }
+#login-error { font-size: var(--fs-caption); color: var(--danger); min-height: 18px; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+#app-header {
+    position: sticky; top: 0; z-index: 50;
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border-bottom: 1px solid var(--outline-var);
+}
+#app-header h1 { font-family: var(--font-display); font-size: 1.25rem; color: var(--primary); }
+#user-email { font-size: var(--fs-caption); color: var(--on-surface-var); }
+
+/* ── Filter Bar ─────────────────────────────────────────────── */
+#filter-bar { padding: 14px 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Gallery Grid ───────────────────────────────────────────── */
+#gallery {
+    padding: 16px 20px 60px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+#empty-state {
+    grid-column: 1/-1; text-align: center;
+    color: var(--on-surface-var); padding: 60px 20px;
+    font-size: var(--fs-body-sm);
+}
+
+/* ── Character Card ─────────────────────────────────────────── */
+.char-card {
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--dur-hover);
+}
+.char-card:hover { box-shadow: var(--shadow-card-hover); }
+
+.card-header {
+    padding: 12px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--outline-var);
+}
+.card-header .char-name { font-weight: var(--fw-bold); font-size: var(--fs-body-sm); }
+
+/* Original + ekstra image row */
+.card-originals {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 2px; background: var(--outline-var);
+}
+.orig-img-wrap {
+    position: relative; aspect-ratio: 3/4; overflow: hidden; cursor: pointer;
+    background: var(--surface-container);
+}
+.orig-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.orig-img-wrap:hover img { transform: scale(1.04); }
+.orig-label {
+    position: absolute; bottom: 6px; left: 6px;
+    background: rgba(0,0,0,0.65); color: #fff;
+    font-size: var(--fs-micro); font-weight: var(--fw-bold);
+    padding: 2px 7px; border-radius: var(--radius-pill);
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* Ekstra images strip */
+.ekstra-strip {
+    padding: 10px 12px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;
+}
+.ekstra-thumb-wrap {
+    position: relative; width: 72px; height: 96px;
+    border-radius: var(--radius-sm); overflow: hidden;
+    cursor: pointer; flex-shrink: 0;
+    background: var(--surface-container);
+    box-shadow: var(--shadow-card);
+    transition: transform var(--dur-hover);
+}
+.ekstra-thumb-wrap:hover { transform: scale(1.06); }
+.ekstra-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.wip-badge {
+    position: absolute; top: 3px; right: 3px;
+    background: rgba(var(--fusion-rgb), 0.85);
+    color: var(--on-primary); font-size: 9px; font-weight: var(--fw-bold);
+    padding: 1px 5px; border-radius: var(--radius-pill);
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.official-badge {
+    position: absolute; top: 3px; right: 3px;
+    background: rgba(var(--au-rgb), 0.85);
+    color: #0a2a20; font-size: 9px; font-weight: var(--fw-bold);
+    padding: 1px 5px; border-radius: var(--radius-pill);
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.del-btn {
+    position: absolute; bottom: 3px; right: 3px;
+    background: rgba(239,83,80,0.85); border: none; color: #fff;
+    width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-family: 'Material Symbols Outlined';
+    opacity: 0; transition: opacity var(--dur-hover);
+}
+.ekstra-thumb-wrap:hover .del-btn { opacity: 1; }
+
+.add-thumb {
+    width: 72px; height: 96px;
+    border-radius: var(--radius-sm);
+    border: 2px dashed var(--outline-var);
+    background: transparent; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; color: var(--on-surface-var);
+    font-size: var(--fs-micro); transition: all var(--dur-hover); flex-shrink: 0;
+}
+.add-thumb:hover { border-color: var(--primary); color: var(--primary); }
+.add-thumb .ms { font-size: 24px; }
+
+/* ── Upload Modal ───────────────────────────────────────────── */
+#upload-modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    display: none;
+}
+#upload-modal {
+    width: min(440px, 92vw);
+    padding: 28px 28px 24px;
+}
+#upload-modal h2 { font-size: 1rem; font-weight: var(--fw-extrabold); margin-bottom: 18px; }
+#upload-modal .char-label { font-size: var(--fs-caption); color: var(--on-surface-var); margin-bottom: 16px; }
+
+.form-select {
+    width: 100%; padding: 9px 12px; border-radius: var(--radius-md);
+    background: var(--surface-high); border: 1px solid var(--outline-var);
+    color: var(--on-bg); font-family: inherit; font-size: var(--fs-body-sm);
+    outline: none; cursor: pointer;
+}
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; }
+.toggle-label { font-size: var(--fs-body-sm); font-weight: var(--fw-semibold); }
+.toggle-switch { position: relative; width: 44px; height: 24px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+    position: absolute; inset: 0; border-radius: 12px;
+    background: var(--outline-var); cursor: pointer; transition: background 0.2s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--primary); }
+.toggle-track::after {
+    content: ''; position: absolute;
+    width: 18px; height: 18px; left: 3px; top: 3px;
+    border-radius: 50%; background: #fff; transition: transform 0.2s;
+}
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+
+/* ── Lightbox ───────────────────────────────────────────────── */
+#lightbox {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.92);
+    display: none; align-items: center; justify-content: center;
+    cursor: zoom-out;
+}
+#lightbox img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: var(--radius-md); }
+#lightbox-close {
+    position: absolute; top: 18px; right: 20px;
+    background: rgba(255,255,255,0.1); border: none; color: #fff;
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+    font-family: 'Material Symbols Outlined'; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+}
+
+/* loading spinner */
+.spinner { width: 36px; height: 36px; border: 3px solid var(--outline-var); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 40px auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ── Login Wall ─────────────────────────────────────────── -->
+<div id="login-wall">
+  <div id="login-box" class="glass-dialog">
+    <h1>Ekstra Galeri</h1>
+    <p>Devam etmek için giriş yap</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input id="login-email" class="form-input" type="email" placeholder="E-posta" autocomplete="username">
+      <input id="login-pw" class="form-input" type="password" placeholder="Şifre" autocomplete="current-password">
+      <div id="login-error"></div>
+      <button id="login-btn" class="btn btn-primary" style="width:100%;margin-top:4px;">
+        <span class="ms">login</span> Giriş Yap
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── App (hidden until login) ───────────────────────────── -->
+<div id="app" style="display:none;">
+
+  <header id="app-header" class="glass">
+    <h1>Ekstra Galeri</h1>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span id="user-email"></span>
+      <button class="btn btn-secondary btn-sm" id="logout-btn">
+        <span class="ms">logout</span> Çıkış
+      </button>
+    </div>
+  </header>
+
+  <div id="filter-bar">
+    <button class="chip selected" data-filter="all">Hepsi</button>
+    <button class="chip" data-filter="official"><span class="ms" style="font-size:15px;">check_circle</span> Official</button>
+    <button class="chip" data-filter="wip"><span class="ms" style="font-size:15px;">edit</span> WIP</button>
+  </div>
+
+  <div id="gallery">
+    <div class="spinner"></div>
+  </div>
+
+</div>
+
+<!-- ── Upload Modal ────────────────────────────────────────── -->
+<div id="upload-modal-overlay">
+  <div id="upload-modal" class="glass-dialog">
+    <h2><span class="ms">add_photo_alternate</span> Resim Ekle</h2>
+    <p class="char-label" id="upload-char-label"></p>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="font-size:var(--fs-caption);color:var(--on-surface-var);margin-bottom:6px;">Yükleme Yöntemi</div>
+        <select id="upload-method" class="form-select">
+          <option value="imgbb">ImgBB</option>
+          <option value="imgbb2">ImgBB 2</option>
+          <option value="vgy">VGY.ME</option>
+          <option value="link">Direkt Link</option>
+        </select>
+      </div>
+
+      <div id="file-input-row">
+        <div style="font-size:var(--fs-caption);color:var(--on-surface-var);margin-bottom:6px;">Dosya Seç</div>
+        <input id="upload-file" type="file" accept="image/*" class="form-input" style="padding:6px;">
+      </div>
+
+      <div id="link-input-row" style="display:none;">
+        <div style="font-size:var(--fs-caption);color:var(--on-surface-var);margin-bottom:6px;">Resim Linki</div>
+        <input id="upload-link" class="form-input" type="url" placeholder="https://...">
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">WIP (taslak)</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="upload-wip">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div id="upload-error" style="font-size:var(--fs-caption);color:var(--danger);min-height:16px;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-secondary" id="upload-cancel-btn">İptal</button>
+        <button class="btn btn-primary" id="upload-confirm-btn">
+          <span class="ms">cloud_upload</span> Yükle
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Lightbox ────────────────────────────────────────────── -->
+<div id="lightbox">
+  <button id="lightbox-close">close</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const EKSTRA_AU_ID = "au_naughty"; // Firestore'daki AU doküman ID'si
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDAmMtRBGyNOb6R2ZjSZrhN5NnGA_p-L3w",
+    authDomain: "character-gallery-e23ee.firebaseapp.com",
+    projectId: "character-gallery-e23ee",
+    storageBucket: "character-gallery-e23ee.firebasestorage.app",
+    messagingSenderId: "737596044949",
+    appId: "1:737596044949:web:5ddf2bda9fcfce9f990d9c"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ── State ────────────────────────────────────────────────────────────────────
+const state = {
+    filter: 'all',       // 'all' | 'official' | 'wip'
+    characters: [],      // Firestore characters[]
+    auImages: {},        // { charId: [{ url, isWip, uploadedAt }] }
+    apiKeys: { imgbb_main_key: null, imgbb2_key: null, vgy_user_key: null },
+    uploadCharId: null,
+};
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+auth.onAuthStateChanged(user => {
+    if (user) {
+        document.getElementById('login-wall').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('user-email').textContent = user.email;
+        loadData();
+    } else {
+        document.getElementById('login-wall').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+    }
+});
+
+document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const pw = document.getElementById('login-pw').value;
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+    errEl.textContent = '';
+    btn.disabled = true;
+    try {
+        await auth.signInWithEmailAndPassword(email, pw);
+    } catch (e) {
+        errEl.textContent = e.message;
+        btn.disabled = false;
+    }
+});
+document.getElementById('login-pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('login-btn').click();
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
+
+// ── Data Loading ─────────────────────────────────────────────────────────────
+async function loadData() {
+    document.getElementById('gallery').innerHTML = '<div class="spinner"></div>';
+    try {
+        const [charSnap, auSnap, settingsSnap] = await Promise.all([
+            db.collection('characters').get(),
+            db.collection('auImages').where('auId', '==', EKSTRA_AU_ID).get(),
+            db.collection('settings').doc('apiKeys').get(),
+        ]);
+
+        state.characters = charSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        state.auImages = {};
+        auSnap.docs.forEach(d => {
+            const data = d.data();
+            state.auImages[data.charId] = data.images || [];
+        });
+
+        if (settingsSnap.exists) {
+            const s = settingsSnap.data();
+            state.apiKeys.imgbb_main_key = s.imgbb_main_key || null;
+            state.apiKeys.imgbb2_key = s.imgbb2_key || null;
+            state.apiKeys.vgy_user_key = s.vgy_user_key || null;
+        }
+    } catch (e) {
+        document.getElementById('gallery').innerHTML =
+            `<div id="empty-state">Veri yüklenemedi: ${e.message}</div>`;
+        return;
+    }
+    renderGallery();
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function get3StarUrl(char) {
+    if (char.evolutions && char.evolutions.length >= 2) {
+        return char.evolutions[1].imageUrl || char.evolutions[0].imageUrl || char.imageUrl;
+    }
+    if (char.evolutions && char.evolutions.length === 1) return char.evolutions[0].imageUrl || char.imageUrl;
+    return char.imageUrl;
+}
+
+function filterImages(images) {
+    if (state.filter === 'official') return images.filter(i => !i.isWip);
+    if (state.filter === 'wip') return images.filter(i => i.isWip);
+    return images;
+}
+
+function renderGallery() {
+    const gallery = document.getElementById('gallery');
+
+    // Only chars that have at least one ekstra image (regardless of filter)
+    const chars = state.characters.filter(c =>
+        !c.isFusion && (state.auImages[c.id] || []).length > 0
+    );
+
+    if (chars.length === 0) {
+        gallery.innerHTML = '<div id="empty-state">Henüz ekstra resim yok.<br>Bir karakterin kartındaki <strong>+</strong> butonundan resim ekleyebilirsin.</div>';
+        // Still render all chars with add button if no images exist
+        renderAllCharsEmpty(gallery);
+        return;
+    }
+
+    // Characters with images first, then rest
+    const withImages = state.characters.filter(c => !c.isFusion && (state.auImages[c.id] || []).length > 0);
+    const withoutImages = state.characters.filter(c => !c.isFusion && !(state.auImages[c.id] || []).length);
+
+    gallery.innerHTML = '';
+    [...withImages, ...withoutImages].forEach(char => {
+        const images = state.auImages[char.id] || [];
+        const filtered = filterImages(images);
+        // Hide chars with no images AND filter hides all their images (but keep "add" button visible)
+        if (images.length > 0 && filtered.length === 0 && state.filter !== 'all') return;
+        gallery.appendChild(buildCard(char, filtered, images.length));
+    });
+
+    if (!gallery.children.length) {
+        gallery.innerHTML = '<div id="empty-state">Bu filtrede görüntülenecek resim yok.</div>';
+    }
+}
+
+function renderAllCharsEmpty(gallery) {
+    gallery.innerHTML = '';
+    state.characters.filter(c => !c.isFusion).forEach(char => {
+        gallery.appendChild(buildCard(char, [], 0));
+    });
+}
+
+function buildCard(char, filteredImages, totalCount) {
+    const starUrl = get3StarUrl(char);
+    const auMainUrl = (state.auImages[char.id] || []).find(i => !i.isWip)?.url
+                   || (state.auImages[char.id] || [])[0]?.url;
+
+    const card = document.createElement('div');
+    card.className = 'char-card glass';
+    card.dataset.charId = char.id;
+
+    // Header
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="char-name">${char.name}</span>
+        <span style="font-size:var(--fs-caption);color:var(--on-surface-var);">${totalCount} resim</span>
+      </div>
+
+      <div class="card-originals">
+        <div class="orig-img-wrap" data-url="${starUrl || ''}">
+          ${starUrl ? `<img src="${starUrl}" alt="${char.name} 3★" loading="lazy">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--on-surface-var);font-size:var(--fs-caption);">Resim yok</div>'}
+          <span class="orig-label">Orijinal 3★</span>
+        </div>
+        <div class="orig-img-wrap" data-url="${auMainUrl || ''}">
+          ${auMainUrl ? `<img src="${auMainUrl}" alt="${char.name} Ekstra" loading="lazy">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--on-surface-var);font-size:var(--fs-caption);">Ekstra yok</div>'}
+          <span class="orig-label">Ekstra</span>
+        </div>
+      </div>
+
+      <div class="ekstra-strip" id="strip-${char.id}"></div>
+    `;
+
+    // Ekstra strip
+    const strip = card.querySelector(`#strip-${char.id}`);
+    filteredImages.forEach((img, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'ekstra-thumb-wrap';
+        wrap.innerHTML = `
+          <img src="${img.url}" alt="" loading="lazy">
+          <span class="${img.isWip ? 'wip-badge' : 'official-badge'}">${img.isWip ? 'WIP' : 'OFF'}</span>
+          <button class="del-btn" data-char="${char.id}" data-idx="${idx}" title="Sil">delete</button>
+        `;
+        wrap.querySelector('img').addEventListener('click', () => openLightbox(img.url));
+        wrap.querySelector('.del-btn').addEventListener('click', e => {
+            e.stopPropagation();
+            deleteImage(char.id, idx);
+        });
+        strip.appendChild(wrap);
+    });
+
+    // Add button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-thumb';
+    addBtn.dataset.charId = char.id;
+    addBtn.dataset.charName = char.name;
+    addBtn.innerHTML = '<span class="ms">add</span><span>Ekle</span>';
+    addBtn.addEventListener('click', () => openUploadModal(char.id, char.name));
+    strip.appendChild(addBtn);
+
+    // Click orig images to lightbox
+    card.querySelectorAll('.orig-img-wrap').forEach(w => {
+        if (w.dataset.url) {
+            w.addEventListener('click', () => { if (w.dataset.url) openLightbox(w.dataset.url); });
+        }
+    });
+
+    return card;
+}
+
+// ── Filter ───────────────────────────────────────────────────────────────────
+document.getElementById('filter-bar').addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    document.querySelectorAll('#filter-bar .chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    state.filter = chip.dataset.filter;
+    renderGallery();
+});
+
+// ── Upload Modal ─────────────────────────────────────────────────────────────
+function openUploadModal(charId, charName) {
+    state.uploadCharId = charId;
+    document.getElementById('upload-char-label').textContent = charName;
+    document.getElementById('upload-error').textContent = '';
+    document.getElementById('upload-file').value = '';
+    document.getElementById('upload-link').value = '';
+    document.getElementById('upload-wip').checked = false;
+    document.getElementById('upload-modal-overlay').style.display = 'flex';
+}
+
+document.getElementById('upload-method').addEventListener('change', function() {
+    const isLink = this.value === 'link';
+    document.getElementById('file-input-row').style.display = isLink ? 'none' : '';
+    document.getElementById('link-input-row').style.display = isLink ? '' : 'none';
+});
+
+document.getElementById('upload-cancel-btn').addEventListener('click', closeUploadModal);
+document.getElementById('upload-modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('upload-modal-overlay')) closeUploadModal();
+});
+
+function closeUploadModal() {
+    document.getElementById('upload-modal-overlay').style.display = 'none';
+    state.uploadCharId = null;
+}
+
+document.getElementById('upload-confirm-btn').addEventListener('click', async () => {
+    const charId = state.uploadCharId;
+    if (!charId) return;
+    const errEl = document.getElementById('upload-error');
+    const btn = document.getElementById('upload-confirm-btn');
+    errEl.textContent = '';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ms">hourglass_top</span> Yükleniyor...';
+
+    try {
+        const url = await resolveUploadUrl();
+        if (!url) { errEl.textContent = 'Resim seçilmedi veya link girilmedi.'; return; }
+
+        const isWip = document.getElementById('upload-wip').checked;
+        const newImage = { url, isWip, uploadedAt: firebase.firestore.FieldValue.serverTimestamp() };
+
+        const docRef = db.collection('auImages').doc(`${EKSTRA_AU_ID}_${charId}`);
+        const existing = state.auImages[charId] || [];
+        await docRef.set({
+            charId,
+            auId: EKSTRA_AU_ID,
+            images: firebase.firestore.FieldValue.arrayUnion(newImage),
+        }, { merge: true });
+
+        // Optimistic update (serverTimestamp won't be exact but close enough)
+        const optimistic = { url, isWip, uploadedAt: new Date() };
+        state.auImages[charId] = [...existing, optimistic];
+        closeUploadModal();
+        renderGallery();
+    } catch (e) {
+        errEl.textContent = `Hata: ${e.message}`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="ms">cloud_upload</span> Yükle';
+    }
+});
+
+async function resolveUploadUrl() {
+    const method = document.getElementById('upload-method').value;
+    if (method === 'link') {
+        return document.getElementById('upload-link').value.trim() || null;
+    }
+    const file = document.getElementById('upload-file').files[0];
+    if (!file) return null;
+    if (method === 'imgbb') return await uploadToImgBB(file, state.apiKeys.imgbb_main_key);
+    if (method === 'imgbb2') return await uploadToImgBB(file, state.apiKeys.imgbb2_key);
+    if (method === 'vgy') return await uploadToVGY(file, state.apiKeys.vgy_user_key);
+    return null;
+}
+
+async function uploadToImgBB(file, key) {
+    if (!key) throw new Error('ImgBB API key eksik.');
+    const fd = new FormData(); fd.append('image', file);
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${key}`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(res.statusText);
+    const r = await res.json();
+    if (r.success) return r.data.url;
+    throw new Error(r.error?.message || 'ImgBB hatası');
+}
+
+async function uploadToVGY(file, key) {
+    if (!key) throw new Error('VGY.ME key eksik.');
+    const fd = new FormData(); fd.append('file', file); fd.append('userkey', key);
+    const res = await fetch('https://vgy.me/upload', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(res.statusText);
+    const r = await res.json();
+    if (!r.error) return r.image;
+    throw new Error(r.message);
+}
+
+// ── Delete Image ─────────────────────────────────────────────────────────────
+async function deleteImage(charId, index) {
+    if (!confirm('Bu resmi silmek istiyor musun?')) return;
+    const images = [...(state.auImages[charId] || [])];
+    images.splice(index, 1);
+    const docRef = db.collection('auImages').doc(`${EKSTRA_AU_ID}_${charId}`);
+    await docRef.update({ images });
+    state.auImages[charId] = images;
+    renderGallery();
+}
+
+// ── Lightbox ─────────────────────────────────────────────────────────────────
+function openLightbox(url) {
+    if (!url) return;
+    document.getElementById('lightbox-img').src = url;
+    document.getElementById('lightbox').style.display = 'flex';
+}
+document.getElementById('lightbox').addEventListener('click', () => {
+    document.getElementById('lightbox').style.display = 'none';
+});
+document.getElementById('lightbox-close').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('lightbox').style.display = 'none';
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('lightbox').style.display = 'none';
+});
+</script>
+</body>
+</html>
