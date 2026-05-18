@@ -1,0 +1,31 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="_base.css">
+<style>
+body{position:relative;}
+.bgblob{position:absolute;border-radius:50%;filter:blur(40px);}
+.glass{background:rgba(27,27,32,.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(146,143,153,.20);border-radius:18px;padding:14px 18px;display:flex;gap:12px;align-items:center;position:relative;z-index:2;}
+.chip-sm{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:600;background:#2A2830;color:#c8c4d0;border:1px solid #48454e;}
+.chip-sm.sel{background:#BDB3FF;color:#2D235C;border-color:#BDB3FF;font-weight:700;}
+.chip-sm .material-symbols-outlined{font-size:15px;}
+.divv{width:1px;height:22px;background:#48454e;}
+.iconbtn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#2A2830;border:1px solid #48454e;color:#c8c4d0;}
+.iconbtn .material-symbols-outlined{font-size:18px;}
+</style></head><body>
+<div style="position:absolute;inset:0;z-index:1;">
+  <div class="bgblob" style="background:#BDB3FF;width:200px;height:200px;top:-40px;left:-60px;opacity:0.35;"></div>
+  <div class="bgblob" style="background:#E0B3FF;width:180px;height:180px;top:60px;right:-40px;opacity:0.28;"></div>
+</div>
+<div class="col" style="gap:12px;position:relative;z-index:2;">
+  <div class="eyebrow">Glass panel · sticky toolbar · blur 14px</div>
+  <div class="glass">
+    <span class="chip-sm"><span class="material-symbols-outlined">search</span></span>
+    <span class="chip-sm sel"><span class="material-symbols-outlined">apps</span>All</span>
+    <span class="chip-sm"><span class="material-symbols-outlined" style="color:#64DCB4;">auto_fix_high</span>AU</span>
+    <div class="divv"></div>
+    <div style="display:flex;align-items:center;border:1px solid #48454e;background:#2A2830;border-radius:99px;overflow:hidden;font-size:12px;font-weight:700;">
+      <span class="iconbtn" style="border:none;background:transparent;width:30px;height:28px;"><span class="material-symbols-outlined">zoom_out</span></span>
+      <span style="padding:0 8px;border-left:1px solid #48454e;border-right:1px solid #48454e;">M</span>
+      <span class="iconbtn" style="border:none;background:transparent;width:30px;height:28px;"><span class="material-symbols-outlined">zoom_in</span></span>
+    </div>
+    <span class="chip-sm"><span class="material-symbols-outlined">auto_awesome_mosaic</span>Fit</span>
+  </div>
+</div></body></html>

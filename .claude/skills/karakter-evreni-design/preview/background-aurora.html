@@ -1,0 +1,138 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="_base.css">
+<style>
+  html, body { overflow: hidden; }
+  body { padding: 0; }
+  .frame {
+    position: relative;
+    width: 700px; height: 320px;
+    background: #131318;
+    overflow: hidden;
+  }
+  /* Aurora layer */
+  .aurora {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 18% 30%, rgba(189,179,255,0.55) 0%, transparent 38%),
+      radial-gradient(circle at 78% 70%, rgba(224,179,255,0.45) 0%, transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(100,220,180,0.20) 0%, transparent 50%);
+    filter: blur(10px);
+    animation: aurora 12s infinite alternate ease-in-out;
+  }
+  @keyframes aurora {
+    0%   { transform: translate(0,0) rotate(0deg) scale(1.15); }
+    100% { transform: translate(6vw,-5vh) rotate(10deg) scale(1.25); }
+  }
+  /* Stars for atmosphere */
+  .stars { position: absolute; inset: 0; }
+  .stars::before, .stars::after {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 28% 75%, rgba(255,255,255,.35), transparent),
+      radial-gradient(1px 1px at 55% 22%, rgba(255,255,255,.45), transparent),
+      radial-gradient(1px 1px at 72% 55%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 88% 30%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 40% 90%, rgba(255,255,255,.35), transparent),
+      radial-gradient(1px 1px at 92% 85%, rgba(255,255,255,.4), transparent);
+  }
+  /* Glass overlay row */
+  .overlay {
+    position: relative; z-index: 2;
+    height: 100%;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 22px 26px;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px;
+  }
+  .title {
+    font-family: 'Metamorphous', serif;
+    font-size: 34px; font-weight: 800;
+    color: #BDB3FF;
+    line-height: 1.0;
+    text-shadow: 0 4px 16px rgba(0,0,0,0.45);
+  }
+  .sub {
+    color: #E6DEFF; font-size: 13px; margin-top: 6px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .glass-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 99px;
+    background: rgba(27,27,32,0.65);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(146,143,153,0.22);
+    font-size: 11px; font-weight: 700;
+    color: #e5e1e6;
+  }
+  .glass-pill .material-symbols-outlined { font-size: 14px; color: #BDB3FF; }
+  .meta-row {
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .specs {
+    font-family: ui-monospace, monospace; font-size: 10px;
+    color: rgba(229,225,230,0.75);
+    line-height: 1.6;
+    background: rgba(0,0,0,0.35);
+    padding: 8px 12px; border-radius: 10px;
+    border: 1px solid rgba(146,143,153,0.18);
+    backdrop-filter: blur(8px);
+    max-width: 340px;
+  }
+  .specs span { color: #BDB3FF; }
+  .specs .f { color: #E0B3FF; }
+  .toolbar {
+    display: flex; gap: 6px; align-items: center;
+    padding: 6px 8px;
+    background: rgba(27,27,32,0.65);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(146,143,153,0.22);
+    border-radius: 99px;
+  }
+  .toolbar .dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #c8c4d0;
+  }
+  .toolbar .dot .material-symbols-outlined { font-size: 16px; }
+  .toolbar .dot.active { background: rgba(189,179,255,0.18); color: #BDB3FF; }
+  .eyebrow-top {
+    position: absolute; top: 14px; left: 24px; z-index: 3;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.09em; color: rgba(229,225,230,0.5);
+    background: rgba(19,19,24,0.5); backdrop-filter: blur(8px);
+    padding: 4px 10px; border-radius: 99px;
+    border: 1px solid rgba(146,143,153,0.18);
+  }
+</style></head><body>
+<div class="frame">
+  <div class="aurora"></div>
+  <div class="stars"></div>
+
+  <div class="eyebrow-top">Aurora background · body::before · 20s alt</div>
+
+  <div class="overlay">
+    <div class="header">
+      <div>
+        <div class="title">Karakter Evreni</div>
+        <div class="sub">Discover the Heroes of the Universe</div>
+      </div>
+      <div class="toolbar">
+        <div class="dot active"><span class="material-symbols-outlined">apps</span></div>
+        <div class="dot"><span class="material-symbols-outlined">auto_fix_high</span></div>
+        <div class="dot"><span class="material-symbols-outlined">search</span></div>
+      </div>
+    </div>
+
+    <div class="meta-row">
+      <div class="specs">
+        <div><span>primary</span> · 15% @ 15%, 25%</div>
+        <div><span class="f">fusion</span> · 12% @ 85%, 65%</div>
+        <div style="opacity:0.6;">aurora · drift + rotate · 20s alt infinite</div>
+      </div>
+      <div class="glass-pill"><span class="material-symbols-outlined">auto_awesome</span>Animated · soft blur</div>
+    </div>
+  </div>
+</div>
+</body></html>
