@@ -513,11 +513,11 @@ function renderCurrentView() {
             imgHtml = `
                 <div class="flex gap-2 flex-shrink-0">
                     <div class="flex flex-col items-center gap-1">
-                        <img src="${origImg}" alt="Original" style="width:48px;height:64px;" class="cursor-zoom-in" onclick="enlargeImg('${origImg}')">
+                        <img src="${origImg}" alt="Original" style="width:56px;height:56px;object-fit:cover;" class="cursor-zoom-in" onclick="enlargeImg('${origImg}')">
                         <span class="text-xs text-gray-500">Orig</span>
                     </div>
                     <div class="flex flex-col items-center gap-1">
-                        <img src="${auImg}" alt="AU" style="width:48px;height:64px;border:2px solid ${color};" class="cursor-zoom-in rounded-lg" onclick="enlargeImg('${auImg}')">
+                        <img src="${auImg}" alt="AU" style="width:56px;height:56px;object-fit:cover;border:2px solid ${color};" class="cursor-zoom-in rounded-lg" onclick="enlargeImg('${auImg}')">
                         <span class="text-xs font-semibold" style="color:${color};">AU</span>
                     </div>
                 </div>`;
@@ -526,7 +526,7 @@ function renderCurrentView() {
                 ? (char.previewUrl || char.imageUrl || '')
                 : (char.imageUrl || '');
             imgHtml = `<div class="flex-shrink-0">
-                <img src="${origImg}" alt="${char.name}" style="width:48px;height:64px;" class="cursor-zoom-in rounded-lg" onclick="enlargeImg('${origImg}')">
+                <img src="${origImg}" alt="${char.name}" style="width:56px;height:56px;object-fit:cover;" class="cursor-zoom-in rounded-lg" onclick="enlargeImg('${origImg}')">
             </div>`;
         }
 
