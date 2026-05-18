@@ -149,7 +149,7 @@
         }
         .fusion-card:hover { border-color: rgba(var(--fusion-rgb), 0.5) !important; box-shadow: 0 12px 28px rgba(var(--fusion-rgb), 0.15); }
         .dismissed-card:hover { border-color: var(--dismissed) !important; }
-        .character-card-image-wrapper { aspect-ratio: 2/3; width: 100%; overflow: hidden; border-radius: 18px 18px 0 0; }
+        .character-card-image-wrapper { aspect-ratio: 1/1; width: 100%; overflow: hidden; border-radius: 18px 18px 0 0; }
         .character-card-image { object-fit: cover; width: 100%; height: 100%; transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1); display: block; }
         .character-card:hover .character-card-image { transform: scale(1.06); }
         .character-name { color: var(--on-surface); }
@@ -240,6 +240,11 @@
         /* Enlarged image */
         .enlarged-overlay { z-index: 1100; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.88); }
         .enlarged-img { max-width: 96%; max-height: 96%; object-fit: contain; }
+
+        /* Modal images: square with blurred side-fill backdrop */
+        .modal-img-sq { position: relative; aspect-ratio: 1/1; overflow: hidden; margin-bottom: 8px; }
+        .modal-img-sq .blur-bg { position: absolute; inset: -12%; width: 124%; height: 124%; object-fit: cover; filter: blur(22px); opacity: 0.65; pointer-events: none; border-radius: 0; }
+        .modal-img-sq .main-img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
         /* Icon button */
         .icon-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: transparent; color: var(--on-surface-var); cursor: pointer; transition: all 0.2s; }
@@ -469,17 +474,26 @@
         <div class="m3-dialog-content px-4 py-6 flex-grow">
             <div class="flex flex-col md:flex-row items-center justify-center gap-6">
                 <div id="fusion-partner-left" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                    <img id="modal-fusion-left-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <div class="modal-img-sq rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                        <img id="modal-fusion-left-blur" src="" alt="" class="blur-bg" aria-hidden="true">
+                        <img id="modal-fusion-left-img" src="" alt="" class="main-img">
+                    </div>
                     <p id="modal-fusion-left-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-left-star" class="text-lg font-medium"></p>
                     <p id="modal-fusion-left-irk" class="hidden" style="margin-top:4px;"></p>
                 </div>
                 <div id="fusion-main-img-wrap" class="flex flex-col items-center text-center">
-                    <img id="modal-fusion-img" src="" alt="" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl">
+                    <div class="modal-img-sq rounded-2xl shadow-2xl cursor-zoom-in" onclick="enlargeImage(document.getElementById('modal-fusion-img').src)">
+                        <img id="modal-fusion-blur" src="" alt="" class="blur-bg" aria-hidden="true">
+                        <img id="modal-fusion-img" src="" alt="" class="main-img">
+                    </div>
                     <p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p>
                 </div>
                 <div id="fusion-partner-right" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                    <img id="modal-fusion-right-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <div class="modal-img-sq rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                        <img id="modal-fusion-right-blur" src="" alt="" class="blur-bg" aria-hidden="true">
+                        <img id="modal-fusion-right-img" src="" alt="" class="main-img">
+                    </div>
                     <p id="modal-fusion-right-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-right-star" class="text-lg font-medium"></p>
                     <p id="modal-fusion-right-irk" class="hidden" style="margin-top:4px;"></p>
@@ -1152,6 +1166,10 @@ function _buildModalAuBtns(containerId, reachableAusWithEntry, cardSelector) {
     });
 }
 
+function sqImgHtml(src, alt) {
+    return `<div class="modal-img-sq rounded-xl cursor-zoom-in" onclick="enlargeImage(this.querySelector('.main-img').src)"><img src="${src}" alt="" class="blur-bg" aria-hidden="true"><img src="${src}" alt="${alt.replace(/"/g,'&quot;')}" class="main-img"></div>`;
+}
+
 function openCharacterModal(charId, isDismissed = false) {
     const list = isDismissed ? dismissedCharacters : characters;
     const char = list.find(c => c.id === charId && !c.isFusion);
@@ -1189,7 +1207,7 @@ function openCharacterModal(charId, isDismissed = false) {
                 ? `border-color:${cardColor}88; background:linear-gradient(135deg,${cardColor}18 0%,rgba(32,31,37,0.95) 100%);`
                 : 'background-color:var(--surface);';
             div.innerHTML = `
-                <div style="width:${w}"><img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div>
+                <div style="width:${w}">${sqImgHtml(imgSrc, char.name)}</div>
                 <p class="text-sm font-bold flex items-center gap-1" style="color:${cardColor||'var(--on-surface-var)'};">${labelHtml}</p>
             `;
             return div;
@@ -1214,7 +1232,7 @@ function openCharacterModal(charId, isDismissed = false) {
             div.style.backgroundColor = 'var(--surface)';
             const wrap = document.createElement('div');
             wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
-            wrap.innerHTML = `<img src="${evo.imageUrl || char.imageUrl}" alt="${char.name} ${evo.star}★" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            wrap.innerHTML = sqImgHtml(evo.imageUrl || char.imageUrl, `${char.name} ${evo.star}★`);
             const p = document.createElement('p');
             p.className = 'text-lg font-medium';
             p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
@@ -1231,7 +1249,7 @@ function openCharacterModal(charId, isDismissed = false) {
             div.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
             const wrap = document.createElement('div');
             wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
-            wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            wrap.innerHTML = sqImgHtml(auEntry.star3ImageUrl, `${char.name} ${au.name}`);
             const p = document.createElement('p');
             p.className = 'text-sm font-bold flex items-center gap-1';
             p.style.color = au.color || 'var(--au)';
@@ -1291,7 +1309,7 @@ function openFusionModal(fusionId) {
         const color  = auDef?.color || '#64dcb4';
 
         m.img.src = auImg || fusion.previewUrl || fusion.imageUrl || '';
-        m.img.setAttribute('onclick', `enlargeImage('${m.img.src}')`);
+        m.blurImg.src = m.img.src;
         m.star.innerHTML = auDef
             ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${color}"><span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version</span>`
             : getStarEmojis(true, false, 4);
@@ -1304,7 +1322,7 @@ function openFusionModal(fusionId) {
             <p class="text-xs font-bold mb-2 flex items-center gap-1 justify-center" style="color:var(--on-surface-var);">
                 <span class="material-symbols-outlined" style="font-size:14px;">star</span>Original
             </p>
-            <img src="${fusion.previewUrl || fusion.imageUrl||''}" alt="${fusion.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+            ${sqImgHtml(fusion.previewUrl || fusion.imageUrl || '', fusion.name)}
         `;
         m.imgWrap.insertAdjacentElement('afterend', origCard);
 
@@ -1314,7 +1332,7 @@ function openFusionModal(fusionId) {
     } else {
         // Normal mode
         m.img.src = fusion.previewUrl || fusion.imageUrl || '';
-        m.img.setAttribute('onclick', `enlargeImage('${fusion.previewUrl || fusion.imageUrl||''}')`);
+        m.blurImg.src = m.img.src;
         m.star.innerHTML = getStarEmojis(true, false, 4);
         m.left.container.style.display = '';
         m.right.container.style.display = '';
@@ -1329,6 +1347,7 @@ function openFusionModal(fusionId) {
         const setPartner = (side, pChar, irkElId) => {
             if (!pChar) return;
             side.img.src = getOriginal3Star(pChar.id);
+            side.blurImg.src = side.img.src;
             side.container.style.width = `${parseInt(w) * 0.75}px`;
             side.name.textContent = pChar.name;
             side.container.dataset.characterId = pChar.id;
@@ -1348,7 +1367,7 @@ function openFusionModal(fusionId) {
                 <p class="text-sm font-bold mb-2 flex items-center gap-1" style="color:${au.color||'var(--au)'}">
                     <span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}
                 </p>
-                <img src="${auEntry.fusionImageUrl}" alt="${fusion.name} ${au.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+                ${sqImgHtml(auEntry.fusionImageUrl, `${fusion.name} ${au.name}`)}
             `;
             m.imgWrap.insertAdjacentElement('afterend', auCard);
         });
@@ -1562,16 +1581,19 @@ async function initApp() {
                 content: document.getElementById('fusion-modal-content'),
                 name: document.getElementById('modal-fusion-name'),
                 img: document.getElementById('modal-fusion-img'),
+                blurImg: document.getElementById('modal-fusion-blur'),
                 imgWrap: document.getElementById('fusion-main-img-wrap'),
                 star: document.getElementById('modal-fusion-star'),
                 left: {
                     img: document.getElementById('modal-fusion-left-img'),
+                    blurImg: document.getElementById('modal-fusion-left-blur'),
                     name: document.getElementById('modal-fusion-left-name'),
                     star: document.getElementById('modal-fusion-left-star'),
                     container: document.getElementById('fusion-partner-left'),
                 },
                 right: {
                     img: document.getElementById('modal-fusion-right-img'),
+                    blurImg: document.getElementById('modal-fusion-right-blur'),
                     name: document.getElementById('modal-fusion-right-name'),
                     star: document.getElementById('modal-fusion-right-star'),
                     container: document.getElementById('fusion-partner-right'),
