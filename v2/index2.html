@@ -828,28 +828,28 @@
         </div>
 
         <div id="au-entry-image-fields" class="flex flex-col gap-4">
-            <!-- 3★ image for characters -->
-            <div id="au-star3-field">
-                <label class="block text-sm font-medium mb-1">3★ AU Image <span class="text-xs text-gray-400">(character alternative)</span></label>
+            <!-- Base image for characters -->
+            <div id="au-base-field">
+                <label class="block text-sm font-medium mb-1">Base AU Image <span class="text-xs text-gray-400">(character alternative)</span></label>
                 <div class="flex flex-col sm:flex-row gap-2">
                     <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                    <input type="file" class="form-input flex-grow image-upload-file" id="au-star3-file">
-                    <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-star3-link" placeholder="https://...">
+                    <input type="file" class="form-input flex-grow image-upload-file" id="au-base-file">
+                    <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-base-link" placeholder="https://...">
                 </div>
-                <div id="au-star3-preview-wrap" class="mt-2 hidden">
-                    <img id="au-star3-preview" src="" alt="" class="h-24 object-contain rounded-lg border border-gray-700 cursor-zoom-in" onclick="enlargeImage(this.src)">
+                <div id="au-base-preview-wrap" class="mt-2 hidden">
+                    <img id="au-base-preview" src="" alt="" class="h-24 object-contain rounded-lg border border-gray-700 cursor-zoom-in" onclick="enlargeImage(this.src)">
                 </div>
             </div>
-            <!-- Fusion image -->
-            <div id="au-fusion-field" class="hidden">
-                <label class="block text-sm font-medium mb-1">Fusion AU Image <span class="text-xs text-gray-400">(replaces GIF preview)</span></label>
+            <!-- Resonance image -->
+            <div id="au-resonance-field" class="hidden">
+                <label class="block text-sm font-medium mb-1">Resonance AU Image</label>
                 <div class="flex flex-col sm:flex-row gap-2">
                     <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                    <input type="file" class="form-input flex-grow image-upload-file" id="au-fusion-file">
-                    <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-fusion-link" placeholder="https://...">
+                    <input type="file" class="form-input flex-grow image-upload-file" id="au-resonance-file">
+                    <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-resonance-link" placeholder="https://...">
                 </div>
-                <div id="au-fusion-preview-wrap" class="mt-2 hidden">
-                    <img id="au-fusion-preview" src="" alt="" class="h-24 object-contain rounded-lg border border-gray-700 cursor-zoom-in" onclick="enlargeImage(this.src)">
+                <div id="au-resonance-preview-wrap" class="mt-2 hidden">
+                    <img id="au-resonance-preview" src="" alt="" class="h-24 object-contain rounded-lg border border-gray-700 cursor-zoom-in" onclick="enlargeImage(this.src)">
                 </div>
             </div>
 
@@ -974,10 +974,13 @@ const closeReportModal = () => {
     dom.viewFilter.value = 'all'; viewState.filter = 'all';
 };
 
-const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
-    const colors = { 1: 'text-orange-400', 2: 'text-slate-400', 3: 'text-amber-400', 4: 'text-fuchsia-400' };
-    const icon = `<span class="material-symbols-outlined ${colors[isFusion ? 4 : Math.min(starCount||1, 4)]}" style="font-variation-settings:'FILL' 1;">${iconName}</span>`;
-    return `<div class="flex">${Array(starCount||1).fill(icon).join('')}</div>`;
+const getStarEmojis = (isResonance, starCount, iconName = 'star') => {
+    if (isResonance) {
+        const icon = `<span class="material-symbols-outlined text-fuchsia-400" style="font-variation-settings:'FILL' 1;">merge_type</span>`;
+        return `<div class="flex">${icon}</div>`;
+    }
+    const icon = `<span class="material-symbols-outlined text-slate-400" style="font-variation-settings:'FILL' 1;">person</span>`;
+    return `<div class="flex">${icon}</div>`;
 };
 
 const getDate = item => item.eklenmeTarihi ? item.eklenmeTarihi.toDate() : new Date(0);
@@ -1071,30 +1074,30 @@ function selectCharacter(char) {
 // ─── Admin panel render ────────────────────────────────────────────────────────
 function renderAdminPanel() {
     if (viewState.filter === 'preview-report') {
-        const fusions = characters.filter(c => c.isFusion);
-        const hasPrev = fusions.filter(f => f.previewUrl);
-        const missPrev = fusions.filter(f => !f.previewUrl);
-        dom.reportTitle.textContent = 'Fusion Preview Report';
+        const resonances = characters.filter(c => c.isResonance);
+        const hasPrev = resonances.filter(f => f.previewUrl);
+        const missPrev = resonances.filter(f => !f.previewUrl);
+        dom.reportTitle.textContent = 'Resonance Preview Report';
         dom.reportContent.innerHTML = `
-            <p class="mb-6 text-gray-400">Active 4★ fusion preview image status.</p>
+            <p class="mb-6 text-gray-400">Active resonance preview image status.</p>
             <h3><span class="text-green-400">✅ Has Preview (${hasPrev.length})</span></h3>
             ${hasPrev.map(f=>`<p>- ${f.name}</p>`).join('') || '<p class="text-gray-400">None.</p>'}
             <h3><span class="text-red-400">⚠️ Missing Preview (${missPrev.length})</span></h3>
-            ${missPrev.map(f=>`<p class="font-semibold">- ${f.name}</p>`).join('') || '<p class="text-gray-400">All fusions have previews!</p>'}`;
+            ${missPrev.map(f=>`<p class="font-semibold">- ${f.name}</p>`).join('') || '<p class="text-gray-400">All resonances have previews!</p>'}`;
         openReportModal(); return;
     }
     if (viewState.filter === 'character-report') {
-        const normals = characters.filter(c => !c.isFusion);
-        const fusions = characters.filter(c => c.isFusion);
+        const normals = characters.filter(c => !c.isResonance);
+        const resonances = characters.filter(c => c.isResonance);
         const nameMap = new Map(characters.map(c => [c.id, c.name]));
         const usage   = new Map(normals.map(c => [c.id, 0]));
-        fusions.forEach(f => (f.fusionPartners||[]).forEach(pid => usage.has(pid) && usage.set(pid, usage.get(pid)+1)));
-        dom.reportTitle.textContent = 'Character & Fusion Report';
+        resonances.forEach(f => (f.resonancePartners||[]).forEach(pid => usage.has(pid) && usage.set(pid, usage.get(pid)+1)));
+        dom.reportTitle.textContent = 'Character & Resonance Report';
         dom.reportContent.innerHTML = `
-            <h3>Characters & Fusion Usage</h3>
-            ${[...normals].sort((a,b)=>a.name.localeCompare(b.name,'en')).map(c=>{const n=usage.get(c.id);return`<p><b>${c.name}</b> — <span style="color:${n>0?'var(--primary)':'inherit'}">${n>0?`Used in ${n} fusion(s)`:'Never fused'}</span></p>`;}).join('')}
-            <h3>Fusions & Partners</h3>
-            ${[...fusions].sort((a,b)=>a.name.localeCompare(b.name,'en')).map(f=>{const p1=nameMap.get(f.fusionPartners?.[0])||'<span class="text-red-400">Unknown</span>';const p2=nameMap.get(f.fusionPartners?.[1])||'<span class="text-red-400">Unknown</span>';return`<p><b>${f.name}</b> = ${p1} + ${p2}</p>`;}).join('')}`;
+            <h3>Characters & Resonance Usage</h3>
+            ${[...normals].sort((a,b)=>a.name.localeCompare(b.name,'en')).map(c=>{const n=usage.get(c.id);return`<p><b>${c.name}</b> — <span style="color:${n>0?'var(--primary)':'inherit'}">${n>0?`Used in ${n} resonance(s)`:'Never resonated'}</span></p>`;}).join('')}
+            <h3>Resonances & Partners</h3>
+            ${[...resonances].sort((a,b)=>a.name.localeCompare(b.name,'en')).map(f=>{const p1=nameMap.get(f.resonancePartners?.[0])||'<span class="text-red-400">Unknown</span>';const p2=nameMap.get(f.resonancePartners?.[1])||'<span class="text-red-400">Unknown</span>';return`<p><b>${f.name}</b> = ${p1} + ${p2}</p>`;}).join('')}`;
         openReportModal(); return;
     }
 
@@ -1102,14 +1105,14 @@ function renderAdminPanel() {
     const q = dom.searchInput.value.toLowerCase().trim();
     let items;
     if (viewState.filter === 'available') {
-        const pIds = new Set(characters.filter(c=>c.isFusion).flatMap(f=>f.fusionPartners||[]));
-        items = characters.filter(c=>!c.isFusion && !pIds.has(c.id));
+        const pIds = new Set(characters.filter(c=>c.isResonance).flatMap(f=>f.resonancePartners||[]));
+        items = characters.filter(c=>!c.isResonance && !pIds.has(c.id));
     } else {
         switch (viewState.typeFilter) {
-            case 'character': items = characters.filter(c => !c.isFusion); break;
-            case 'fusion':    items = characters.filter(c => c.isFusion);  break;
-            case 'retired':   items = [...dismissed]; break;
-            default:          items = [...characters, ...dismissed];
+            case 'character':  items = characters.filter(c => !c.isResonance); break;
+            case 'resonance':  items = characters.filter(c => c.isResonance);  break;
+            case 'retired':    items = [...dismissed]; break;
+            default:           items = [...characters, ...dismissed];
         }
     }
     if (viewState.irkFilter !== 'all') {
@@ -1127,21 +1130,19 @@ function renderAdminPanel() {
         const card = document.createElement('div');
         const isRetired = !!item.isRetired;
         card.className = `item-card ${isRetired?'retired':''}`;
-        const isFusion = item.isFusion;
-        const nameClass = isFusion ? 'font-fantastical' : '';
+        const isResonance = item.isResonance;
+        const nameClass = isResonance ? 'font-fantastical' : '';
 
         let imgBlock;
-        if (isFusion) {
+        if (isResonance) {
             const url = item.previewUrl || '';
             imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${url}')"><img src="${url}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy"></div>`;
         } else {
-            const e2 = item.evolutions?.find(e=>e.star===2), e3 = item.evolutions?.find(e=>e.star===3);
             const tc = "w-8 h-12 md:w-16 md:h-24 flex-shrink-0 rounded-md overflow-hidden bg-black/20 border border-white/10 flex items-center justify-center";
             imgBlock = `<div class="flex items-center gap-3">
-                <div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} 1★" class="w-full h-full object-cover" loading="lazy"></div>
+                <div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} Base" class="w-full h-full object-cover" loading="lazy"></div>
                 <div class="flex flex-col gap-1.5">
-                    <div class="${tc}" ${e2?`onclick="enlargeImage(event,'${e2.imageUrl}')"`:''}>${e2?`<img src="${e2.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy">`:'<span class="text-sm font-bold text-gray-500">2★</span>'}</div>
-                    <div class="${tc}" ${e3?`onclick="enlargeImage(event,'${e3.imageUrl}')"`:''}>${e3?`<img src="${e3.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy">`:'<span class="text-sm font-bold text-gray-500">3★</span>'}</div>
+                    <div class="${tc}" ${item.awakeningImageUrl?`onclick="enlargeImage(event,'${item.awakeningImageUrl}')"`:''}>${item.awakeningImageUrl?`<img src="${item.awakeningImageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy">`:'<span class="text-sm font-bold text-gray-500">⚡</span>'}</div>
                 </div>
             </div>`;
         }
@@ -1152,7 +1153,7 @@ function renderAdminPanel() {
                 <button class="icon-button retire-button" data-id="${item.id}" data-type="${item.type}" data-action="unretire" title="Restore"><span class="material-symbols-outlined">settings_backup_restore</span></button>
                 <button class="icon-button delete-button" data-id="${item.id}" data-type="${item.type}" title="Delete Permanently"><span class="material-symbols-outlined">delete_forever</span></button>`;
         } else {
-            const type = isFusion ? 'fusion' : 'character';
+            const type = isResonance ? 'resonance' : 'character';
             actionBtns = `
                 <button class="icon-button view-prompt-button" data-id="${item.id}" data-name="${item.name}" title="View Prompts"><span class="material-symbols-outlined" style="color:var(--primary);">description</span></button>
                 <button class="icon-button au-button" data-id="${item.id}" data-type="${type}" title="Manage AU"><span class="material-symbols-outlined">auto_fix_high</span></button>
@@ -1168,7 +1169,7 @@ function renderAdminPanel() {
         const auDots = Object.keys(item.auData||{}).filter(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             const auEntry = item.auData[auId];
-            return def && (isFusion ? auEntry?.fusionImageUrl : auEntry?.star3ImageUrl);
+            return def && (isResonance ? auEntry?.resonanceImageUrl : auEntry?.baseImageUrl);
         }).map(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             const color = def?.color || '#64dcb4';
@@ -1178,13 +1179,14 @@ function renderAdminPanel() {
         const auDotsHtml = auDots ? `<div class="flex gap-1.5 flex-wrap mt-1.5 items-center"><span class="text-xs text-gray-500 mr-0.5">AU:</span>${auDots}</div>` : '';
 
         const irkBadge = item.irk ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style="background:rgba(var(--primary-rgb),0.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);">${item.irk}</span>` : '';
+        const roleBadge = item.role ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style="background:rgba(var(--primary-rgb),0.08);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.2);">${item.role}</span>` : '';
 
-        // Fusion mini-row (only for non-fusion characters) — scrollable name links
+        // Resonance mini-row (only for non-resonance characters) — scrollable name links
         let fusionMiniRow = '';
-        if (!isFusion) {
-            const charFusions = characters.filter(c => c.isFusion && c.fusionPartners?.includes(item.id));
-            if (charFusions.length) {
-                const nameLinks = charFusions.map(f =>
+        if (!isResonance) {
+            const charResonances = characters.filter(c => c.isResonance && c.resonancePartners?.includes(item.id));
+            if (charResonances.length) {
+                const nameLinks = charResonances.map(f =>
                     `<a href="#card-${f.id}" class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 transition-colors"
                         style="background:rgba(224,179,255,0.12);color:#e0b3ff;border:1px solid rgba(224,179,255,0.25);"
                         onclick="event.preventDefault();document.getElementById('card-${f.id}')?.scrollIntoView({behavior:'smooth',block:'center'});"
@@ -1194,11 +1196,11 @@ function renderAdminPanel() {
             }
         }
 
-        // For fusion cards — show parent name links
+        // For resonance cards — show parent name links
         let parentRow = '';
-        if (isFusion && item.fusionPartners?.length) {
+        if (isResonance && item.resonancePartners?.length) {
             const allPool = [...characters, ...dismissed];
-            const parentLinks = item.fusionPartners.map(pid => {
+            const parentLinks = item.resonancePartners.map(pid => {
                 const p = allPool.find(c => c.id === pid);
                 if (!p) return `<span class="text-xs text-red-400">Unknown</span>`;
                 return `<a href="#card-${pid}" class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 transition-colors"
@@ -1210,7 +1212,7 @@ function renderAdminPanel() {
         }
 
         card.id = `card-${item.id}`;
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${parentRow}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}${roleBadge}<div class="flex mt-1">${getStarEmojis(isResonance, 1, 'star')}</div>${dateHtml}${retiredBadge}${parentRow}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
@@ -1279,12 +1281,12 @@ function renderAuEntries() {
     dom.auEntriesTitle.style.color = au.color || 'var(--au)';
     dom.auEntriesSubtitle.textContent = au.description || '';
 
-    // Collect all chars/fusions that have an entry for this AU
+    // Collect all chars/resonances that have an entry for this AU
     const all = [...characters, ...dismissed];
     const entries = all.filter(c => {
         const e = c.auData?.[selectedAuId];
         if (!e) return false;
-        return c.isFusion ? !!e.fusionImageUrl : !!e.star3ImageUrl;
+        return c.isResonance ? !!e.resonanceImageUrl : !!e.baseImageUrl;
     });
 
     dom.auEntriesGrid.innerHTML = '';
@@ -1296,8 +1298,8 @@ function renderAuEntries() {
 
     entries.forEach(char => {
         const entry = char.auData[selectedAuId];
-        const imgUrl = char.isFusion ? entry.fusionImageUrl : entry.star3ImageUrl;
-        const origUrl = char.isFusion ? (char.previewUrl || char.imageUrl) : (char.evolutions?.find(e=>e.star===3)?.imageUrl || char.imageUrl);
+        const imgUrl = char.isResonance ? entry.resonanceImageUrl : entry.baseImageUrl;
+        const origUrl = char.isResonance ? (char.previewUrl || char.imageUrl) : char.imageUrl;
         const card = document.createElement('div');
         card.className = 'au-entry-card';
         card.innerHTML = `
@@ -1314,7 +1316,7 @@ function renderAuEntries() {
             <div class="flex-grow min-w-0">
                 <p class="font-bold truncate">${char.name}</p>
                 <p class="text-xs text-gray-400">ID: ${char.id}</p>
-                <p class="text-xs text-gray-400 mt-1">${char.isFusion ? 'Fusion' : '3★ Character'}</p>
+                <p class="text-xs text-gray-400 mt-1">${char.isResonance ? 'Resonance' : 'Character'}</p>
                 ${entry.prompt ? `<p class="text-xs text-gray-500 mt-1 truncate">Prompt: ${entry.prompt.substring(0,60)}…</p>` : ''}
             </div>
             <div class="flex flex-col gap-1 flex-shrink-0">
@@ -1428,40 +1430,39 @@ function openAuEntryModalForCharInAu(charId) {
     dom.auEntrySelectedName.textContent = char.name;
 
     // Show appropriate image field
-    document.getElementById('au-star3-field').classList.toggle('hidden', !!char.isFusion);
-    document.getElementById('au-fusion-field').classList.toggle('hidden', !char.isFusion);
+    document.getElementById('au-base-field').classList.toggle('hidden', !!char.isResonance);
+    document.getElementById('au-resonance-field').classList.toggle('hidden', !char.isResonance);
 
     // Pre-fill existing
     const existing = char.auData?.[selectedAuId];
-    const star3Link = document.getElementById('au-star3-link');
-    const fusionLink = document.getElementById('au-fusion-link');
-    const star3Preview = document.getElementById('au-star3-preview');
-    const fusionPreview = document.getElementById('au-fusion-preview');
+    const baseLink = document.getElementById('au-base-link');
+    const resonanceLink = document.getElementById('au-resonance-link');
+    const basePreview = document.getElementById('au-base-preview');
+    const resonancePreview = document.getElementById('au-resonance-preview');
 
-    if (existing?.star3ImageUrl) {
-        star3Link.value = existing.star3ImageUrl;
-        star3Preview.src = existing.star3ImageUrl;
-        document.getElementById('au-star3-preview-wrap').classList.remove('hidden');
-        // set method to link
-        const sel = document.querySelector('#au-star3-field .image-upload-method');
+    if (existing?.baseImageUrl) {
+        baseLink.value = existing.baseImageUrl;
+        basePreview.src = existing.baseImageUrl;
+        document.getElementById('au-base-preview-wrap').classList.remove('hidden');
+        const sel = document.querySelector('#au-base-field .image-upload-method');
         sel.value = 'link';
-        document.getElementById('au-star3-file').classList.add('hidden');
-        star3Link.classList.remove('hidden');
+        document.getElementById('au-base-file').classList.add('hidden');
+        baseLink.classList.remove('hidden');
     } else {
-        star3Link.value = '';
-        document.getElementById('au-star3-preview-wrap').classList.add('hidden');
+        baseLink.value = '';
+        document.getElementById('au-base-preview-wrap').classList.add('hidden');
     }
-    if (existing?.fusionImageUrl) {
-        fusionLink.value = existing.fusionImageUrl;
-        fusionPreview.src = existing.fusionImageUrl;
-        document.getElementById('au-fusion-preview-wrap').classList.remove('hidden');
-        const sel = document.querySelector('#au-fusion-field .image-upload-method');
+    if (existing?.resonanceImageUrl) {
+        resonanceLink.value = existing.resonanceImageUrl;
+        resonancePreview.src = existing.resonanceImageUrl;
+        document.getElementById('au-resonance-preview-wrap').classList.remove('hidden');
+        const sel = document.querySelector('#au-resonance-field .image-upload-method');
         sel.value = 'link';
-        document.getElementById('au-fusion-file').classList.add('hidden');
-        fusionLink.classList.remove('hidden');
+        document.getElementById('au-resonance-file').classList.add('hidden');
+        resonanceLink.classList.remove('hidden');
     } else {
-        fusionLink.value = '';
-        document.getElementById('au-fusion-preview-wrap').classList.add('hidden');
+        resonanceLink.value = '';
+        document.getElementById('au-resonance-preview-wrap').classList.add('hidden');
     }
     dom.auEntryPrompt.value = existing?.prompt || '';
     dom.auEntryStatus.classList.add('hidden');
@@ -1481,12 +1482,12 @@ function openAuEntryModalNew() {
     dom.auEntrySelectedDisplay.classList.add('hidden');
     dom.auEntrySelectedName.textContent = '';
     dom.auEntrySearch.value = '';
-    document.getElementById('au-star3-field').classList.remove('hidden');
-    document.getElementById('au-fusion-field').classList.add('hidden');
-    document.getElementById('au-star3-link').value = '';
-    document.getElementById('au-fusion-link').value = '';
-    document.getElementById('au-star3-preview-wrap').classList.add('hidden');
-    document.getElementById('au-fusion-preview-wrap').classList.add('hidden');
+    document.getElementById('au-base-field').classList.remove('hidden');
+    document.getElementById('au-resonance-field').classList.add('hidden');
+    document.getElementById('au-base-link').value = '';
+    document.getElementById('au-resonance-link').value = '';
+    document.getElementById('au-base-preview-wrap').classList.add('hidden');
+    document.getElementById('au-resonance-preview-wrap').classList.add('hidden');
     dom.auEntryPrompt.value = '';
     dom.auEntryStatus.classList.add('hidden');
     renderAuEntrySelector('');
@@ -1507,8 +1508,8 @@ function renderAuEntrySelector(q) {
     filtered.forEach(char => {
         const item = document.createElement('div');
         item.className = `character-selector-item ${auEntrySelectorCharId===char.id?'ring-1 ring-[var(--au)]':''}`;
-        const imgUrl = char.isFusion ? (char.previewUrl||char.imageUrl) : char.imageUrl;
-        const typeLabel = char.isFusion ? '4★ Fusion' : `1★ Char`;
+        const imgUrl = char.isResonance ? (char.previewUrl||char.imageUrl) : char.imageUrl;
+        const typeLabel = char.isResonance ? 'Resonance' : 'Character';
         item.innerHTML = `<img src="${imgUrl}" alt="${char.name}" class="w-12 h-16 object-cover rounded-md flex-shrink-0">
             <div><p class="font-bold">${char.name}</p><p class="text-xs text-gray-400">${typeLabel} · ID: ${char.id}</p></div>`;
         item.onclick = () => {
@@ -1516,8 +1517,8 @@ function renderAuEntrySelector(q) {
             dom.auEntrySelectedName.textContent = char.name;
             dom.auEntrySelectedDisplay.classList.remove('hidden');
             // Show correct field
-            document.getElementById('au-star3-field').classList.toggle('hidden', !!char.isFusion);
-            document.getElementById('au-fusion-field').classList.toggle('hidden', !char.isFusion);
+            document.getElementById('au-base-field').classList.toggle('hidden', !!char.isResonance);
+            document.getElementById('au-resonance-field').classList.toggle('hidden', !char.isResonance);
             renderAuEntrySelector(dom.auEntrySearch.value);
         };
         dom.auEntrySelectorGrid.appendChild(item);
@@ -1538,27 +1539,27 @@ async function saveAuEntry() {
     saveBtn.disabled = true; saveBtn.textContent = 'Uploading...';
 
     try {
-        let star3Url = null, fusionUrl = null;
+        let baseUrl = null, resonanceUrl = null;
 
-        if (!char.isFusion) {
-            const methodSel = document.querySelector('#au-star3-field .image-upload-method');
-            const fileInput = document.getElementById('au-star3-file');
-            const linkInput = document.getElementById('au-star3-link');
-            star3Url = await processRawImageInput(methodSel, fileInput, linkInput);
+        if (!char.isResonance) {
+            const methodSel = document.querySelector('#au-base-field .image-upload-method');
+            const fileInput = document.getElementById('au-base-file');
+            const linkInput = document.getElementById('au-base-link');
+            baseUrl = await processRawImageInput(methodSel, fileInput, linkInput);
         } else {
-            const methodSel = document.querySelector('#au-fusion-field .image-upload-method');
-            const fileInput = document.getElementById('au-fusion-file');
-            const linkInput = document.getElementById('au-fusion-link');
-            fusionUrl = await processRawImageInput(methodSel, fileInput, linkInput);
+            const methodSel = document.querySelector('#au-resonance-field .image-upload-method');
+            const fileInput = document.getElementById('au-resonance-file');
+            const linkInput = document.getElementById('au-resonance-link');
+            resonanceUrl = await processRawImageInput(methodSel, fileInput, linkInput);
         }
 
         const prompt = dom.auEntryPrompt.value.trim();
         const entryData = {};
-        if (star3Url)  entryData.star3ImageUrl = star3Url;
-        if (fusionUrl) entryData.fusionImageUrl = fusionUrl;
-        if (prompt)    entryData.prompt = prompt;
+        if (baseUrl)      entryData.baseImageUrl      = baseUrl;
+        if (resonanceUrl) entryData.resonanceImageUrl = resonanceUrl;
+        if (prompt)       entryData.prompt = prompt;
 
-        if (!star3Url && !fusionUrl) throw new Error("Please provide an image URL or upload a file.");
+        if (!baseUrl && !resonanceUrl) throw new Error("Please provide an image URL or upload a file.");
 
         const coll = dismissed.find(d=>d.id===charId) ? 'dismissed' : 'characters';
         await db.collection(coll).doc(charId).set(
@@ -1590,14 +1591,15 @@ async function deleteAuEntry(charId) {
 function toggleFormFields() {
     const t = dom.itemTypeSelect.value;
     dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', t !== 'character');
-    dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', t !== 'fusion');
-    dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'fusion');
+    dom.addEditForm.querySelector('#resonance-fields').classList.toggle('hidden', t !== 'resonance');
+    dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'resonance');
     dom.addEditForm.querySelector('#main-image-container > label').textContent =
-        t === 'fusion' ? 'Fusion GIF (Optional)' : 'Main Image';
+        t === 'resonance' ? 'Resonance GIF (Optional)' : 'Base Image';
     dom.promptSection.classList.remove('hidden');
-    const show1 = t==='character', showF = t==='fusion';
-    ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));
-    document.getElementById('prompt-block-FUSION').classList.toggle('hidden', !showF);
+    const show1 = t === 'character', showF = t === 'resonance';
+    document.getElementById('prompt-block-BASE').classList.toggle('hidden', !show1);
+    document.getElementById('prompt-block-UYANIS').classList.toggle('hidden', !show1);
+    document.getElementById('prompt-block-REZONANS').classList.toggle('hidden', !showF);
     document.getElementById('prompt-block-EK').classList.remove('hidden');
 }
 
@@ -1734,7 +1736,7 @@ function resetForm() {
     });
     // Clear image previews
     document.querySelectorAll('.img-preview').forEach(w => { w.classList.add('hidden'); const img = w.querySelector('img'); if(img) img.src=''; });
-    ['1','2','3','FUSION','EK'].forEach(l => {
+    ['BASE','UYANIS','REZONANS','EK'].forEach(l => {
         const t = document.getElementById(`prompt-title-${l}`);
         const tx = document.getElementById(`prompt-text-${l}`);
         const d = document.getElementById(`prompt-docId-${l}`);
@@ -1746,7 +1748,7 @@ function resetForm() {
     document.getElementById('id-rename-warning')?.classList.add('hidden');
     document.getElementById('duplicate-name-warning')?.classList.add('hidden');
     dom.dateEditContainer.classList.add('hidden');
-    ['fusionPartners_0','fusionPartners_1','originalCharacterId'].forEach(id => {
+    ['resonancePartners_0','resonancePartners_1','originalCharacterId'].forEach(id => {
         const dp = document.getElementById(`${id}_display`);
         const ip = document.querySelector(`[name="${id}"]`);
         if(dp) { dp.textContent = 'Not selected'; dp.classList.add('italic','text-gray-400'); }
@@ -1786,8 +1788,12 @@ const loadItemForEdit = async (itemId, itemType) => {
         _showPreview(c, url);
     };
     setupImg('main-image-container', item.imageUrl);
-    if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
-    if (itemType==='fusion') setupImg('preview-image-container', item.previewUrl);
+    if (itemType==='character') {
+        setupImg('awakening-image-container', item.awakeningImageUrl);
+        const roleInput = form.elements['role'];
+        if (roleInput) roleInput.value = item.role || '';
+    }
+    if (itemType==='resonance') setupImg('preview-image-container', item.previewUrl);
 
     const updateSel = (inputId, charId) => {
         const ch = [...characters, ...dismissed].find(c=>c.id===charId);
@@ -1797,13 +1803,17 @@ const loadItemForEdit = async (itemId, itemType) => {
         if(dp) { dp.textContent=ch.name; dp.classList.remove('italic','text-gray-400'); }
         if(ip) ip.value=ch.id;
     };
-    if (itemType==='fusion') { updateSel('fusionPartners_0', item.fusionPartners?.[0]); updateSel('fusionPartners_1', item.fusionPartners?.[1]); }
+    if (itemType==='resonance') { updateSel('resonancePartners_0', item.resonancePartners?.[0]); updateSel('resonancePartners_1', item.resonancePartners?.[1]); }
 
     try {
         const snap = await db.collection('promptLibrary').where('charId','==',itemId).get();
         snap.forEach(doc => {
             const d = doc.data();
-            const suffix = d.charStar === 'FÜZYON' ? 'FUSION' : d.charStar;
+            let suffix = d.charStar;
+            if (suffix === '3') suffix = 'BASE';
+            else if (suffix === 'FÜZYON' || suffix === 'FUSION') suffix = 'REZONANS';
+            // skip old '1' and '2' entries
+            if (suffix === '1' || suffix === '2') return;
             const t = document.getElementById(`prompt-title-${suffix}`);
             const tx = document.getElementById(`prompt-text-${suffix}`);
             const id = document.getElementById(`prompt-docId-${suffix}`);
@@ -1820,7 +1830,7 @@ const loadItemForEdit = async (itemId, itemType) => {
     setupImageInputTogglers();
     setupPromptCharCounters();
     // Trigger char counters for loaded prompt text
-    ['1','2','3','FUSION','EK'].forEach(l => {
+    ['BASE','UYANIS','REZONANS','EK'].forEach(l => {
         const tx = document.getElementById(`prompt-text-${l}`);
         const counter = document.querySelector(`#prompt-block-${l} .prompt-char-count`);
         if (tx && counter) counter.textContent = tx.value.length > 0 ? `${tx.value.length.toLocaleString()} chars` : '';
@@ -1851,37 +1861,35 @@ const handleFormSubmit = async (e) => {
         } else { data.eklenmeTarihi = firebase.firestore.FieldValue.serverTimestamp(); }
 
         if (type==='character') {
-            data.isFusion=false; data.star=1;
-            const [u1,u2,u3] = await Promise.all([processImageInput('main-image-container'),processImageInput('evo1-image-container'),processImageInput('evo2-image-container')]);
-            if (!u1&&!isEditing) throw new Error("Main image is required.");
-            // On rename, carry over existing images if no new one provided
+            data.isResonance = false;
+            data.role = form.elements['role']?.value.trim() || null;
+            const [u1, u2] = await Promise.all([
+                processImageInput('main-image-container'),
+                processImageInput('awakening-image-container')
+            ]);
+            if (!u1 && !isEditing) throw new Error("Main image is required.");
             if (isRename) {
                 const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
                 data.imageUrl = u1 || old?.imageUrl || null;
-                data.evolutions = [];
-                const eu2 = u2 || old?.evolutions?.find(e=>e.star===2)?.imageUrl;
-                const eu3 = u3 || old?.evolutions?.find(e=>e.star===3)?.imageUrl;
-                if(eu2) data.evolutions.push({star:2,imageUrl:eu2});
-                if(eu3) data.evolutions.push({star:3,imageUrl:eu3});
-                // Carry over auData
+                const eu2 = u2 || old?.awakeningImageUrl;
+                if (eu2) data.awakeningImageUrl = eu2;
                 if (old?.auData) data.auData = old.auData;
             } else {
-                data.imageUrl=u1; data.evolutions=[];
-                if(u2) data.evolutions.push({star:2,imageUrl:u2});
-                if(u3) data.evolutions.push({star:3,imageUrl:u3});
+                data.imageUrl = u1;
+                if (u2) data.awakeningImageUrl = u2;
             }
-        } else if (type==='fusion') {
-            data.isFusion=true; data.star=4;
-            data.fusionPartners=[form.elements['fusionPartners_0'].value.trim(),form.elements['fusionPartners_1'].value.trim()].filter(Boolean);
-            const [u1,u2] = await Promise.all([processImageInput('main-image-container'),processImageInput('preview-image-container')]);
+        } else if (type==='resonance') {
+            data.isResonance = true;
+            data.resonancePartners = [form.elements['resonancePartners_0'].value.trim(), form.elements['resonancePartners_1'].value.trim()].filter(Boolean);
+            const [u1, u2] = await Promise.all([processImageInput('main-image-container'), processImageInput('preview-image-container')]);
             if (isRename) {
                 const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
-                data.imageUrl  = u1 || old?.imageUrl  || null;
-                data.previewUrl= u2 || old?.previewUrl || null;
+                data.imageUrl   = u1 || old?.imageUrl  || null;
+                data.previewUrl = u2 || old?.previewUrl || null;
                 if (old?.auData) data.auData = old.auData;
             } else {
-                if (!u2&&!isEditing) throw new Error("Fusion preview image is required.");
-                data.imageUrl=u1||null; data.previewUrl=u2||null;
+                if (!u2 && !isEditing) throw new Error("Resonance preview image is required.");
+                data.imageUrl = u1 || null; data.previewUrl = u2 || null;
             }
         }
 
@@ -1894,20 +1902,18 @@ const handleFormSubmit = async (e) => {
 
         batch.set(db.collection(coll).doc(newId), data, {merge: !isRename});
 
-        if (type==='character'||type==='fusion') {
-            const levels = type==='character' ? ['1','2','3','EK'] : ['FUSION','EK'];
+        if (type==='character'||type==='resonance') {
+            const levels = type==='character' ? ['BASE','UYANIS','EK'] : ['REZONANS','EK'];
             levels.forEach(suffix => {
-                const dbKey = suffix==='FUSION' ? 'FÜZYON' : suffix;
+                const dbKey = suffix;
                 const tv  = document.getElementById(`prompt-title-${suffix}`)?.value.trim();
                 const txv = document.getElementById(`prompt-text-${suffix}`)?.value.trim();
                 const docId = document.getElementById(`prompt-docId-${suffix}`)?.value;
                 if (txv) {
-                    // On rename: always create new prompt doc with new charId
                     const ref = (isRename || !docId) ? db.collection('promptLibrary').doc() : db.collection('promptLibrary').doc(docId);
                     batch.set(ref, { charId: newId, charName: data.name, charStar: dbKey, title: tv||'', prompt: txv,
                         createdAt: (isRename || !docId) ? firebase.firestore.FieldValue.serverTimestamp() : (existingPrompts[suffix]?.createdAt || firebase.firestore.FieldValue.serverTimestamp())
                     }, {merge: true});
-                    // On rename: delete old prompt doc
                     if (isRename && docId) batch.delete(db.collection('promptLibrary').doc(docId));
                 } else if (docId) {
                     batch.delete(db.collection('promptLibrary').doc(docId));
@@ -2046,24 +2052,25 @@ function populateIrkFilter() {
 
 // ─── Stat Cards ───────────────────────────────────────────────────────────────
 function renderStats() {
-    const normals  = characters.filter(c => !c.isFusion);
-    const fusions  = characters.filter(c => c.isFusion);
+    const normals    = characters.filter(c => !c.isResonance);
+    const resonances = characters.filter(c => c.isResonance);
     const auCount  = alternativeUniverses.length;
     const retCount = dismissed.length;
 
-    // Characters with all 3 evolutions = "full set"
-    const fullSets = normals.filter(c => c.imageUrl && c.evolutions?.length >= 2 && c.evolutions[1]?.imageUrl);
+    // Characters with base image = "full set"
+    const fullSets = normals.filter(c => c.imageUrl);
+    const awakeningCount = normals.filter(c => c.awakeningImageUrl).length;
 
-    // Total unique images (1★ + all evos + fusions)
+    // Total unique images
     let imgCount = 0;
     normals.forEach(c => {
         if (c.imageUrl) imgCount++;
-        (c.evolutions || []).forEach(e => { if (e.imageUrl) imgCount++; });
+        if (c.awakeningImageUrl) imgCount++;
     });
-    fusions.forEach(f => { if (f.imageUrl) imgCount++; });
+    resonances.forEach(f => { if (f.imageUrl) imgCount++; });
 
-    // Fusion usage: how many chars are fused at least once
-    const fusedIds = new Set(fusions.flatMap(f => f.fusionPartners || []));
+    // Resonance usage: how many chars are resonated at least once
+    const fusedIds = new Set(resonances.flatMap(f => f.resonancePartners || []));
 
     // Most common race
     const raceCounts = {};
@@ -2077,10 +2084,10 @@ function renderStats() {
     const setSub = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
     set('stat-chars',   normals.length);
-    setSub('stat-chars-sub', fusedIds.size > 0 ? `${fusedIds.size} in fusions` : '');
+    setSub('stat-chars-sub', fusedIds.size > 0 ? `${fusedIds.size} in resonances` : '');
 
-    set('stat-fusions',  fusions.length);
-    setSub('stat-fusions-sub', fusions.length > 0 ? `${Math.round(fusions.length/Math.max(normals.length,1)*100)}% fusion rate` : '');
+    set('stat-fusions',  resonances.length);
+    setSub('stat-fusions-sub', resonances.length > 0 ? `${Math.round(resonances.length/Math.max(normals.length,1)*100)}% resonance rate` : '');
 
     set('stat-aus',  auCount);
     // Count locked vs unlocked AUs
@@ -2098,7 +2105,7 @@ function renderStats() {
     setSub('stat-images-sub', newest ? `Latest: ${newest.name}` : '');
 
     set('stat-evos', fullSets.length);
-    setSub('stat-evos-sub', normals.length > 0 ? `${Math.round(fullSets.length/normals.length*100)}% complete` : '');
+    setSub('stat-evos-sub', normals.length > 0 ? `${awakeningCount} awakened` : '');
 }
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
@@ -2150,14 +2157,24 @@ async function openQuickPromptModal(charId, charName) {
     try {
         const snap = await db.collection('promptLibrary').where('charId','==',charId).get();
         if (snap.empty) { dom.qpLoading.classList.add('hidden'); dom.qpEmpty.classList.remove('hidden'); return; }
-        const order = {'1':1,'2':2,'3':3,'FÜZYON':4,'EK':5};
+        const order = {'BASE':1,'UYANIS':2,'REZONANS':3,'EK':4,'1':5,'2':6,'3':7,'FÜZYON':8,'FUSION':9};
         const prompts = snap.docs.map(d=>d.data()).sort((a,b)=>(order[a.charStar]||99)-(order[b.charStar]||99));
         window._qpTexts = prompts.map(p => p.prompt);
         let html='';
         prompts.forEach((p, idx) => {
-            const badgeMap = {'1':'bg-orange-900/50 text-orange-200 border-orange-700/50','2':'bg-slate-700/50 text-slate-200 border-slate-600/50','3':'bg-amber-900/50 text-amber-200 border-amber-700/50','FÜZYON':'bg-fuchsia-900/50 text-fuchsia-200 border-fuchsia-700/50'};
+            const badgeMap = {
+                'BASE':'bg-slate-700/50 text-slate-200 border-slate-600/50',
+                'UYANIS':'bg-amber-900/50 text-amber-200 border-amber-700/50',
+                'REZONANS':'bg-fuchsia-900/50 text-fuchsia-200 border-fuchsia-700/50',
+                '3':'bg-amber-900/50 text-amber-200 border-amber-700/50',
+                'FÜZYON':'bg-fuchsia-900/50 text-fuchsia-200 border-fuchsia-700/50',
+                'FUSION':'bg-fuchsia-900/50 text-fuchsia-200 border-fuchsia-700/50'
+            };
             const bc = badgeMap[p.charStar]||'bg-gray-700 text-gray-300';
-            const label = p.charStar==='FÜZYON'?'FUSION':(isNaN(p.charStar)?p.charStar:p.charStar+' ★');
+            const label = p.charStar==='REZONANS'||p.charStar==='FÜZYON'||p.charStar==='FUSION' ? 'RESONANCE'
+                : p.charStar==='BASE'||p.charStar==='3' ? 'BASE'
+                : p.charStar==='UYANIS' ? 'AWAKENING'
+                : (isNaN(p.charStar)?p.charStar:p.charStar+' ★');
             html += `<div class="bg-[#131318] p-4 rounded-lg border border-gray-700 relative">
                 <div class="flex justify-between items-center mb-2">
                     <span class="px-2 py-1 rounded text-xs font-bold border ${bc}">${label}</span>
@@ -2209,11 +2226,12 @@ async function downloadPrompts() {
 
         // ── Star label helper ──
         const starLabel = (star) => {
+            if (star === 'BASE' || star === '3') return 'Base';
+            if (star === 'UYANIS') return 'Awakening';
+            if (star === 'REZONANS' || star === 'FÜZYON' || star === 'FUSION') return 'Resonance';
+            if (star === 'EK') return 'Extra';
             if (star === '1') return '1★';
             if (star === '2') return '2★';
-            if (star === '3') return '3★';
-            if (star === 'FÜZYON' || star === 'FUSION') return 'Fusion';
-            if (star === 'EK') return 'Extra';
             return star;
         };
 
@@ -2229,7 +2247,7 @@ async function downloadPrompts() {
                 const isLocked = auDef?.locked ? true : false;
                 if (isLocked && !incAuLocked) return;
                 if (!isLocked && !incAuUnlocked) return;
-                const type = char.isFusion ? 'Fusion' : '3★';
+                const type = char.isResonance ? 'Resonance' : 'Base';
                 const line = `#### ${auName} AU (${type})\n\n${entry.prompt}\n`;
                 if (isLocked) lockedLines.push(line);
                 else unlockedLines.push(line);
@@ -2247,8 +2265,8 @@ async function downloadPrompts() {
 
         // ── Collect all chars in sorted order ──
         const allPool = [...characters, ...(incRetired ? dismissed : [])];
-        const normals = allPool.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
-        const fusions = allPool.filter(c => c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
+        const normals = allPool.filter(c => !c.isResonance).sort((a,b) => a.name.localeCompare(b.name,'en'));
+        const fusions = allPool.filter(c => c.isResonance).sort((a,b) => a.name.localeCompare(b.name,'en'));
         const sorted = [...normals, ...fusions];
 
         const date = new Date().toISOString().slice(0,10);
@@ -2264,17 +2282,17 @@ async function downloadPrompts() {
 
             // ── Character heading ──
             let heading = `## ${char.name}`;
-            if (char.isFusion && char.fusionPartners) {
+            if (char.isResonance && char.resonancePartners) {
                 const allPeople = [...characters, ...dismissed];
-                const pNames = char.fusionPartners.map(pid => allPeople.find(c=>c.id===pid)?.name || 'Unknown');
+                const pNames = char.resonancePartners.map(pid => allPeople.find(c=>c.id===pid)?.name || 'Unknown');
                 heading += ` *(${pNames.join(' + ')})*`;
             }
             if (char.isRetired) heading += ' *(Retired)*';
             md += heading + '\n\n';
             if (char.irk) md += `**Race:** ${char.irk}\n\n`;
 
-            // ── Star prompts in order: 1★, 2★, 3★, Fusion, Extra ──
-            const starOrder = ['1','2','3','FÜZYON','FUSION','EK'];
+            // ── Star prompts in order: BASE, UYANIS, REZONANS, EK, then legacy ──
+            const starOrder = ['BASE','UYANIS','REZONANS','EK','3','1','2','FÜZYON','FUSION'];
             let addedPromptsForChar = false;
             starOrder.forEach(star => {
                 const p = charPrompts[star];
@@ -2337,7 +2355,7 @@ async function renderBulkTitleList() {
             return;
         }
         prompts.sort((a, b) => a.charName.localeCompare(b.charName, 'tr'));
-        const starLabels = {'1':'1 ★','2':'2 ★','3':'3 ★','FÜZYON':'FUSION','EK':'EK'};
+        const starLabels = {'BASE':'Base','UYANIS':'Awakening','REZONANS':'Resonance','EK':'EK','3':'Base(old)','FÜZYON':'Resonance(old)','1':'1★(old)','2':'2★(old)'};
         list.innerHTML = '';
         prompts.forEach(p => {
             const el = document.createElement('label');
@@ -2498,15 +2516,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const all = [...(window.characters||[]), ...(window.dismissed||[])];
 
         all.forEach(c => {
-            if (c.imageUrl && !c.isFusion) urls.add(c.imageUrl);
-            (c.evolutions || []).forEach(e => { if (e.imageUrl) urls.add(e.imageUrl); });
-            if (c.isFusion) {
-                if (c.previewUrl) urls.add(c.previewUrl);
-            }
+            if (c.imageUrl && !c.isResonance) urls.add(c.imageUrl);
+            if (c.awakeningImageUrl && !c.isResonance) urls.add(c.awakeningImageUrl);
+            if (c.isResonance) { if (c.previewUrl) urls.add(c.previewUrl); }
             const auData = c.auData || {};
             Object.values(auData).forEach(entry => {
-                if (entry.star3ImageUrl)  urls.add(entry.star3ImageUrl);
-                if (entry.fusionImageUrl) urls.add(entry.fusionImageUrl);
+                if (entry.baseImageUrl)      urls.add(entry.baseImageUrl);
+                if (entry.resonanceImageUrl) urls.add(entry.resonanceImageUrl);
             });
         });
 
