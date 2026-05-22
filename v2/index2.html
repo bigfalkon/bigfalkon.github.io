@@ -1,0 +1,2687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Character Universe</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#443a74"/>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Characters">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(() => console.log('SW registered'))
+                .catch(e => console.log('SW failed:', e));
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Metamorphous&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <style>
+        :root {
+            --primary-rgb: 189, 179, 255;
+            --primary: rgb(var(--primary-rgb));
+            --on-primary: #2d235c;
+            --primary-container: #443a74;
+            --on-primary-container: #e6deff;
+            --bg: #131318;
+            --on-bg: #e5e1e6;
+            --surface: #1a191f;
+            --surface-container: #201f25;
+            --surface-high: #2a2830;
+            --on-surface: #e5e1e6;
+            --on-surface-var: #c8c4d0;
+            --outline-var: #48454e;
+            --success-rgb: 102, 187, 106;
+            --success: rgb(var(--success-rgb));
+            --danger-rgb: 239, 83, 80;
+            --danger: rgb(var(--danger-rgb));
+            --warning-rgb: 255, 183, 77;
+            --warning: rgb(var(--warning-rgb));
+            --au-rgb: 100, 220, 180;
+            --au: rgb(var(--au-rgb));
+            --au-container: #0a4f3a;
+            --on-au-container: #a0f5d8;
+        }
+        body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--on-bg); overflow-x: hidden; }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background:
+                radial-gradient(circle at 15% 25%, rgba(var(--primary-rgb),.14) 0%, transparent 40%),
+                radial-gradient(circle at 85% 65%, rgba(140,179,255,.11) 0%, transparent 45%);
+            animation: aurora 20s infinite alternate ease-in-out;
+        }
+        @keyframes aurora {
+            from { transform: translate(0,0) rotate(0deg) scale(1.2); }
+            to   { transform: translate(5vw,-5vh) rotate(10deg) scale(1.2); }
+        }
+        .form-input, .form-select {
+            background-color: var(--surface-high); border: 1px solid var(--outline-var);
+            color: var(--on-surface); border-radius: 8px; padding: 12px; width: 100%;
+            transition: all 0.2s ease;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.2);
+            outline: none;
+        }
+        .item-card {
+            display: flex; align-items: center; gap: 1rem; padding: 1rem;
+            border-radius: 16px; background-color: var(--surface-container);
+            transition: all 0.2s ease-in-out; border: 1px solid var(--outline-var);
+        }
+        .item-card:hover { transform: translateY(-3px); background-color: var(--surface-high); box-shadow: 0 8px 20px rgba(0,0,0,0.25); }
+        .item-card.retired { opacity: 0.7; border-left: 4px solid var(--warning); }
+        .item-card.retired:hover { transform: translateY(0); opacity: 0.8; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 10px 20px; border-radius: 99px; font-weight: 700;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-primary   { background-color: var(--primary); color: var(--on-primary); }
+        .btn-success   { background-color: var(--success); color: #fff; }
+        .btn-secondary { background-color: var(--surface-high); color: var(--on-surface-var); border: 1px solid var(--outline-var); }
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary); background-color: rgba(var(--primary-rgb), 0.08); transform: translateY(0); box-shadow: none; }
+        .btn-danger    { background-color: var(--danger); color: #fff; }
+        .btn-au        { background-color: var(--au-container); color: var(--au); border: 1px solid rgba(var(--au-rgb), 0.4); }
+        .btn-au:hover  { background-color: var(--au); color: #0a2e22; }
+
+        .icon-button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: transparent; color: var(--on-surface-var); cursor: pointer; transition: all 0.2s; }
+        .icon-button:hover.edit-button { background-color: rgba(var(--primary-rgb), 0.1); color: var(--primary); }
+        .icon-button:hover.delete-button { background-color: rgba(var(--danger-rgb), 0.1); color: var(--danger); }
+        .icon-button:hover.retire-button { background-color: rgba(var(--warning-rgb), 0.1); color: var(--warning); }
+        .icon-button:hover.view-prompt-button { background-color: rgba(var(--primary-rgb), 0.1); color: var(--primary); }
+        .icon-button:hover.au-button { background-color: rgba(var(--au-rgb), 0.1); color: var(--au); }
+
+        /* Modal */
+        .modal-backdrop { z-index: 1000; position: fixed; inset: 0; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
+        .modal-content { background-color: var(--surface-container); border-radius: 24px; padding: 2rem; width: 100%; max-width: 420px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-backdrop.visible .modal-content { transform: scale(1); }
+        .report-modal-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--outline-var); padding-bottom: 0.5rem; }
+        .report-modal-content p { margin-bottom: 0.5rem; }
+
+        /* Image overlay */
+        .enlarged-image-container { z-index: 1100; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.88); backdrop-filter: blur(5px); }
+        .enlarged-image { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; }
+
+        /* Character selector */
+        .character-selector-item { display: flex; align-items: center; gap: 1rem; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
+        .character-selector-item:hover { background-color: var(--surface-high); }
+
+        /* Prompt blocks */
+        .prompt-section-header { border-top: 1px solid var(--outline-var); padding-top: 1.5rem; margin-top: 1.5rem; margin-bottom: 1rem; color: var(--primary); font-weight: 700; font-size: 1.25rem; }
+        .prompt-block { background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--outline-var); margin-bottom: 1rem; }
+        .prompt-label { display: flex; justify-content: space-between; color: var(--on-surface-var); font-size: 0.875rem; margin-bottom: 0.5rem; font-weight: 600; }
+        .saved-indicator { color: var(--success); font-size: 0.75rem; display: none; align-items: center; gap: 4px; }
+        .saved-indicator.active { display: flex; }
+
+        /* Tabs */
+        .tab-btn { padding: 10px 20px; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.9rem; border: 1px solid transparent; border-bottom: none; transition: all 0.2s; color: var(--on-surface-var); cursor: pointer; }
+        .tab-btn.active { background-color: var(--surface-container); color: var(--primary); border-color: var(--outline-var); border-bottom-color: var(--surface-container); }
+        .tab-btn:not(.active):hover { background-color: rgba(255,255,255,0.05); color: var(--on-surface); }
+        .tab-btn.au-tab.active { color: var(--au); border-color: rgba(var(--au-rgb),0.4); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* AU form */
+        .au-card {
+            background-color: var(--surface-container); border-radius: 16px; padding: 1.25rem;
+            border: 1px solid rgba(var(--au-rgb), 0.25); transition: all 0.2s;
+        }
+        .au-card:hover { border-color: rgba(var(--au-rgb), 0.5); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .au-color-swatch { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.2); }
+
+        /* AU entry modal */
+        .au-entry-card {
+            background-color: var(--surface-high); border-radius: 12px; padding: 1rem;
+            border: 1px solid var(--outline-var); display: flex; align-items: center; gap: 1rem;
+            transition: all 0.2s;
+        }
+        .au-entry-card:hover { border-color: rgba(var(--au-rgb), 0.5); }
+        .au-entry-card img { width: 64px; height: 80px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+
+        /* ── Stat cards ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--surface-container);
+            border: 1px solid var(--outline-var);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.06;
+            background: radial-gradient(circle at 80% 20%, var(--stat-color, var(--primary)) 0%, transparent 70%);
+        }
+        .stat-card .stat-icon {
+            font-size: 18px;
+            color: var(--stat-color, var(--primary));
+            margin-bottom: 2px;
+        }
+        .stat-card .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--on-surface);
+        }
+        .stat-card .stat-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--on-surface-var);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .stat-card .stat-sub {
+            font-size: 0.7rem;
+            color: var(--stat-color, var(--primary));
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .stat-card.skeleton .stat-value {
+            width: 48px; height: 28px;
+            background: var(--surface-high);
+            border-radius: 6px;
+            animation: skeleton-pulse 1.4s ease-in-out infinite;
+        }
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Scrollbars */
+        .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-track, #selector-grid::-webkit-scrollbar-track, #qp-content::-webkit-scrollbar-track { background: transparent; }
+        .modal-content::-webkit-scrollbar-thumb, #selector-grid::-webkit-scrollbar-thumb, #qp-content::-webkit-scrollbar-thumb { background-color: var(--outline-var); border-radius: 4px; }
+        /* ── Cache toast ── */
+        #cache-toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--surface-container-high, #2a2830); border: 1px solid var(--outline-var);
+            border-radius: 12px; padding: 10px 20px; z-index: 100;
+            display: flex; align-items: center; gap: 10px; font-size: .875rem; font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,.4);
+            transition: opacity .3s, transform .3s;
+            white-space: nowrap;
+        }
+        #cache-toast.hidden { opacity: 0; transform: translateX(-50%) translateY(12px); pointer-events: none; }
+        #cache-toast .toast-bar {
+            width: 120px; height: 4px; border-radius: 2px; background: var(--outline-var); overflow: hidden;
+        }
+        #cache-toast .toast-fill {
+            height: 100%; border-radius: 2px; background: var(--primary); transition: width .3s ease;
+        }
+
+        /* Aurora background */
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(circle at 12% 20%, rgba(var(--primary-rgb), 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 88% 70%, rgba(var(--primary-rgb), 0.07) 0%, transparent 45%);
+            z-index: -1; pointer-events: none;
+        }
+
+        /* Glass controls panel */
+        .controls-panel {
+            background: rgba(26, 25, 31, 0.75);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(146, 143, 153, 0.18);
+            border-radius: 20px; padding: 1.25rem; margin-bottom: 1.5rem;
+        }
+
+        /* Filter chips */
+        .chip {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 8px 16px; border-radius: 20px; flex-shrink: 0;
+            font-weight: 600; font-size: 0.8rem;
+            border: 1px solid var(--outline-var);
+            background-color: var(--surface-high);
+            color: var(--on-surface-var);
+            transition: all 0.2s ease-in-out; cursor: pointer; white-space: nowrap;
+        }
+        .chip:hover { background-color: rgba(255,255,255,0.08); color: var(--on-surface); }
+        .chip.selected { background-color: var(--primary-container); color: var(--on-primary-container); border-color: var(--primary); }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8 xl:px-12 2xl:px-20">
+
+<!-- LOGIN WALL — shown until authenticated -->
+<div id="login-wall" class="fixed inset-0 z-50 flex items-center justify-center" style="background:var(--bg);">
+    <div class="w-full max-w-sm p-8 rounded-2xl" style="background:var(--surface);border:1px solid var(--outline-var);">
+        <h1 class="text-3xl font-extrabold mb-1 text-center" style="color:var(--primary);">Admin Panel</h1>
+        <p class="text-center text-sm mb-6" style="color:var(--on-surface-var);">Sign in to continue</p>
+        <div class="flex flex-col gap-3">
+            <input type="email" id="wall-email" placeholder="Email" class="form-input" autocomplete="email">
+            <input type="password" id="wall-password" placeholder="Password" class="form-input" autocomplete="current-password">
+            <button id="wall-sign-in-btn" class="btn btn-primary w-full" onclick="wallSignIn()">
+                <span class="material-symbols-outlined">login</span> Sign In
+            </button>
+            <p id="wall-error" class="text-red-400 text-sm text-center hidden"></p>
+        </div>
+    </div>
+</div>
+
+<div id="app" class="max-w-screen-xl xl:max-w-screen-2xl mx-auto">
+    <header class="flex justify-between items-center mb-6 pb-4 border-b" style="border-color: var(--outline-var);">
+        <div>
+            <h1 class="text-4xl md:text-5xl font-extrabold" style="color: var(--primary); font-family: 'Metamorphous', serif;">Admin Panel</h1>
+            <p class="text-lg mt-1" style="color: var(--on-surface-var);">Manage Characters, Resonances & Alt. Universes</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="links.html" class="btn btn-secondary" title="Back" style="padding:10px;">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </a>
+            <button id="cache-btn" class="btn btn-secondary" title="Pre-cache all character images for fast loading across the site" style="padding:10px;">
+                <span id="cache-btn-icon" class="material-symbols-outlined">cloud_download</span>
+                <span id="cache-btn-text" style="display:none;">Cache Images</span>
+            </button>
+            <div id="auth-button-container">
+            <button id="auth-action-btn" class="btn btn-secondary" title="Sign In / Sign Out" style="padding:10px;">
+                <span id="auth-action-icon" class="material-symbols-outlined">login</span>
+                <span id="auth-action-text" style="display:none;">Sign In</span>
+            </button>
+        </div>
+        </div>
+    </header>
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid" id="stat-grid">
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--primary-rgb))">
+            <span class="material-symbols-outlined stat-icon">person</span>
+            <div class="stat-value" id="stat-chars">—</div>
+            <div class="stat-label">Characters</div>
+            <div class="stat-sub" id="stat-chars-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: #e0b3ff">
+            <span class="material-symbols-outlined stat-icon">merge_type</span>
+            <div class="stat-value" id="stat-fusions">—</div>
+            <div class="stat-label">Resonances</div>
+            <div class="stat-sub" id="stat-fusions-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--au-rgb))">
+            <span class="material-symbols-outlined stat-icon">auto_fix_high</span>
+            <div class="stat-value" id="stat-aus">—</div>
+            <div class="stat-label">Universes</div>
+            <div class="stat-sub" id="stat-aus-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--warning-rgb))">
+            <span class="material-symbols-outlined stat-icon">archive</span>
+            <div class="stat-value" id="stat-retired">—</div>
+            <div class="stat-label">Retired</div>
+            <div class="stat-sub" id="stat-retired-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: #7ec8ff">
+            <span class="material-symbols-outlined stat-icon">photo_library</span>
+            <div class="stat-value" id="stat-images">—</div>
+            <div class="stat-label">Images</div>
+            <div class="stat-sub" id="stat-images-sub"></div>
+        </div>
+        <div class="stat-card skeleton" style="--stat-color: rgb(var(--success-rgb))">
+            <span class="material-symbols-outlined stat-icon">content_paste</span>
+            <div class="stat-value" id="stat-evos">—</div>
+            <div class="stat-label">Full Sets</div>
+            <div class="stat-sub" id="stat-evos-sub"></div>
+        </div>
+    </div>
+
+    <!-- TAB BAR -->
+    <div class="flex gap-1 mb-0 border-b" style="border-color: var(--outline-var);">
+        <button class="tab-btn active" data-tab="characters">
+            <span class="material-symbols-outlined align-middle mr-1" style="font-size:18px;">people</span>Characters
+        </button>
+        <button class="tab-btn au-tab" data-tab="au">
+            <span class="material-symbols-outlined align-middle mr-1" style="font-size:18px;">auto_fix_high</span>Alt. Universes
+        </button>
+    </div>
+
+    <!-- ═══════════════════ CHARACTERS TAB ═══════════════════ -->
+    <div id="tab-characters" class="tab-content active pt-6">
+        <!-- Controls -->
+        <div class="controls-panel">
+            <!-- Row 1: Search + Sort inline -->
+            <div class="flex gap-2 mb-3">
+                <input type="text" id="search-input" placeholder="Search records..." class="form-input flex-grow">
+                <select id="sort-by" class="form-select flex-shrink-0" style="width:100px;padding-left:10px;padding-right:10px;font-size:0.82rem;">
+                    <option value="name_asc">A–Z</option>
+                    <option value="date_desc">Newest</option>
+                    <option value="date_asc">Oldest</option>
+                </select>
+            </div>
+
+            <!-- Row 2: Type chips + Irk + Reports — all in one scrollable row -->
+            <div class="flex items-center gap-2 mb-3" style="overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
+                <button class="chip selected" data-type-filter="all">All</button>
+                <button class="chip" data-type-filter="character">Character</button>
+                <button class="chip" data-type-filter="resonance">Resonance</button>
+                <button class="chip" data-type-filter="retired">Retired</button>
+                <span style="width:1px;height:18px;background:var(--outline-var);flex-shrink:0;margin:0 2px;"></span>
+                <select id="irk-filter" class="form-select flex-shrink-0" style="width:auto;min-width:90px;padding:6px 8px;font-size:0.8rem;">
+                    <option value="all">All Races</option>
+                </select>
+                <select id="view-filter" class="form-select flex-shrink-0" style="width:auto;padding:6px 8px;font-size:0.8rem;">
+                    <option value="all">Reports…</option>
+                    <option value="available">Available</option>
+                    <option value="preview-report">Preview</option>
+                    <option value="character-report">Characters</option>
+                </select>
+            </div>
+
+            <!-- Row 3: Action buttons — compact -->
+            <div class="flex gap-2 items-center">
+                <button id="toggle-form-btn" class="btn btn-primary">
+                    <span id="toggle-form-icon" class="material-symbols-outlined">add</span>
+                    <span id="toggle-form-text">Add</span>
+                </button>
+                <a href="rastgelekarakter.html" class="btn btn-secondary" title="Random Character" style="padding:10px;">
+                    <span class="material-symbols-outlined">casino</span>
+                </a>
+                <button class="btn btn-secondary" onclick="openExportModal()" title="Download Prompts">
+                    <span class="material-symbols-outlined">download</span>
+                    <span class="hidden sm:inline">Prompts</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="add-edit-form-container" class="rounded-2xl p-6 mb-8 hidden" style="background-color: var(--surface-container);">
+            <h2 id="form-title" class="text-2xl font-bold mb-4">Add New Record</h2>
+            <form id="add-edit-form" class="flex flex-col gap-3">
+                <div id="date-edit-container" class="hidden">
+                    <label class="block text-sm font-medium mb-1">Date Added</label>
+                    <input type="date" name="eklenmeTarihi" class="form-input">
+                </div>
+                <select id="item-type-select" class="form-select mb-2">
+                    <option value="character">Normal Character</option>
+                    <option value="resonance">Resonance</option>
+                </select>
+                <div>
+                    <input required type="text" name="id" id="id-input" placeholder="Record ID (must be unique)" class="form-input">
+                    <div id="id-rename-warning" class="hidden mt-2 px-3 py-2 rounded-xl text-sm font-medium flex items-start gap-2" style="background:rgba(255,183,77,0.12);border:1px solid rgba(255,183,77,0.35);color:var(--warning);">
+                        <span class="material-symbols-outlined flex-shrink-0" style="font-size:17px;margin-top:1px;">warning</span>
+                        <span>Renaming the ID will delete the old document and create a new one. All prompts and AU data will be migrated automatically. Make sure the new ID is unique.</span>
+                    </div>
+                </div>
+                <div>
+                    <input required type="text" name="name" id="name-input" placeholder="Name" class="form-input">
+                    <div id="duplicate-name-warning" class="hidden mt-2 px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2" style="background:rgba(255,183,77,0.1);border:1px solid rgba(255,183,77,0.3);color:var(--warning);">
+                        <span class="material-symbols-outlined flex-shrink-0" style="font-size:17px;">person_search</span>
+                        <span id="duplicate-name-text"></span>
+                    </div>
+                </div>
+                <input type="text" name="irk" id="irk-input" placeholder="Race (optional)" class="form-input" list="irk-datalist" autocomplete="off">
+                <datalist id="irk-datalist"></datalist>
+                <input type="text" name="role" id="role-input" placeholder="Role (e.g. elf archer)" class="form-input">
+
+                <div id="fusion-preview-image-field" class="hidden flex flex-col gap-3">
+                    <div id="preview-image-container">
+                        <label class="block text-sm font-medium mb-1">Main Fusion Image (PNG/JPG)</label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                            <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file" accept="image/*">
+                            <input type="text" name="previewUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                        </div>
+                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
+                    </div>
+                </div>
+
+                <div id="main-image-container">
+                    <label class="block text-sm font-medium mb-1">Main Image</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <select class="form-select sm:w-1/3 image-upload-method">
+                            <option value="imgbb">ImgBB Upload</option>
+                            <option value="vgy">VGY.ME Upload</option>
+                            <option value="link">Direct Link</option>
+                        </select>
+                        <input type="file" name="imageFile" class="form-input flex-grow image-upload-file" accept="image/*">
+                        <input type="text" name="imageUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                    </div>
+                    <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
+                </div>
+
+                <div id="character-fields" class="flex flex-col gap-3">
+                    <div id="awakening-image-container">
+                        <label class="block text-sm font-medium mb-1">Awakening Image <span class="text-xs text-gray-400">(Optional)</span></label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                            <input type="file" name="awakening_file" class="form-input flex-grow image-upload-file" accept="image/*">
+                            <input type="text" name="awakeningImageUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                        </div>
+                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
+                    </div>
+                </div>
+
+                <div id="resonance-fields" class="hidden flex flex-col gap-3">
+                    <div class="character-selector-wrapper">
+                        <label class="block text-sm font-medium mb-1">Partner 1</label>
+                        <div class="flex items-center gap-2"><div id="resonancePartners_0_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Not selected</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('resonancePartners_0')">Select</button><input type="hidden" name="resonancePartners_0"></div>
+                    </div>
+                    <div class="character-selector-wrapper">
+                        <label class="block text-sm font-medium mb-1">Partner 2</label>
+                        <div class="flex items-center gap-2"><div id="resonancePartners_1_display" class="form-input flex-grow bg-gray-700/50 italic text-gray-400">Not selected</div><button type="button" class="btn btn-secondary" onclick="openCharacterSelector('resonancePartners_1')">Select</button><input type="hidden" name="resonancePartners_1"></div>
+                    </div>
+                </div>
+                <div id="prompt-management-section" class="hidden">
+                    <h3 class="prompt-section-header">Prompt Management</h3>
+                    <div id="prompt-block-BASE" class="prompt-block hidden" data-level="BASE">
+                        <div class="prompt-label"><span>Base Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <input type="text" id="prompt-title-BASE" class="form-input mb-2 text-sm" placeholder="Prompt Title (Optional)">
+                        <textarea id="prompt-text-BASE" class="form-input text-sm font-mono" rows="4" placeholder="Enter prompt text here..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
+                        <input type="hidden" id="prompt-docId-BASE">
+                    </div>
+                    <div id="prompt-block-UYANIS" class="prompt-block hidden" data-level="UYANIS">
+                        <div class="prompt-label"><span class="text-amber-400">Awakening Prompt <span class="text-xs text-gray-400 text-normal">(Optional)</span></span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <input type="text" id="prompt-title-UYANIS" class="form-input mb-2 text-sm" placeholder="Awakening Prompt Title">
+                        <textarea id="prompt-text-UYANIS" class="form-input text-sm font-mono" rows="4" placeholder="Awakening prompt text..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
+                        <input type="hidden" id="prompt-docId-UYANIS">
+                    </div>
+                    <div id="prompt-block-REZONANS" class="prompt-block hidden" data-level="REZONANS">
+                        <div class="prompt-label"><span class="text-fuchsia-400">Resonance Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <input type="text" id="prompt-title-REZONANS" class="form-input mb-2 text-sm" placeholder="Resonance Title">
+                        <textarea id="prompt-text-REZONANS" class="form-input text-sm font-mono" rows="4" placeholder="Resonance prompt text..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
+                        <input type="hidden" id="prompt-docId-REZONANS">
+                    </div>
+                    <div id="prompt-block-EK" class="prompt-block" data-level="EK">
+                        <div class="prompt-label"><span>Extra / Alternative Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <input type="text" id="prompt-title-EK" class="form-input mb-2 text-sm" placeholder="Extra Prompt Title">
+                        <textarea id="prompt-text-EK" class="form-input text-sm font-mono" rows="4" placeholder="Extra prompt text..."></textarea>
+                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
+                        <input type="hidden" id="prompt-docId-EK">
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-4">
+                    <button type="button" id="cancel-button" class="btn btn-secondary flex-grow hidden">Cancel</button>
+                    <button type="submit" id="save-button" class="btn btn-primary flex-grow">Save</button>
+                </div>
+            </form>
+        </div>
+
+        <main>
+            <h2 class="text-2xl font-bold mb-4">Records</h2>
+            <div id="admin-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+            <p id="no-results" class="text-center text-lg mt-8 hidden" style="color: var(--on-surface-var);">No records found.</p>
+        </main>
+    </div>
+
+    <!-- ═══════════════════ AU TAB ═══════════════════ -->
+    <div id="tab-au" class="tab-content pt-6">
+        <!-- AU list & create -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left: AU definitions -->
+            <div class="lg:col-span-1">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold" style="color: var(--au);">
+                        <span class="material-symbols-outlined align-middle mr-1">auto_fix_high</span>Universes
+                    </h2>
+                    <button id="create-au-btn" class="btn btn-au text-sm py-2 px-4">
+                        <span class="material-symbols-outlined text-sm">add</span>Create
+                    </button>
+                </div>
+                <div id="au-definitions-list" class="flex flex-col gap-3">
+                    <p class="text-gray-400 text-sm">No universes yet.</p>
+                </div>
+            </div>
+
+            <!-- Right: AU entries for selected AU -->
+            <div class="lg:col-span-2">
+                <div id="au-entries-panel" class="hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold" id="au-entries-title" style="color: var(--au);">AU Entries</h2>
+                        <button id="add-au-entry-btn" class="btn btn-au text-sm py-2 px-4">
+                            <span class="material-symbols-outlined text-sm">add</span>Add Entry
+                        </button>
+                    </div>
+                    <p class="text-sm mb-4" style="color: var(--on-surface-var);" id="au-entries-subtitle"></p>
+                    <div id="au-entries-grid" class="flex flex-col gap-3"></div>
+                    <p id="au-entries-empty" class="text-gray-400 text-sm">No entries yet. Add characters or fusions to this universe.</p>
+                </div>
+                <div id="au-select-prompt" class="flex flex-col items-center justify-center h-64 text-center" style="color: var(--on-surface-var);">
+                    <span class="material-symbols-outlined text-5xl mb-3 opacity-40">auto_fix_high</span>
+                    <p class="text-lg font-medium">Select a universe to manage its entries</p>
+                    <p class="text-sm mt-1 opacity-60">Or create a new one to get started</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" class="modal-backdrop hidden" onclick="closeLoginModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeLoginModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 class="text-2xl font-bold mb-4 text-center">Admin Sign In</h2>
+        <div class="flex flex-col gap-3">
+            <input type="email" id="admin-email" placeholder="Email" class="form-input">
+            <input type="password" id="admin-password" placeholder="Password" class="form-input">
+            <button id="login-submit-btn" class="btn btn-success w-full mt-2">Sign In</button>
+            <p id="login-status" class="mt-2 text-center text-red-400 h-5"></p>
+        </div>
+    </div>
+</div>
+
+<!-- ENLARGED IMAGE -->
+<div id="enlarged-image-overlay" class="enlarged-image-container hidden" onclick="closeEnlargedImage()">
+    <button class="icon-button absolute top-4 right-4 text-white z-10" onclick="closeEnlargedImage(event)"><span class="material-symbols-outlined" style="font-size:36px;">close</span></button>
+    <img id="enlarged-image" src="" alt="" class="enlarged-image">
+</div>
+
+<!-- CHARACTER SELECTOR MODAL -->
+<div id="character-selector-modal" class="modal-backdrop hidden" onclick="closeCharacterSelector()">
+    <div class="modal-content !max-w-screen-sm" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeCharacterSelector()"><span class="material-symbols-outlined">close</span></button>
+        <h2 class="text-2xl font-bold mb-4">Select Character</h2>
+        <input type="text" id="selector-search-input" placeholder="Search characters..." class="form-input mb-4">
+        <div id="selector-grid" class="max-h-96 overflow-y-auto pr-2 flex flex-col gap-2"></div>
+    </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div id="report-modal" class="modal-backdrop hidden" onclick="closeReportModal()">
+    <div class="modal-content !max-w-screen-md report-modal-content" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeReportModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 id="report-title" class="text-2xl font-bold mb-4 text-center" style="color: var(--primary);">Report</h2>
+        <div id="report-content" class="max-h-[70vh] overflow-y-auto pr-2"></div>
+    </div>
+</div>
+
+<!-- QUICK PROMPT MODAL -->
+<div id="quick-prompt-modal" class="modal-backdrop hidden" onclick="closeQuickPromptModal()">
+    <div class="modal-content !max-w-screen-md" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeQuickPromptModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 class="text-2xl font-bold mb-1" style="color: var(--primary);">Prompts</h2>
+        <p id="qp-char-name" class="text-sm text-gray-400 mb-6 pb-2 border-b border-gray-700"></p>
+        <div id="qp-loading" class="text-center py-8 text-gray-400 hidden"><span class="material-symbols-outlined animate-spin text-3xl mb-2">sync</span><p>Loading...</p></div>
+        <div id="qp-content" class="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2"></div>
+        <div id="qp-empty" class="text-center py-8 text-gray-500 hidden"><span class="material-symbols-outlined text-4xl mb-2 opacity-50">content_paste_off</span><p>No prompts yet for this record.</p></div>
+    </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div id="export-modal" class="modal-backdrop hidden" onclick="closeExportModal()">
+    <div class="modal-content !max-w-sm" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeExportModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 class="text-xl font-bold mb-1" style="color: var(--primary);">Download Prompts</h2>
+        <p class="text-sm mb-5" style="color:var(--on-surface-var);">Exports as <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:4px;">.md</code> — AU prompts grouped under each character.</p>
+
+        <style>
+        .export-toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; border-radius: 14px; cursor: pointer;
+            border: 1.5px solid var(--outline-var);
+            background: var(--surface-high);
+            transition: border-color 0.2s, background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .export-toggle-row.disabled-row { opacity: 0.4; pointer-events: none; }
+        .export-toggle-row:active { background: rgba(255,255,255,0.06); }
+        .export-toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+        .export-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .export-toggle-slider {
+            position: absolute; inset: 0; border-radius: 99px;
+            background: var(--outline-var); transition: background 0.2s;
+        }
+        .export-toggle-slider::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: white; transition: transform 0.2s;
+        }
+        .export-toggle input:checked + .export-toggle-slider { background: var(--primary); }
+        .export-toggle input:checked + .export-toggle-slider::after { transform: translateX(20px); }
+        .export-toggle.au-toggle input:checked + .export-toggle-slider { background: var(--au); }
+        .export-section-label {
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em;
+            text-transform: uppercase; color: var(--on-surface-var);
+            padding: 0 2px; margin-bottom: 8px; margin-top: 4px;
+        }
+        #au-sub-options { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s; max-height: 200px; opacity: 1; }
+        #au-sub-options.collapsed { max-height: 0; opacity: 0; pointer-events: none; }
+        </style>
+
+        <div class="flex flex-col gap-2 mb-6">
+            <!-- Include Retired -->
+            <label class="export-toggle-row" for="export-include-retired">
+                <div class="flex flex-col gap-0.5 pr-3">
+                    <span class="text-sm font-semibold">Include Retired</span>
+                </div>
+                <div class="export-toggle">
+                    <input type="checkbox" id="export-include-retired">
+                    <div class="export-toggle-slider"></div>
+                </div>
+            </label>
+
+            <!-- AU section header -->
+            <div class="export-section-label" style="margin-top:8px;">Alt. Universe Prompts</div>
+
+            <!-- Include Unlocked AUs -->
+            <label class="export-toggle-row" for="export-include-au-unlocked" id="export-au-unlocked-row">
+                <div class="flex flex-col gap-0.5 pr-3">
+                    <span class="text-sm font-semibold" style="color:var(--au);">Include Unlocked AUs</span>
+                    <span class="text-xs" style="color:var(--on-surface-var);">Publicly visible universes</span>
+                </div>
+                <div class="export-toggle au-toggle">
+                    <input type="checkbox" id="export-include-au-unlocked" checked onchange="syncAuToggleState()">
+                    <div class="export-toggle-slider"></div>
+                </div>
+            </label>
+
+            <!-- Include Locked AUs — indented sub-option -->
+            <div id="au-sub-options" style="padding-left:12px;">
+                <label class="export-toggle-row" for="export-include-au-locked" style="border-color:rgba(100,220,180,0.25); background:rgba(100,220,180,0.04);">
+                    <div class="flex flex-col gap-0.5 pr-3">
+                        <span class="text-sm font-semibold" style="color:rgba(var(--au-rgb),0.7);">Include Locked AUs 🔒</span>
+                        <span class="text-xs" style="color:var(--on-surface-var);">Secret / hidden universes</span>
+                    </div>
+                    <div class="export-toggle au-toggle">
+                        <input type="checkbox" id="export-include-au-locked">
+                        <div class="export-toggle-slider"></div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <button id="export-action-btn" class="btn btn-primary w-full" onclick="downloadPrompts()">
+            <span class="material-symbols-outlined">download</span> Export as .md
+        </button>
+        <p id="export-status" class="text-center text-sm mt-2 text-gray-400"></p>
+        <div class="mt-4 pt-3 border-t" style="border-color:var(--outline-var);">
+            <button class="btn btn-secondary w-full text-sm py-2" onclick="closeExportModal();openBulkTitleModal()">
+                <span class="material-symbols-outlined" style="font-size:18px;">title</span>
+                Manage Prompt Titles
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- BULK TITLE DELETE MODAL -->
+<div id="bulk-title-modal" class="modal-backdrop hidden" onclick="closeBulkTitleModal()">
+    <div class="modal-content !max-w-screen-md" style="max-height:90vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeBulkTitleModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 class="text-2xl font-bold mb-1" style="color:var(--primary);">Prompt Titles</h2>
+        <p class="text-sm mb-4 pb-3 border-b" style="color:var(--on-surface-var);border-color:var(--outline-var);">
+            Select titles to delete. Prompt text is preserved — only the title field is cleared.
+        </p>
+        <div class="flex items-center gap-4 mb-4 flex-wrap">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="bulk-select-all" class="w-4 h-4 accent-[var(--primary)]">
+                <span class="text-sm font-semibold">Select All</span>
+            </label>
+            <button class="btn btn-danger text-sm py-2 px-4" onclick="deleteBulkTitles()">
+                <span class="material-symbols-outlined text-sm">delete_sweep</span>Delete Selected Titles
+            </button>
+            <span id="bulk-selected-count" class="text-xs text-gray-400"></span>
+        </div>
+        <div id="bulk-title-list" class="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
+            <p class="text-center text-gray-400 py-8">Loading…</p>
+        </div>
+        <p id="bulk-title-status" class="text-center text-sm mt-3 text-gray-400 min-h-[1.25rem]"></p>
+    </div>
+</div>
+
+<!-- AU CREATE/EDIT MODAL -->
+<div id="au-form-modal" class="modal-backdrop hidden" onclick="closeAuFormModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeAuFormModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 id="au-form-title" class="text-2xl font-bold mb-6" style="color: var(--au);">Create Universe</h2>
+        <div class="flex flex-col gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Universe ID <span class="text-xs text-gray-400">(unique, no spaces)</span></label>
+                <input type="text" id="au-id-input" placeholder="e.g. cyber, fantasy, steampunk" class="form-input" pattern="[a-zA-Z0-9_-]+">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Universe Name</label>
+                <input type="text" id="au-name-input" placeholder="e.g. Cyber Universe" class="form-input">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Description <span class="text-xs text-gray-400">(optional)</span></label>
+                <input type="text" id="au-desc-input" placeholder="Short description..." class="form-input">
+            </div>
+            <div class="flex gap-3">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium mb-2">Theme Color</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" id="au-color-input" value="#64dcb4" class="w-12 h-12 rounded-lg cursor-pointer border-0 bg-transparent">
+                        <span class="text-sm text-gray-400">Badges &amp; highlights</span>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-medium mb-2">Icon <span class="text-xs text-gray-400">(Material Symbol name)</span></label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="au-icon-input" placeholder="auto_fix_high" class="form-input">
+                        <span id="au-icon-preview" class="material-symbols-outlined text-2xl flex-shrink-0" style="color: var(--au);">auto_fix_high</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Shows on modal buttons. <a href="https://fonts.google.com/icons" target="_blank" class="underline" style="color:var(--primary);">Browse icons ↗</a></p>
+                </div>
+            </div>
+            <div>
+                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg" style="background-color: var(--surface-high); border: 1px solid var(--outline-var);">
+                    <input type="checkbox" id="au-locked-input" class="w-5 h-5 accent-[var(--primary)]">
+                    <div>
+                        <p class="text-sm font-medium flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">lock</span>
+                            Lock this Universe
+                        </p>
+                        <p class="text-xs text-gray-400">Hidden in gallery until secret unlock (5× title click + password)</p>
+                    </div>
+                </label>
+            </div>
+            <div class="flex gap-3 mt-2">
+                <button type="button" id="au-form-cancel" class="btn btn-secondary flex-grow">Cancel</button>
+                <button type="button" id="au-form-save" class="btn btn-au flex-grow">Save Universe</button>
+            </div>
+            <p id="au-form-status" class="text-center text-sm text-red-400 hidden"></p>
+        </div>
+    </div>
+</div>
+
+<!-- AU ENTRY MODAL -->
+<div id="au-entry-modal" class="modal-backdrop hidden" onclick="closeAuEntryModal()">
+    <div class="modal-content !max-w-screen-sm" style="max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+        <button class="icon-button absolute top-2 right-2" onclick="closeAuEntryModal()"><span class="material-symbols-outlined">close</span></button>
+        <h2 class="text-2xl font-bold mb-2" style="color: var(--au);">Add / Edit AU Entry</h2>
+        <p class="text-sm text-gray-400" id="au-entry-modal-subtitle"></p>
+
+        <!-- AU selector (shown when opened from character list) -->
+        <div id="au-entry-au-picker" class="hidden mb-4 mt-3">
+            <label class="block text-xs font-semibold mb-1" style="color:var(--on-surface-var);">Universe</label>
+            <select id="au-entry-au-select" class="form-select" style="font-size:0.875rem;padding:8px 10px;"></select>
+        </div>
+
+        <!-- Character/Fusion selector for new entry -->
+        <div id="au-entry-selector-section">
+            <label class="block text-sm font-medium mb-2">Select Character or Fusion</label>
+            <input type="text" id="au-entry-search" placeholder="Search..." class="form-input mb-3">
+            <div id="au-entry-selector-grid" class="max-h-48 overflow-y-auto flex flex-col gap-2 mb-4 pr-1"></div>
+            <p id="au-entry-selected-display" class="text-sm font-semibold mb-4 hidden" style="color: var(--au);">
+                <span class="material-symbols-outlined align-middle text-sm">check_circle</span>
+                <span id="au-entry-selected-name"></span> selected
+            </p>
+        </div>
+
+        <div id="au-entry-image-fields" class="flex flex-col gap-4">
+            <!-- 3★ image for characters -->
+            <div id="au-star3-field">
+                <label class="block text-sm font-medium mb-1">3★ AU Image <span class="text-xs text-gray-400">(character alternative)</span></label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                    <input type="file" class="form-input flex-grow image-upload-file" id="au-star3-file">
+                    <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-star3-link" placeholder="https://...">
+                </div>
+                <div id="au-star3-preview-wrap" class="mt-2 hidden">
+                    <img id="au-star3-preview" src="" alt="" class="h-24 object-contain rounded-lg border border-gray-700 cursor-zoom-in" onclick="enlargeImage(this.src)">
+                </div>
+            </div>
+            <!-- Fusion image -->
+            <div id="au-fusion-field" class="hidden">
+                <label class="block text-sm font-medium mb-1">Fusion AU Image <span class="text-xs text-gray-400">(replaces GIF preview)</span></label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
+                    <input type="file" class="form-input flex-grow image-upload-file" id="au-fusion-file">
+                    <input type="text" class="form-input flex-grow image-upload-link hidden" id="au-fusion-link" placeholder="https://...">
+                </div>
+                <div id="au-fusion-preview-wrap" class="mt-2 hidden">
+                    <img id="au-fusion-preview" src="" alt="" class="h-24 object-contain rounded-lg border border-gray-700 cursor-zoom-in" onclick="enlargeImage(this.src)">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Prompt <span class="text-xs text-gray-400">(optional)</span></label>
+                <textarea id="au-entry-prompt" class="form-input text-sm font-mono" rows="4" placeholder="AU-specific prompt..."></textarea>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button type="button" id="au-entry-cancel" class="btn btn-secondary flex-grow">Cancel</button>
+            <button type="button" id="au-entry-save" class="btn btn-au flex-grow">Save Entry</button>
+        </div>
+        <p id="au-entry-status" class="text-center text-sm mt-2 text-red-400 hidden"></p>
+    </div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyDAmMtRBGyNOb6R2ZjSZrhN5NnGA_p-L3w",
+    authDomain: "character-gallery-e23ee.firebaseapp.com",
+    projectId: "character-gallery-e23ee",
+    storageBucket: "character-gallery-e23ee.firebasestorage.app",
+    messagingSenderId: "737596044949",
+    appId: "1:737596044949:web:5ddf2bda9fcfce9f990d9c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let apiKeys = { imgbb_main_key: null, imgbb2_key: null, vgy_user_key: null };
+let characters = [], dismissed = [];
+let alternativeUniverses = [];
+let editingItemId = null, editingItemType = null, selectorTargetInput = null, existingPrompts = {};
+
+// AU state
+let selectedAuId = null;         // Currently viewed AU in AU tab
+let auEntryEditingCharId = null; // Char/fusion being edited in AU entry modal
+let auEntrySelectorCharId = null;// Selected char in AU entry modal (new entry)
+
+const viewState = { filter: 'all', sortBy: 'name_asc', typeFilter: 'all', irkFilter: 'all' };
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const dom = {};
+Object.assign(dom, {
+    appContainer:       document.getElementById('app'),
+    addEditFormContainer: document.getElementById('add-edit-form-container'),
+    toggleFormBtn:      document.getElementById('toggle-form-btn'),
+    toggleFormText:     document.getElementById('toggle-form-text'),
+    toggleFormIcon:     document.getElementById('toggle-form-icon'),
+    addEditForm:        document.getElementById('add-edit-form'),
+    itemTypeSelect:     document.getElementById('item-type-select'),
+    formTitle:          document.getElementById('form-title'),
+    saveButton:         document.getElementById('save-button'),
+    cancelButton:       document.getElementById('cancel-button'),
+    adminGrid:          document.getElementById('admin-grid'),
+    searchInput:        document.getElementById('search-input'),
+    noResults:          document.getElementById('no-results'),
+    enlargedImageOverlay: document.getElementById('enlarged-image-overlay'),
+    enlargedImage:      document.getElementById('enlarged-image'),
+    authActionBtn:      document.getElementById('auth-action-btn'),
+    authActionText:     document.getElementById('auth-action-text'),
+    authActionIcon:     document.getElementById('auth-action-icon'),
+    loginModal:         document.getElementById('login-modal'),
+    loginSubmitBtn:     document.getElementById('login-submit-btn'),
+    adminEmailInput:    document.getElementById('admin-email'),
+    adminPasswordInput: document.getElementById('admin-password'),
+    loginStatus:        document.getElementById('login-status'),
+    dateEditContainer:  document.getElementById('date-edit-container'),
+    characterSelectorModal: document.getElementById('character-selector-modal'),
+    selectorSearchInput: document.getElementById('selector-search-input'),
+    selectorGrid:       document.getElementById('selector-grid'),
+    viewFilter:         document.getElementById('view-filter'),
+    sortBy:             document.getElementById('sort-by'),
+    reportModal:        document.getElementById('report-modal'),
+    reportTitle:        document.getElementById('report-title'),
+    reportContent:      document.getElementById('report-content'),
+    promptSection:      document.getElementById('prompt-management-section'),
+    quickPromptModal:   document.getElementById('quick-prompt-modal'),
+    qpCharName:         document.getElementById('qp-char-name'),
+    qpContent:          document.getElementById('qp-content'),
+    qpLoading:          document.getElementById('qp-loading'),
+    qpEmpty:            document.getElementById('qp-empty'),
+    exportModal:        document.getElementById('export-modal'),
+    exportIncludeRetired: document.getElementById('export-include-retired'),
+    exportIncludeAu:    null, // replaced by export-include-au-unlocked / export-include-au-locked
+    exportStatus:       document.getElementById('export-status'),
+    exportBtn:          document.getElementById('export-action-btn'),
+    // AU tab
+    auDefinitionsList:  document.getElementById('au-definitions-list'),
+    auEntriesPanel:     document.getElementById('au-entries-panel'),
+    auEntriesTitle:     document.getElementById('au-entries-title'),
+    auEntriesSubtitle:  document.getElementById('au-entries-subtitle'),
+    auEntriesGrid:      document.getElementById('au-entries-grid'),
+    auEntriesEmpty:     document.getElementById('au-entries-empty'),
+    auSelectPrompt:     document.getElementById('au-select-prompt'),
+    auFormModal:        document.getElementById('au-form-modal'),
+    auFormTitle:        document.getElementById('au-form-title'),
+    auIdInput:          document.getElementById('au-id-input'),
+    auNameInput:        document.getElementById('au-name-input'),
+    auDescInput:        document.getElementById('au-desc-input'),
+    auColorInput:       document.getElementById('au-color-input'),
+    auFormStatus:       document.getElementById('au-form-status'),
+    auEntryModal:       document.getElementById('au-entry-modal'),
+    auEntryModalSubtitle: document.getElementById('au-entry-modal-subtitle'),
+    auEntrySearch:      document.getElementById('au-entry-search'),
+    auEntrySelectorGrid: document.getElementById('au-entry-selector-grid'),
+    auEntrySelectedDisplay: document.getElementById('au-entry-selected-display'),
+    auEntrySelectedName: document.getElementById('au-entry-selected-name'),
+    auEntrySelectorSection: document.getElementById('au-entry-selector-section'),
+    auEntryPrompt:      document.getElementById('au-entry-prompt'),
+    auEntryStatus:      document.getElementById('au-entry-status'),
+    auEntryAuPicker:    document.getElementById('au-entry-au-picker'),
+    auEntryAuSelect:    document.getElementById('au-entry-au-select'),
+});
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+const openLoginModal  = () => { dom.loginModal.classList.add('visible'); dom.loginModal.classList.remove('hidden'); };
+const closeLoginModal = () => { dom.loginModal.classList.remove('visible'); dom.loginModal.classList.add('hidden'); };
+const openReportModal  = () => { dom.reportModal.classList.add('visible'); dom.reportModal.classList.remove('hidden'); };
+const closeReportModal = () => {
+    dom.reportModal.classList.remove('visible'); dom.reportModal.classList.add('hidden');
+    dom.viewFilter.value = 'all'; viewState.filter = 'all';
+};
+
+const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
+    const colors = { 1: 'text-orange-400', 2: 'text-slate-400', 3: 'text-amber-400', 4: 'text-fuchsia-400' };
+    const icon = `<span class="material-symbols-outlined ${colors[isFusion ? 4 : Math.min(starCount||1, 4)]}" style="font-variation-settings:'FILL' 1;">${iconName}</span>`;
+    return `<div class="flex">${Array(starCount||1).fill(icon).join('')}</div>`;
+};
+
+const getDate = item => item.eklenmeTarihi ? item.eklenmeTarihi.toDate() : new Date(0);
+
+// ─── Image upload ─────────────────────────────────────────────────────────────
+const uploadImageToImgBB = async (file, apiKey) => {
+    if (!apiKey) { alert("ImgBB API key missing."); throw new Error("API key missing."); }
+    const fd = new FormData(); fd.append('image', file);
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(res.statusText);
+    const r = await res.json();
+    if (r.success) return r.data.url;
+    throw new Error(r.error.message);
+};
+const uploadImageToVGY = async (file, userKey) => {
+    if (!userKey) { alert("VGY.ME User Key missing."); throw new Error("API key missing."); }
+    const fd = new FormData(); fd.append('file', file); fd.append('userkey', userKey);
+    const res = await fetch('https://vgy.me/upload', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(res.statusText);
+    const r = await res.json();
+    if (!r.error) return r.image;
+    throw new Error(r.message);
+};
+const processImageInput = async (containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container || container.offsetParent === null) return null;
+    const method = container.querySelector('.image-upload-method').value;
+    const fileInput = container.querySelector('.image-upload-file');
+    const linkInput = container.querySelector('.image-upload-link');
+    if (method === 'link') return linkInput.value.trim() || null;
+    const file = fileInput?.files[0];
+    if (!file) return (editingItemId ? linkInput.value.trim() : null) || null;
+    try {
+        if (method === 'imgbb') {
+            return await uploadImageToImgBB(file, apiKeys.imgbb_main_key);
+        } else if (method === 'imgbb2') {
+            return await uploadImageToImgBB(file, apiKeys.imgbb2_key);
+        } else if (method === 'vgy') {
+            return await uploadImageToVGY(file, apiKeys.vgy_user_key);
+        }
+    } catch (e) { alert(`Image upload failed: ${e.message}`); return null; }
+    return null;
+};
+
+/** Process an arbitrary image input from a method select + file/link pair */
+const processRawImageInput = async (methodSelectEl, fileInputEl, linkInputEl) => {
+    const method = methodSelectEl.value;
+    if (method === 'link') return linkInputEl.value.trim() || null;
+    const file = fileInputEl?.files[0];
+    if (!file) return linkInputEl.value.trim() || null;
+    try {
+        if (method === 'imgbb') return await uploadImageToImgBB(file, apiKeys.imgbb_main_key);
+        if (method === 'imgbb2') return await uploadImageToImgBB(file, apiKeys.imgbb2_key);
+        if (method === 'vgy')   return await uploadImageToVGY(file, apiKeys.vgy_user_key);
+    } catch (e) { alert(`Image upload failed: ${e.message}`); return null; }
+    return null;
+};
+
+// ─── Character selector modal ─────────────────────────────────────────────────
+function openCharacterSelector(targetId) {
+    selectorTargetInput = targetId;
+    renderCharacterSelector('');
+    dom.characterSelectorModal.classList.add('visible'); dom.characterSelectorModal.classList.remove('hidden');
+    dom.selectorSearchInput.focus();
+}
+function closeCharacterSelector() {
+    dom.characterSelectorModal.classList.remove('visible'); dom.characterSelectorModal.classList.add('hidden');
+    dom.selectorSearchInput.value = ''; selectorTargetInput = null;
+}
+function renderCharacterSelector(q) {
+    dom.selectorGrid.innerHTML = '';
+    const filtered = characters.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+    if (!filtered.length) { dom.selectorGrid.innerHTML = `<p class="text-center text-gray-400">No characters found.</p>`; return; }
+    filtered.forEach(char => {
+        const item = document.createElement('div');
+        item.className = 'character-selector-item';
+        item.innerHTML = `<img src="${char.previewUrl || char.imageUrl}" alt="${char.name}" class="w-12 h-12 object-cover rounded-md"><div><p class="font-bold">${char.name}</p><p class="text-sm text-gray-400">ID: ${char.id}</p></div>`;
+        item.onclick = () => selectCharacter(char);
+        dom.selectorGrid.appendChild(item);
+    });
+}
+function selectCharacter(char) {
+    if (!selectorTargetInput) return;
+    const display = document.getElementById(`${selectorTargetInput}_display`);
+    const hidden  = document.querySelector(`[name="${selectorTargetInput}"]`);
+    if (display) { display.textContent = char.name; display.classList.remove('italic','text-gray-400'); }
+    if (hidden)  hidden.value = char.id;
+    closeCharacterSelector();
+}
+
+// ─── Admin panel render ────────────────────────────────────────────────────────
+function renderAdminPanel() {
+    if (viewState.filter === 'preview-report') {
+        const fusions = characters.filter(c => c.isFusion);
+        const hasPrev = fusions.filter(f => f.previewUrl);
+        const missPrev = fusions.filter(f => !f.previewUrl);
+        dom.reportTitle.textContent = 'Fusion Preview Report';
+        dom.reportContent.innerHTML = `
+            <p class="mb-6 text-gray-400">Active 4★ fusion preview image status.</p>
+            <h3><span class="text-green-400">✅ Has Preview (${hasPrev.length})</span></h3>
+            ${hasPrev.map(f=>`<p>- ${f.name}</p>`).join('') || '<p class="text-gray-400">None.</p>'}
+            <h3><span class="text-red-400">⚠️ Missing Preview (${missPrev.length})</span></h3>
+            ${missPrev.map(f=>`<p class="font-semibold">- ${f.name}</p>`).join('') || '<p class="text-gray-400">All fusions have previews!</p>'}`;
+        openReportModal(); return;
+    }
+    if (viewState.filter === 'character-report') {
+        const normals = characters.filter(c => !c.isFusion);
+        const fusions = characters.filter(c => c.isFusion);
+        const nameMap = new Map(characters.map(c => [c.id, c.name]));
+        const usage   = new Map(normals.map(c => [c.id, 0]));
+        fusions.forEach(f => (f.fusionPartners||[]).forEach(pid => usage.has(pid) && usage.set(pid, usage.get(pid)+1)));
+        dom.reportTitle.textContent = 'Character & Fusion Report';
+        dom.reportContent.innerHTML = `
+            <h3>Characters & Fusion Usage</h3>
+            ${[...normals].sort((a,b)=>a.name.localeCompare(b.name,'en')).map(c=>{const n=usage.get(c.id);return`<p><b>${c.name}</b> — <span style="color:${n>0?'var(--primary)':'inherit'}">${n>0?`Used in ${n} fusion(s)`:'Never fused'}</span></p>`;}).join('')}
+            <h3>Fusions & Partners</h3>
+            ${[...fusions].sort((a,b)=>a.name.localeCompare(b.name,'en')).map(f=>{const p1=nameMap.get(f.fusionPartners?.[0])||'<span class="text-red-400">Unknown</span>';const p2=nameMap.get(f.fusionPartners?.[1])||'<span class="text-red-400">Unknown</span>';return`<p><b>${f.name}</b> = ${p1} + ${p2}</p>`;}).join('')}`;
+        openReportModal(); return;
+    }
+
+    dom.adminGrid.innerHTML = '';
+    const q = dom.searchInput.value.toLowerCase().trim();
+    let items;
+    if (viewState.filter === 'available') {
+        const pIds = new Set(characters.filter(c=>c.isFusion).flatMap(f=>f.fusionPartners||[]));
+        items = characters.filter(c=>!c.isFusion && !pIds.has(c.id));
+    } else {
+        switch (viewState.typeFilter) {
+            case 'character': items = characters.filter(c => !c.isFusion); break;
+            case 'fusion':    items = characters.filter(c => c.isFusion);  break;
+            case 'retired':   items = [...dismissed]; break;
+            default:          items = [...characters, ...dismissed];
+        }
+    }
+    if (viewState.irkFilter !== 'all') {
+        items = items.filter(i => i.irk === viewState.irkFilter);
+    }
+    items.sort((a,b) => {
+        if (viewState.sortBy === 'date_desc') return getDate(b)-getDate(a);
+        if (viewState.sortBy === 'date_asc')  return getDate(a)-getDate(b);
+        return a.name.localeCompare(b.name,'en');
+    });
+    const filtered = items.filter(i => i.name.toLowerCase().includes(q) || i.id.toLowerCase().includes(q));
+    dom.noResults.classList.toggle('hidden', filtered.length > 0);
+
+    filtered.forEach(item => {
+        const card = document.createElement('div');
+        const isRetired = !!item.isRetired;
+        card.className = `item-card ${isRetired?'retired':''}`;
+        const isFusion = item.isFusion;
+        const nameClass = isFusion ? 'font-fantastical' : '';
+
+        let imgBlock;
+        if (isFusion) {
+            const url = item.previewUrl || '';
+            imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${url}')"><img src="${url}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy"></div>`;
+        } else {
+            const e2 = item.evolutions?.find(e=>e.star===2), e3 = item.evolutions?.find(e=>e.star===3);
+            const tc = "w-8 h-12 md:w-16 md:h-24 flex-shrink-0 rounded-md overflow-hidden bg-black/20 border border-white/10 flex items-center justify-center";
+            imgBlock = `<div class="flex items-center gap-3">
+                <div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} 1★" class="w-full h-full object-cover" loading="lazy"></div>
+                <div class="flex flex-col gap-1.5">
+                    <div class="${tc}" ${e2?`onclick="enlargeImage(event,'${e2.imageUrl}')"`:''}>${e2?`<img src="${e2.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy">`:'<span class="text-sm font-bold text-gray-500">2★</span>'}</div>
+                    <div class="${tc}" ${e3?`onclick="enlargeImage(event,'${e3.imageUrl}')"`:''}>${e3?`<img src="${e3.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy">`:'<span class="text-sm font-bold text-gray-500">3★</span>'}</div>
+                </div>
+            </div>`;
+        }
+
+        let actionBtns;
+        if (isRetired) {
+            actionBtns = `
+                <button class="icon-button retire-button" data-id="${item.id}" data-type="${item.type}" data-action="unretire" title="Restore"><span class="material-symbols-outlined">settings_backup_restore</span></button>
+                <button class="icon-button delete-button" data-id="${item.id}" data-type="${item.type}" title="Delete Permanently"><span class="material-symbols-outlined">delete_forever</span></button>`;
+        } else {
+            const type = isFusion ? 'fusion' : 'character';
+            actionBtns = `
+                <button class="icon-button view-prompt-button" data-id="${item.id}" data-name="${item.name}" title="View Prompts"><span class="material-symbols-outlined" style="color:var(--primary);">description</span></button>
+                <button class="icon-button au-button" data-id="${item.id}" data-type="${type}" title="Manage AU"><span class="material-symbols-outlined">auto_fix_high</span></button>
+                <button class="icon-button retire-button" data-id="${item.id}" data-type="${type}" data-action="retire" title="Retire"><span class="material-symbols-outlined">work_history</span></button>
+                <button class="icon-button edit-button" data-id="${item.id}" data-type="${type}" title="Edit"><span class="material-symbols-outlined">edit</span></button>
+                <button class="icon-button delete-button" data-id="${item.id}" data-type="${type}" title="Delete"><span class="material-symbols-outlined">delete</span></button>`;
+        }
+
+        const retiredBadge = isRetired ? `<p class="text-xs font-bold mt-1" style="color:var(--warning);">RETIRED</p>` : '';
+        const dateHtml = item.eklenmeTarihi ? `<p class="text-xs text-gray-400 mt-1">${getDate(item).toLocaleDateString('en-US')}</p>` : '<p class="text-xs text-red-400 mt-1">No date</p>';
+
+        // AU coverage badges (icon + colored circle)
+        const auDots = Object.keys(item.auData||{}).filter(auId => {
+            const def = alternativeUniverses.find(a=>a.id===auId);
+            const auEntry = item.auData[auId];
+            return def && (isFusion ? auEntry?.fusionImageUrl : auEntry?.star3ImageUrl);
+        }).map(auId => {
+            const def = alternativeUniverses.find(a=>a.id===auId);
+            const color = def?.color || '#64dcb4';
+            const icon  = def?.icon  || 'auto_fix_high';
+            return `<span title="${def?.name||auId}" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${color}22;border:2px solid ${color};flex-shrink:0;"><span class="material-symbols-outlined" style="font-size:14px;color:${color};line-height:1;">${icon}</span></span>`;
+        }).join('');
+        const auDotsHtml = auDots ? `<div class="flex gap-1.5 flex-wrap mt-1.5 items-center"><span class="text-xs text-gray-500 mr-0.5">AU:</span>${auDots}</div>` : '';
+
+        const irkBadge = item.irk ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style="background:rgba(var(--primary-rgb),0.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.3);">${item.irk}</span>` : '';
+
+        // Fusion mini-row (only for non-fusion characters) — scrollable name links
+        let fusionMiniRow = '';
+        if (!isFusion) {
+            const charFusions = characters.filter(c => c.isFusion && c.fusionPartners?.includes(item.id));
+            if (charFusions.length) {
+                const nameLinks = charFusions.map(f =>
+                    `<a href="#card-${f.id}" class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 transition-colors"
+                        style="background:rgba(224,179,255,0.12);color:#e0b3ff;border:1px solid rgba(224,179,255,0.25);"
+                        onclick="event.preventDefault();document.getElementById('card-${f.id}')?.scrollIntoView({behavior:'smooth',block:'center'});"
+                    ><span class="material-symbols-outlined" style="font-size:11px;vertical-align:-1px;">merge_type</span> ${f.name}</a>`
+                ).join('');
+                fusionMiniRow = `<div class="flex items-center gap-1 mt-1.5 flex-wrap">${nameLinks}</div>`;
+            }
+        }
+
+        // For fusion cards — show parent name links
+        let parentRow = '';
+        if (isFusion && item.fusionPartners?.length) {
+            const allPool = [...characters, ...dismissed];
+            const parentLinks = item.fusionPartners.map(pid => {
+                const p = allPool.find(c => c.id === pid);
+                if (!p) return `<span class="text-xs text-red-400">Unknown</span>`;
+                return `<a href="#card-${pid}" class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 transition-colors"
+                    style="background:rgba(var(--primary-rgb),0.1);color:var(--primary);border:1px solid rgba(var(--primary-rgb),0.25);"
+                    onclick="event.preventDefault();document.getElementById('card-${pid}')?.scrollIntoView({behavior:'smooth',block:'center'});"
+                >${p.name}</a>`;
+            }).join('<span class="text-xs text-gray-500">+</span>');
+            parentRow = `<div class="flex items-center gap-1 mt-1.5 flex-wrap">${parentLinks}</div>`;
+        }
+
+        card.id = `card-${item.id}`;
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${parentRow}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        dom.adminGrid.appendChild(card);
+    });
+    setupActionListeners();
+}
+
+function setupActionListeners() {
+    dom.adminGrid.querySelectorAll('.view-prompt-button, .edit-button, .delete-button, .retire-button, .au-button').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const { id, type, action, name } = btn.dataset;
+            if (btn.classList.contains('view-prompt-button')) openQuickPromptModal(id, name);
+            else if (btn.classList.contains('au-button'))    openAuEntryModalForChar(id);
+            else if (btn.classList.contains('edit-button'))  loadItemForEdit(id, type);
+            else if (btn.classList.contains('delete-button')) deleteItem(id, type);
+            else if (btn.classList.contains('retire-button')) {
+                action === 'retire' ? retireItem(id, type) : unretireItem(id, type);
+            }
+        });
+    });
+}
+
+// ─── AU Tab ───────────────────────────────────────────────────────────────────
+function renderAuDefinitions() {
+    dom.auDefinitionsList.innerHTML = '';
+    if (!alternativeUniverses.length) {
+        dom.auDefinitionsList.innerHTML = '<p class="text-gray-400 text-sm">No universes yet. Create one to get started.</p>';
+        return;
+    }
+    alternativeUniverses.forEach(au => {
+        const card = document.createElement('div');
+        card.className = `au-card cursor-pointer ${selectedAuId===au.id?'ring-2 ring-[var(--au)]':''}`;
+        card.innerHTML = `
+            <div class="flex items-center gap-3 mb-2">
+                <div class="au-color-swatch" style="background:${au.color||'#64dcb4'};"></div>
+                <span class="material-symbols-outlined" style="color:${au.color||'var(--au)'}; font-size:20px;">${au.icon||'auto_fix_high'}</span>
+                <h3 class="font-bold text-lg flex-grow" style="color:${au.color||'var(--au)'};">${au.name}</h3>
+                ${au.locked ? `<span class="material-symbols-outlined text-yellow-500 opacity-70" title="Locked — requires password" style="font-size:18px;">lock</span>` : ''}
+                <button class="icon-button au-edit-btn" data-id="${au.id}" title="Edit universe" style="width:32px;height:32px;">
+                    <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
+                </button>
+                <button class="icon-button delete-button au-delete-btn" data-id="${au.id}" title="Delete universe" style="width:32px;height:32px;">
+                    <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mb-1">ID: <code>${au.id}</code></p>
+            ${au.description ? `<p class="text-sm text-gray-300">${au.description}</p>` : ''}
+        `;
+        card.addEventListener('click', e => {
+            if (e.target.closest('.au-edit-btn') || e.target.closest('.au-delete-btn')) return;
+            selectedAuId = au.id;
+            renderAuDefinitions();
+            renderAuEntries();
+        });
+        card.querySelector('.au-edit-btn').addEventListener('click', e => { e.stopPropagation(); openAuFormModal(au); });
+        card.querySelector('.au-delete-btn').addEventListener('click', e => { e.stopPropagation(); deleteAu(au.id); });
+        dom.auDefinitionsList.appendChild(card);
+    });
+}
+
+function renderAuEntries() {
+    if (!selectedAuId) return;
+    const au = alternativeUniverses.find(a => a.id === selectedAuId);
+    if (!au) return;
+    dom.auSelectPrompt.classList.add('hidden');
+    dom.auEntriesPanel.classList.remove('hidden');
+    dom.auEntriesTitle.textContent = `${au.name} — Entries`;
+    dom.auEntriesTitle.style.color = au.color || 'var(--au)';
+    dom.auEntriesSubtitle.textContent = au.description || '';
+
+    // Collect all chars/fusions that have an entry for this AU
+    const all = [...characters, ...dismissed];
+    const entries = all.filter(c => {
+        const e = c.auData?.[selectedAuId];
+        if (!e) return false;
+        return c.isFusion ? !!e.fusionImageUrl : !!e.star3ImageUrl;
+    });
+
+    dom.auEntriesGrid.innerHTML = '';
+    if (!entries.length) {
+        dom.auEntriesEmpty.classList.remove('hidden');
+        return;
+    }
+    dom.auEntriesEmpty.classList.add('hidden');
+
+    entries.forEach(char => {
+        const entry = char.auData[selectedAuId];
+        const imgUrl = char.isFusion ? entry.fusionImageUrl : entry.star3ImageUrl;
+        const origUrl = char.isFusion ? (char.previewUrl || char.imageUrl) : (char.evolutions?.find(e=>e.star===3)?.imageUrl || char.imageUrl);
+        const card = document.createElement('div');
+        card.className = 'au-entry-card';
+        card.innerHTML = `
+            <div class="flex gap-2 flex-shrink-0">
+                <div class="flex flex-col items-center gap-1">
+                    <img src="${origUrl}" alt="Original" class="object-cover rounded cursor-zoom-in" style="width:56px;height:72px;" onclick="enlargeImage(event,'${origUrl}')">
+                    <span class="text-xs text-gray-500">Original</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                    <img src="${imgUrl}" alt="AU" class="object-cover rounded cursor-zoom-in" style="width:56px;height:72px;border:2px solid ${au.color||'var(--au)'};" onclick="enlargeImage(event,'${imgUrl}')">
+                    <span class="text-xs" style="color:${au.color||'var(--au)'}">AU</span>
+                </div>
+            </div>
+            <div class="flex-grow min-w-0">
+                <p class="font-bold truncate">${char.name}</p>
+                <p class="text-xs text-gray-400">ID: ${char.id}</p>
+                <p class="text-xs text-gray-400 mt-1">${char.isFusion ? 'Fusion' : '3★ Character'}</p>
+                ${entry.prompt ? `<p class="text-xs text-gray-500 mt-1 truncate">Prompt: ${entry.prompt.substring(0,60)}…</p>` : ''}
+            </div>
+            <div class="flex flex-col gap-1 flex-shrink-0">
+                <button class="icon-button au-button au-entry-edit" data-char-id="${char.id}" title="Edit entry" style="width:36px;height:36px;"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button>
+                <button class="icon-button delete-button au-entry-delete" data-char-id="${char.id}" title="Remove entry" style="width:36px;height:36px;"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button>
+            </div>
+        `;
+        card.querySelector('.au-entry-edit').addEventListener('click', () => openAuEntryModalForCharInAu(char.id));
+        card.querySelector('.au-entry-delete').addEventListener('click', () => deleteAuEntry(char.id));
+        dom.auEntriesGrid.appendChild(card);
+    });
+}
+
+// AU Definition CRUD
+let editingAuId = null;
+function openAuFormModal(auToEdit = null) {
+    editingAuId = auToEdit ? auToEdit.id : null;
+    dom.auFormTitle.textContent = auToEdit ? 'Edit Universe' : 'Create Universe';
+    dom.auIdInput.value   = auToEdit ? auToEdit.id : '';
+    dom.auIdInput.readOnly = !!auToEdit;
+    dom.auNameInput.value = auToEdit ? auToEdit.name : '';
+    dom.auDescInput.value = auToEdit ? (auToEdit.description||'') : '';
+    dom.auColorInput.value= auToEdit ? (auToEdit.color||'#64dcb4') : '#64dcb4';
+    const iconInput = document.getElementById('au-icon-input');
+    const iconPreview = document.getElementById('au-icon-preview');
+    iconInput.value = auToEdit ? (auToEdit.icon||'auto_fix_high') : 'auto_fix_high';
+    iconPreview.textContent = iconInput.value || 'auto_fix_high';
+    iconPreview.style.color = auToEdit?.color || '#64dcb4';
+    document.getElementById('au-locked-input').checked = !!(auToEdit?.locked);
+    dom.auFormStatus.classList.add('hidden');
+    dom.auFormModal.classList.add('visible'); dom.auFormModal.classList.remove('hidden');
+}
+function closeAuFormModal() {
+    dom.auFormModal.classList.remove('visible'); dom.auFormModal.classList.add('hidden');
+}
+async function saveAuDefinition() {
+    const id = dom.auIdInput.value.trim().replace(/\s+/g,'_');
+    const name = dom.auNameInput.value.trim();
+    if (!id || !name) { dom.auFormStatus.textContent = 'ID and Name are required.'; dom.auFormStatus.classList.remove('hidden'); return; }
+    if (!firebase.auth().currentUser) { alert("Sign in first."); return; }
+    // Check duplicate for new
+    if (!editingAuId && alternativeUniverses.find(a => a.id === id)) {
+        dom.auFormStatus.textContent = `ID "${id}" already exists.`; dom.auFormStatus.classList.remove('hidden'); return;
+    }
+    const iconVal = (document.getElementById('au-icon-input').value.trim() || 'auto_fix_high');
+    const data = { name, description: dom.auDescInput.value.trim(), color: dom.auColorInput.value, icon: iconVal, locked: document.getElementById('au-locked-input').checked };
+    try {
+        await db.collection('alternativeUniverses').doc(id).set(data, { merge: true });
+        await fetchItems();
+        closeAuFormModal();
+    } catch (e) { dom.auFormStatus.textContent = `Error: ${e.message}`; dom.auFormStatus.classList.remove('hidden'); }
+}
+async function deleteAu(auId) {
+    if (!confirm(`Delete universe "${auId}" and all its entries? This will remove AU images from all characters.`)) return;
+    if (!firebase.auth().currentUser) { alert("Sign in first."); return; }
+    try {
+        // Remove from AU definitions
+        await db.collection('alternativeUniverses').doc(auId).delete();
+        // Remove auData[auId] from all characters/fusions
+        const batch = db.batch();
+        const all = [...characters, ...dismissed];
+        all.forEach(c => {
+            if (c.auData?.[auId]) {
+                const coll = dismissed.find(d=>d.id===c.id) ? 'dismissed' : 'characters';
+                const ref = db.collection(coll).doc(c.id);
+                batch.update(ref, { [`auData.${auId}`]: firebase.firestore.FieldValue.delete() });
+            }
+        });
+        await batch.commit();
+        if (selectedAuId === auId) { selectedAuId = null; dom.auEntriesPanel.classList.add('hidden'); dom.auSelectPrompt.classList.remove('hidden'); }
+        await fetchItems();
+    } catch (e) { alert(`Error: ${e.message}`); }
+}
+
+// AU Entry CRUD
+function openAuEntryModalForChar(charId) {
+    // Called from character list AU button — no tab switch needed; show inline AU dropdown
+    if (!alternativeUniverses.length) { alert("Create a universe first."); return; }
+    if (!selectedAuId) selectedAuId = alternativeUniverses[0].id;
+
+    // Populate AU picker dropdown
+    dom.auEntryAuSelect.innerHTML = alternativeUniverses.map(au =>
+        `<option value="${au.id}" ${au.id === selectedAuId ? 'selected' : ''}>${au.name || au.id}</option>`
+    ).join('');
+    dom.auEntryAuPicker.classList.remove('hidden');
+    dom.auEntryAuSelect.onchange = () => {
+        selectedAuId = dom.auEntryAuSelect.value;
+        openAuEntryModalForCharInAu(charId);
+    };
+
+    openAuEntryModalForCharInAu(charId);
+}
+
+function openAuEntryModalForCharInAu(charId) {
+    auEntryEditingCharId = charId;
+    auEntrySelectorCharId = charId;
+    const char = [...characters, ...dismissed].find(c => c.id === charId);
+    if (!char) return;
+
+    // Update subtitle only when not using the inline picker
+    if (dom.auEntryAuPicker.classList.contains('hidden')) {
+        const au = alternativeUniverses.find(a => a.id === selectedAuId);
+        dom.auEntryModalSubtitle.textContent = `Universe: ${au?.name || selectedAuId}`;
+    } else {
+        dom.auEntryModalSubtitle.textContent = '';
+    }
+
+    // Hide selector, show selected
+    dom.auEntrySelectorSection.classList.add('hidden');
+    dom.auEntrySelectedDisplay.classList.remove('hidden');
+    dom.auEntrySelectedName.textContent = char.name;
+
+    // Show appropriate image field
+    document.getElementById('au-star3-field').classList.toggle('hidden', !!char.isFusion);
+    document.getElementById('au-fusion-field').classList.toggle('hidden', !char.isFusion);
+
+    // Pre-fill existing
+    const existing = char.auData?.[selectedAuId];
+    const star3Link = document.getElementById('au-star3-link');
+    const fusionLink = document.getElementById('au-fusion-link');
+    const star3Preview = document.getElementById('au-star3-preview');
+    const fusionPreview = document.getElementById('au-fusion-preview');
+
+    if (existing?.star3ImageUrl) {
+        star3Link.value = existing.star3ImageUrl;
+        star3Preview.src = existing.star3ImageUrl;
+        document.getElementById('au-star3-preview-wrap').classList.remove('hidden');
+        // set method to link
+        const sel = document.querySelector('#au-star3-field .image-upload-method');
+        sel.value = 'link';
+        document.getElementById('au-star3-file').classList.add('hidden');
+        star3Link.classList.remove('hidden');
+    } else {
+        star3Link.value = '';
+        document.getElementById('au-star3-preview-wrap').classList.add('hidden');
+    }
+    if (existing?.fusionImageUrl) {
+        fusionLink.value = existing.fusionImageUrl;
+        fusionPreview.src = existing.fusionImageUrl;
+        document.getElementById('au-fusion-preview-wrap').classList.remove('hidden');
+        const sel = document.querySelector('#au-fusion-field .image-upload-method');
+        sel.value = 'link';
+        document.getElementById('au-fusion-file').classList.add('hidden');
+        fusionLink.classList.remove('hidden');
+    } else {
+        fusionLink.value = '';
+        document.getElementById('au-fusion-preview-wrap').classList.add('hidden');
+    }
+    dom.auEntryPrompt.value = existing?.prompt || '';
+    dom.auEntryStatus.classList.add('hidden');
+    dom.auEntryModal.classList.add('visible'); dom.auEntryModal.classList.remove('hidden');
+}
+
+function openAuEntryModalNew() {
+    if (!selectedAuId) { alert("Select a universe first."); return; }
+    auEntryEditingCharId = null;
+    auEntrySelectorCharId = null;
+
+    dom.auEntryAuPicker.classList.add('hidden');
+    const au = alternativeUniverses.find(a => a.id === selectedAuId);
+    dom.auEntryModalSubtitle.textContent = `Universe: ${au?.name || selectedAuId}`;
+
+    dom.auEntrySelectorSection.classList.remove('hidden');
+    dom.auEntrySelectedDisplay.classList.add('hidden');
+    dom.auEntrySelectedName.textContent = '';
+    dom.auEntrySearch.value = '';
+    document.getElementById('au-star3-field').classList.remove('hidden');
+    document.getElementById('au-fusion-field').classList.add('hidden');
+    document.getElementById('au-star3-link').value = '';
+    document.getElementById('au-fusion-link').value = '';
+    document.getElementById('au-star3-preview-wrap').classList.add('hidden');
+    document.getElementById('au-fusion-preview-wrap').classList.add('hidden');
+    dom.auEntryPrompt.value = '';
+    dom.auEntryStatus.classList.add('hidden');
+    renderAuEntrySelector('');
+    dom.auEntryModal.classList.add('visible'); dom.auEntryModal.classList.remove('hidden');
+}
+
+function closeAuEntryModal() {
+    dom.auEntryModal.classList.remove('visible'); dom.auEntryModal.classList.add('hidden');
+    dom.auEntryAuPicker.classList.add('hidden');
+    if (dom.auEntryAuSelect) dom.auEntryAuSelect.onchange = null;
+    auEntryEditingCharId = null; auEntrySelectorCharId = null;
+}
+
+function renderAuEntrySelector(q) {
+    dom.auEntrySelectorGrid.innerHTML = '';
+    const pool = [...characters, ...dismissed].filter(c => !c.originalCharacterId); // no EEs
+    const filtered = pool.filter(c => c.name.toLowerCase().includes(q.toLowerCase()) || c.id.toLowerCase().includes(q.toLowerCase()));
+    filtered.forEach(char => {
+        const item = document.createElement('div');
+        item.className = `character-selector-item ${auEntrySelectorCharId===char.id?'ring-1 ring-[var(--au)]':''}`;
+        const imgUrl = char.isFusion ? (char.previewUrl||char.imageUrl) : char.imageUrl;
+        const typeLabel = char.isFusion ? '4★ Fusion' : `1★ Char`;
+        item.innerHTML = `<img src="${imgUrl}" alt="${char.name}" class="w-12 h-16 object-cover rounded-md flex-shrink-0">
+            <div><p class="font-bold">${char.name}</p><p class="text-xs text-gray-400">${typeLabel} · ID: ${char.id}</p></div>`;
+        item.onclick = () => {
+            auEntrySelectorCharId = char.id;
+            dom.auEntrySelectedName.textContent = char.name;
+            dom.auEntrySelectedDisplay.classList.remove('hidden');
+            // Show correct field
+            document.getElementById('au-star3-field').classList.toggle('hidden', !!char.isFusion);
+            document.getElementById('au-fusion-field').classList.toggle('hidden', !char.isFusion);
+            renderAuEntrySelector(dom.auEntrySearch.value);
+        };
+        dom.auEntrySelectorGrid.appendChild(item);
+    });
+}
+
+async function saveAuEntry() {
+    const charId = auEntrySelectorCharId || auEntryEditingCharId;
+    if (!charId) { dom.auEntryStatus.textContent = 'Select a character first.'; dom.auEntryStatus.classList.remove('hidden'); return; }
+    if (!selectedAuId) { dom.auEntryStatus.textContent = 'No universe selected.'; dom.auEntryStatus.classList.remove('hidden'); return; }
+    if (!firebase.auth().currentUser) { alert("Sign in first."); return; }
+
+    const char = [...characters, ...dismissed].find(c => c.id === charId);
+    if (!char) return;
+
+    dom.auEntryStatus.classList.add('hidden');
+    const saveBtn = document.getElementById('au-entry-save');
+    saveBtn.disabled = true; saveBtn.textContent = 'Uploading...';
+
+    try {
+        let star3Url = null, fusionUrl = null;
+
+        if (!char.isFusion) {
+            const methodSel = document.querySelector('#au-star3-field .image-upload-method');
+            const fileInput = document.getElementById('au-star3-file');
+            const linkInput = document.getElementById('au-star3-link');
+            star3Url = await processRawImageInput(methodSel, fileInput, linkInput);
+        } else {
+            const methodSel = document.querySelector('#au-fusion-field .image-upload-method');
+            const fileInput = document.getElementById('au-fusion-file');
+            const linkInput = document.getElementById('au-fusion-link');
+            fusionUrl = await processRawImageInput(methodSel, fileInput, linkInput);
+        }
+
+        const prompt = dom.auEntryPrompt.value.trim();
+        const entryData = {};
+        if (star3Url)  entryData.star3ImageUrl = star3Url;
+        if (fusionUrl) entryData.fusionImageUrl = fusionUrl;
+        if (prompt)    entryData.prompt = prompt;
+
+        if (!star3Url && !fusionUrl) throw new Error("Please provide an image URL or upload a file.");
+
+        const coll = dismissed.find(d=>d.id===charId) ? 'dismissed' : 'characters';
+        await db.collection(coll).doc(charId).set(
+            { auData: { [selectedAuId]: entryData } },
+            { merge: true }
+        );
+
+        await fetchItems();
+        closeAuEntryModal();
+    } catch (e) {
+        dom.auEntryStatus.textContent = `Error: ${e.message}`;
+        dom.auEntryStatus.classList.remove('hidden');
+    } finally {
+        saveBtn.disabled = false; saveBtn.textContent = 'Save Entry';
+    }
+}
+
+async function deleteAuEntry(charId) {
+    if (!confirm("Remove this character from the AU?")) return;
+    if (!firebase.auth().currentUser) { alert("Sign in first."); return; }
+    const coll = dismissed.find(d=>d.id===charId) ? 'dismissed' : 'characters';
+    try {
+        await db.collection(coll).doc(charId).update({ [`auData.${selectedAuId}`]: firebase.firestore.FieldValue.delete() });
+        await fetchItems();
+    } catch (e) { alert(`Error: ${e.message}`); }
+}
+
+// ─── Form (Characters/Fusions) ───────────────────────────────────────────────
+function toggleFormFields() {
+    const t = dom.itemTypeSelect.value;
+    dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', t !== 'character');
+    dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', t !== 'fusion');
+    dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'fusion');
+    dom.addEditForm.querySelector('#main-image-container > label').textContent =
+        t === 'fusion' ? 'Fusion GIF (Optional)' : 'Main Image';
+    dom.promptSection.classList.remove('hidden');
+    const show1 = t==='character', showF = t==='fusion';
+    ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));
+    document.getElementById('prompt-block-FUSION').classList.toggle('hidden', !showF);
+    document.getElementById('prompt-block-EK').classList.remove('hidden');
+}
+
+function setupImageInputTogglers() {
+    document.querySelectorAll('.image-upload-method').forEach(sel => {
+        if (sel.dataset.toggler) return;
+        sel.dataset.toggler = '1';
+        sel.addEventListener('change', e => {
+            const p = e.target.parentElement;
+            const f = p.querySelector('.image-upload-file');
+            const l = p.querySelector('.image-upload-link');
+            if (!f || !l) return;
+            const isLink = e.target.value === 'link';
+            f.classList.toggle('hidden', isLink);
+            l.classList.toggle('hidden', !isLink);
+            // reset preview when method changes
+            const container = p.closest('[id$="-container"], [id$="-field"]') || p.parentElement;
+            _hidePreview(container);
+        });
+    });
+
+    // Image preview: file input
+    document.querySelectorAll('.image-upload-file').forEach(inp => {
+        if (inp.dataset.preview) return;
+        inp.dataset.preview = '1';
+        inp.addEventListener('change', e => {
+            const file = e.target.files[0];
+            const container = inp.closest('[class*="flex flex-col"]')?.parentElement || inp.parentElement.parentElement;
+            if (!file) { _hidePreview(container); return; }
+            const reader = new FileReader();
+            reader.onload = ev => _showPreview(container, ev.target.result);
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Image preview: link input (debounced)
+    document.querySelectorAll('.image-upload-link').forEach(inp => {
+        if (inp.dataset.preview) return;
+        inp.dataset.preview = '1';
+        let t;
+        inp.addEventListener('input', e => {
+            clearTimeout(t);
+            const url = e.target.value.trim();
+            const container = inp.closest('[class*="flex flex-col"]')?.parentElement || inp.parentElement.parentElement;
+            if (!url) { _hidePreview(container); return; }
+            t = setTimeout(() => _showPreview(container, url), 600);
+        });
+    });
+}
+
+function _showPreview(container, src) {
+    const wrap = container?.querySelector?.('.img-preview');
+    if (!wrap) return;
+    const img = wrap.querySelector('img');
+    img.onerror = () => { wrap.classList.add('hidden'); };
+    img.onload  = () => { wrap.classList.remove('hidden'); };
+    img.src = src;
+}
+function _hidePreview(container) {
+    const wrap = container?.querySelector?.('.img-preview');
+    if (wrap) { wrap.classList.add('hidden'); const img = wrap.querySelector('img'); if (img) img.src = ''; }
+}
+
+// ── Prompt char counters ──────────────────────────────────────────────────────
+function setupPromptCharCounters() {
+    document.querySelectorAll('.prompt-block').forEach(block => {
+        const ta = block.querySelector('textarea');
+        const counter = block.querySelector('.prompt-char-count');
+        if (!ta || !counter || ta.dataset.counter) return;
+        ta.dataset.counter = '1';
+        const update = () => {
+            const n = ta.value.length;
+            counter.textContent = n > 0 ? `${n.toLocaleString()} chars` : '';
+        };
+        ta.addEventListener('input', update);
+        update();
+    });
+}
+
+// ── ID rename warning ─────────────────────────────────────────────────────────
+function setupIdRenameWarning() {
+    const idInput = document.getElementById('id-input');
+    const warning = document.getElementById('id-rename-warning');
+    if (!idInput || !warning || idInput.dataset.renameWatcher) return;
+    idInput.dataset.renameWatcher = '1';
+    idInput.addEventListener('input', () => {
+        if (!editingItemId) return;
+        const changed = idInput.value.trim() !== editingItemId;
+        warning.classList.toggle('hidden', !changed);
+    });
+}
+
+// ── Duplicate name warning ────────────────────────────────────────────────────
+function setupDuplicateNameWarning() {
+    const nameInput = document.getElementById('name-input');
+    const warning   = document.getElementById('duplicate-name-warning');
+    const warningTx = document.getElementById('duplicate-name-text');
+    if (!nameInput || !warning || nameInput.dataset.dupWatcher) return;
+    nameInput.dataset.dupWatcher = '1';
+    nameInput.addEventListener('blur', () => {
+        const val = nameInput.value.trim().toLowerCase();
+        if (!val) { warning.classList.add('hidden'); return; }
+        const all = [...characters, ...dismissed];
+        const matches = all.filter(c => {
+            if (editingItemId && c.id === editingItemId) return false;
+            return c.name.toLowerCase().includes(val) || val.includes(c.name.toLowerCase());
+        });
+        if (matches.length) {
+            warningTx.textContent = `Similar name exists: ${matches.map(c=>c.name).slice(0,3).join(', ')}`;
+            warning.classList.remove('hidden');
+        } else {
+            warning.classList.add('hidden');
+        }
+    });
+    nameInput.addEventListener('focus', () => warning.classList.add('hidden'));
+}
+
+function resetForm() {
+    dom.addEditForm.reset();
+    editingItemId = null; editingItemType = null; existingPrompts = {};
+    dom.formTitle.textContent = "Add New Record";
+    dom.itemTypeSelect.disabled = false;
+    dom.addEditForm.elements['id'].readOnly = false;
+    dom.saveButton.textContent = "Save";
+    dom.cancelButton.classList.add('hidden');
+    dom.saveButton.disabled = false;
+    document.querySelectorAll('.image-upload-method').forEach(sel => {
+        sel.value = 'imgbb';
+        const p = sel.parentElement;
+        p.querySelector('.image-upload-file')?.classList.remove('hidden');
+        if(p.querySelector('.image-upload-file')) p.querySelector('.image-upload-file').value = '';
+        p.querySelector('.image-upload-link')?.classList.add('hidden');
+        if(p.querySelector('.image-upload-link')) p.querySelector('.image-upload-link').value = '';
+    });
+    // Clear image previews
+    document.querySelectorAll('.img-preview').forEach(w => { w.classList.add('hidden'); const img = w.querySelector('img'); if(img) img.src=''; });
+    ['1','2','3','FUSION','EK'].forEach(l => {
+        const t = document.getElementById(`prompt-title-${l}`);
+        const tx = document.getElementById(`prompt-text-${l}`);
+        const d = document.getElementById(`prompt-docId-${l}`);
+        if(t) t.value=''; if(tx) tx.value=''; if(d) d.value='';
+        document.querySelector(`#prompt-block-${l} .saved-indicator`)?.classList.remove('active');
+        document.querySelector(`#prompt-block-${l} .prompt-char-count`)?.textContent && (document.querySelector(`#prompt-block-${l} .prompt-char-count`).textContent = '');
+    });
+    // Hide warnings
+    document.getElementById('id-rename-warning')?.classList.add('hidden');
+    document.getElementById('duplicate-name-warning')?.classList.add('hidden');
+    dom.dateEditContainer.classList.add('hidden');
+    ['fusionPartners_0','fusionPartners_1','originalCharacterId'].forEach(id => {
+        const dp = document.getElementById(`${id}_display`);
+        const ip = document.querySelector(`[name="${id}"]`);
+        if(dp) { dp.textContent = 'Not selected'; dp.classList.add('italic','text-gray-400'); }
+        if(ip) ip.value = '';
+    });
+    toggleFormFields();
+}
+
+const loadItemForEdit = async (itemId, itemType) => {
+    resetForm();
+    const item = [...characters, ...dismissed].find(i => i.id === itemId);
+    if (!item) return alert("Record not found.");
+    editingItemId = itemId; editingItemType = itemType;
+    dom.formTitle.textContent = "Edit Record";
+    dom.itemTypeSelect.value = itemType; dom.itemTypeSelect.disabled = true;
+    const form = dom.addEditForm;
+    form.elements['id'].value = itemId; form.elements['id'].readOnly = false;
+    // Show rename warning listener (reset watcher so it re-attaches cleanly)
+    const idInp = document.getElementById('id-input');
+    if (idInp) { delete idInp.dataset.renameWatcher; }
+    setupIdRenameWarning();
+    form.elements['name'].value = item.name || '';
+    form.elements['irk'].value = item.irk || '';
+    if (item.eklenmeTarihi) {
+        const d = item.eklenmeTarihi.toDate();
+        form.elements['eklenmeTarihi'].value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    dom.dateEditContainer.classList.remove('hidden');
+
+    const setupImg = (cId, url) => {
+        if (!url) return;
+        const c = document.getElementById(cId); if (!c) return;
+        const s = c.querySelector('.image-upload-method');
+        const f = c.querySelector('.image-upload-file');
+        const l = c.querySelector('.image-upload-link');
+        s.value='link'; f?.classList.add('hidden'); l?.classList.remove('hidden'); if(l) l.value=url;
+        _showPreview(c, url);
+    };
+    setupImg('main-image-container', item.imageUrl);
+    if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
+    if (itemType==='fusion') setupImg('preview-image-container', item.previewUrl);
+
+    const updateSel = (inputId, charId) => {
+        const ch = [...characters, ...dismissed].find(c=>c.id===charId);
+        if (!ch) return;
+        const dp = document.getElementById(`${inputId}_display`);
+        const ip = document.querySelector(`[name="${inputId}"]`);
+        if(dp) { dp.textContent=ch.name; dp.classList.remove('italic','text-gray-400'); }
+        if(ip) ip.value=ch.id;
+    };
+    if (itemType==='fusion') { updateSel('fusionPartners_0', item.fusionPartners?.[0]); updateSel('fusionPartners_1', item.fusionPartners?.[1]); }
+
+    try {
+        const snap = await db.collection('promptLibrary').where('charId','==',itemId).get();
+        snap.forEach(doc => {
+            const d = doc.data();
+            const suffix = d.charStar === 'FÜZYON' ? 'FUSION' : d.charStar;
+            const t = document.getElementById(`prompt-title-${suffix}`);
+            const tx = document.getElementById(`prompt-text-${suffix}`);
+            const id = document.getElementById(`prompt-docId-${suffix}`);
+            const ind = document.querySelector(`#prompt-block-${suffix} .saved-indicator`);
+            if(t && tx) { t.value=d.title||''; tx.value=d.prompt||''; }
+            if(id) id.value=doc.id;
+            if(ind) ind.classList.add('active');
+            existingPrompts[suffix]=d;
+        });
+    } catch(e) { console.warn("Prompt load error:", e); }
+
+    toggleFormFields();
+    // Refresh listeners for newly shown elements
+    setupImageInputTogglers();
+    setupPromptCharCounters();
+    // Trigger char counters for loaded prompt text
+    ['1','2','3','FUSION','EK'].forEach(l => {
+        const tx = document.getElementById(`prompt-text-${l}`);
+        const counter = document.querySelector(`#prompt-block-${l} .prompt-char-count`);
+        if (tx && counter) counter.textContent = tx.value.length > 0 ? `${tx.value.length.toLocaleString()} chars` : '';
+    });
+    dom.cancelButton.classList.remove('hidden');
+    dom.saveButton.textContent = 'Update';
+    dom.addEditFormContainer.classList.remove('hidden');
+    dom.toggleFormText.textContent = 'Close Form'; dom.toggleFormIcon.textContent = 'close';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    const form = dom.addEditForm;
+    const newId = form.elements['id'].value.trim();
+    if (!newId || !firebase.auth().currentUser) return alert(!newId ? "ID cannot be empty." : "Please sign in.");
+    const isEditing = !!editingItemId;
+    const isRename  = isEditing && newId !== editingItemId;
+    dom.saveButton.textContent = 'Uploading...'; dom.saveButton.disabled = true;
+    try {
+        const type = dom.itemTypeSelect.value;
+        const irkVal = form.elements['irk'].value.trim();
+        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null };
+        const coll = 'characters';
+        if (isEditing) {
+            const dv = form.elements['eklenmeTarihi'].value;
+            if (dv) { const [y,m,d]=dv.split('-').map(Number); data.eklenmeTarihi=firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d)); }
+        } else { data.eklenmeTarihi = firebase.firestore.FieldValue.serverTimestamp(); }
+
+        if (type==='character') {
+            data.isFusion=false; data.star=1;
+            const [u1,u2,u3] = await Promise.all([processImageInput('main-image-container'),processImageInput('evo1-image-container'),processImageInput('evo2-image-container')]);
+            if (!u1&&!isEditing) throw new Error("Main image is required.");
+            // On rename, carry over existing images if no new one provided
+            if (isRename) {
+                const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
+                data.imageUrl = u1 || old?.imageUrl || null;
+                data.evolutions = [];
+                const eu2 = u2 || old?.evolutions?.find(e=>e.star===2)?.imageUrl;
+                const eu3 = u3 || old?.evolutions?.find(e=>e.star===3)?.imageUrl;
+                if(eu2) data.evolutions.push({star:2,imageUrl:eu2});
+                if(eu3) data.evolutions.push({star:3,imageUrl:eu3});
+                // Carry over auData
+                if (old?.auData) data.auData = old.auData;
+            } else {
+                data.imageUrl=u1; data.evolutions=[];
+                if(u2) data.evolutions.push({star:2,imageUrl:u2});
+                if(u3) data.evolutions.push({star:3,imageUrl:u3});
+            }
+        } else if (type==='fusion') {
+            data.isFusion=true; data.star=4;
+            data.fusionPartners=[form.elements['fusionPartners_0'].value.trim(),form.elements['fusionPartners_1'].value.trim()].filter(Boolean);
+            const [u1,u2] = await Promise.all([processImageInput('main-image-container'),processImageInput('preview-image-container')]);
+            if (isRename) {
+                const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
+                data.imageUrl  = u1 || old?.imageUrl  || null;
+                data.previewUrl= u2 || old?.previewUrl || null;
+                if (old?.auData) data.auData = old.auData;
+            } else {
+                if (!u2&&!isEditing) throw new Error("Fusion preview image is required.");
+                data.imageUrl=u1||null; data.previewUrl=u2||null;
+            }
+        }
+
+        const batch = db.batch();
+
+        // If renaming: delete old doc first
+        if (isRename) {
+            batch.delete(db.collection(coll).doc(editingItemId));
+        }
+
+        batch.set(db.collection(coll).doc(newId), data, {merge: !isRename});
+
+        if (type==='character'||type==='fusion') {
+            const levels = type==='character' ? ['1','2','3','EK'] : ['FUSION','EK'];
+            levels.forEach(suffix => {
+                const dbKey = suffix==='FUSION' ? 'FÜZYON' : suffix;
+                const tv  = document.getElementById(`prompt-title-${suffix}`)?.value.trim();
+                const txv = document.getElementById(`prompt-text-${suffix}`)?.value.trim();
+                const docId = document.getElementById(`prompt-docId-${suffix}`)?.value;
+                if (txv) {
+                    // On rename: always create new prompt doc with new charId
+                    const ref = (isRename || !docId) ? db.collection('promptLibrary').doc() : db.collection('promptLibrary').doc(docId);
+                    batch.set(ref, { charId: newId, charName: data.name, charStar: dbKey, title: tv||'', prompt: txv,
+                        createdAt: (isRename || !docId) ? firebase.firestore.FieldValue.serverTimestamp() : (existingPrompts[suffix]?.createdAt || firebase.firestore.FieldValue.serverTimestamp())
+                    }, {merge: true});
+                    // On rename: delete old prompt doc
+                    if (isRename && docId) batch.delete(db.collection('promptLibrary').doc(docId));
+                } else if (docId) {
+                    batch.delete(db.collection('promptLibrary').doc(docId));
+                }
+            });
+        }
+        await batch.commit();
+        alert(`Record ${isEditing ? (isRename ? 'renamed & updated' : 'updated') : 'saved'} successfully!`);
+        await fetchItems();
+        dom.addEditFormContainer.classList.add('hidden');
+        dom.toggleFormText.textContent='Add New'; dom.toggleFormIcon.textContent='add';
+        resetForm();
+    } catch(e) { console.error(e); alert(`Error: ${e.message}`);
+    } finally { dom.saveButton.textContent=isEditing?'Update':'Save'; dom.saveButton.disabled=false; }
+};
+
+const deleteItem = async (itemId, itemType) => {
+    const isRetired = dismissed.some(i=>i.id===itemId);
+    const coll = isRetired?'dismissed':'characters';
+    const item = [...characters,...dismissed].find(i=>i.id===itemId);
+    if (!item||!confirm(`${isRetired?'Permanently delete':'Delete'} "${item.name}"?`)) return;
+    if (!firebase.auth().currentUser) return alert("Sign in first.");
+    try { await db.collection(coll).doc(itemId).delete(); alert("Deleted."); await fetchItems(); }
+    catch(e) { alert(`Delete error: ${e.message}`); }
+};
+const retireItem = async (itemId, itemType) => {
+    if (!confirm("Retire this record?")) return;
+    if (!firebase.auth().currentUser) return alert("Sign in first.");
+    const coll = 'characters';
+    const doc = await db.collection(coll).doc(itemId).get();
+    if (!doc.exists) return alert("Record not found.");
+    try {
+        await db.collection('dismissed').doc(itemId).set({...doc.data(),type:itemType});
+        await db.collection(coll).doc(itemId).delete();
+        alert("Retired."); await fetchItems();
+    } catch(e) { alert(`Error: ${e.message}`); }
+};
+const unretireItem = async (itemId) => {
+    if (!confirm("Restore this record?")) return;
+    if (!firebase.auth().currentUser) return alert("Sign in first.");
+    const doc = await db.collection('dismissed').doc(itemId).get();
+    if (!doc.exists) return alert("Record not found.");
+    let d = doc.data();
+    const origType = d.type||'character';
+    const dest = 'characters';
+    delete d.type;
+    try {
+        await db.collection(dest).doc(itemId).set(d);
+        await db.collection('dismissed').doc(itemId).delete();
+        alert("Restored."); await fetchItems();
+    } catch(e) { alert(`Error: ${e.message}`); }
+};
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+// ─── Login wall ───────────────────────────────────────────────────────────────
+async function wallSignIn() {
+    const email  = document.getElementById('wall-email').value.trim();
+    const pw     = document.getElementById('wall-password').value;
+    const errEl  = document.getElementById('wall-error');
+    const btn    = document.getElementById('wall-sign-in-btn');
+    errEl.classList.add('hidden');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try {
+        await firebase.auth().signInWithEmailAndPassword(email, pw);
+        // updateAuthUI will handle hiding the wall
+    } catch(e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined">login</span> Sign In';
+    }
+}
+// Allow Enter key on wall inputs
+document.addEventListener('DOMContentLoaded', () => {
+    ['wall-email','wall-password'].forEach(id => {
+        document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') wallSignIn(); });
+    });
+});
+
+function updateAuthUI(user) {
+    const wall = document.getElementById('login-wall');
+    const lockEls = [dom.appContainer.querySelector('main'), dom.toggleFormBtn?.closest('div'), dom.addEditFormContainer, dom.viewFilter, dom.sortBy, dom.searchInput];
+    if (user) {
+        // Hide login wall, show app
+        if (wall) wall.style.display = 'none';
+        dom.authActionText.textContent = 'Sign Out';
+        dom.authActionIcon.textContent = 'logout';
+        dom.authActionBtn.onclick = () => { if(confirm('Sign out?')) firebase.auth().signOut(); };
+        closeLoginModal();
+        fetchApiKeys().then(ok => lockEls.forEach(el => { if(el){el.style.opacity=ok?'1':'0.5';el.style.pointerEvents=ok?'auto':'none';}}));
+        fetchItems();
+    } else {
+        // Show login wall, block app
+        if (wall) { wall.style.display = 'flex'; }
+        dom.authActionText.textContent = 'Sign In';
+        dom.authActionIcon.textContent = 'login';
+        dom.authActionBtn.onclick = openLoginModal;
+        apiKeys = { imgbb_main_key:null, imgbb2_key:null, vgy_user_key:null };
+        lockEls.forEach(el => { if(el){el.style.opacity='0.5';el.style.pointerEvents='none';}});
+        dom.addEditFormContainer.classList.add('hidden');
+        dom.toggleFormText.textContent='Add New'; dom.toggleFormIcon.textContent='add';
+    }
+}
+const fetchApiKeys = async () => {
+    try {
+        const doc = await db.collection('settings').doc('apiKeys').get();
+        if (doc.exists) { const d=doc.data(); apiKeys.imgbb_main_key=d.imgbb_main_key||null; apiKeys.imgbb2_key=d.imgbb2_key||null; apiKeys.vgy_user_key=d.vgy_user_key||null; return true; }
+        alert("Admin API keys not found."); return false;
+    } catch(e) { alert("Failed to load API keys."); return false; }
+};
+
+// ─── Irk filter populate ──────────────────────────────────────────────────────
+function populateIrkFilter() {
+    const irkSet = new Set();
+    [...characters, ...dismissed].forEach(c => { if (c.irk) irkSet.add(c.irk); });
+    const sel = document.getElementById('irk-filter');
+    const current = sel.value;
+    sel.innerHTML = '<option value="all">All Races</option>';
+    [...irkSet].sort((a, b) => a.localeCompare(b, 'tr')).forEach(irk => {
+        const opt = document.createElement('option');
+        opt.value = irk; opt.textContent = irk;
+        sel.appendChild(opt);
+    });
+    if (current !== 'all' && [...irkSet].includes(current)) sel.value = current;
+    // Populate datalist for race combobox in form
+    const dl = document.getElementById('irk-datalist');
+    if (dl) {
+        dl.innerHTML = '';
+        [...irkSet].sort((a, b) => a.localeCompare(b, 'en')).forEach(irk => {
+            const opt = document.createElement('option');
+            opt.value = irk;
+            dl.appendChild(opt);
+        });
+    }
+}
+
+// ─── Stat Cards ───────────────────────────────────────────────────────────────
+function renderStats() {
+    const normals  = characters.filter(c => !c.isFusion);
+    const fusions  = characters.filter(c => c.isFusion);
+    const auCount  = alternativeUniverses.length;
+    const retCount = dismissed.length;
+
+    // Characters with all 3 evolutions = "full set"
+    const fullSets = normals.filter(c => c.imageUrl && c.evolutions?.length >= 2 && c.evolutions[1]?.imageUrl);
+
+    // Total unique images (1★ + all evos + fusions)
+    let imgCount = 0;
+    normals.forEach(c => {
+        if (c.imageUrl) imgCount++;
+        (c.evolutions || []).forEach(e => { if (e.imageUrl) imgCount++; });
+    });
+    fusions.forEach(f => { if (f.imageUrl) imgCount++; });
+
+    // Fusion usage: how many chars are fused at least once
+    const fusedIds = new Set(fusions.flatMap(f => f.fusionPartners || []));
+
+    // Most common race
+    const raceCounts = {};
+    [...normals, ...dismissed].forEach(c => { if (c.irk) raceCounts[c.irk] = (raceCounts[c.irk] || 0) + 1; });
+    const topRace = Object.entries(raceCounts).sort((a,b) => b[1]-a[1])[0];
+
+    // Newest char
+    const newest = [...normals].sort((a,b) => getDate(b) - getDate(a))[0];
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) { el.textContent = val; el.closest('.stat-card')?.classList.remove('skeleton'); } };
+    const setSub = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    set('stat-chars',   normals.length);
+    setSub('stat-chars-sub', fusedIds.size > 0 ? `${fusedIds.size} in fusions` : '');
+
+    set('stat-fusions',  fusions.length);
+    setSub('stat-fusions-sub', fusions.length > 0 ? `${Math.round(fusions.length/Math.max(normals.length,1)*100)}% fusion rate` : '');
+
+    set('stat-aus',  auCount);
+    // Count locked vs unlocked AUs
+    const lockedAuCount   = alternativeUniverses.filter(a => a.locked).length;
+    const unlockedAuCount = alternativeUniverses.filter(a => !a.locked).length;
+    const auSubParts = [];
+    if (unlockedAuCount > 0) auSubParts.push(`${unlockedAuCount} unlocked`);
+    if (lockedAuCount > 0)   auSubParts.push(`${lockedAuCount} locked 🔒`);
+    setSub('stat-aus-sub', auSubParts.join(' · '));
+
+    set('stat-retired', retCount);
+    setSub('stat-retired-sub', topRace ? `Top: ${topRace[0]}` : '');
+
+    set('stat-images', imgCount);
+    setSub('stat-images-sub', newest ? `Latest: ${newest.name}` : '');
+
+    set('stat-evos', fullSets.length);
+    setSub('stat-evos-sub', normals.length > 0 ? `${Math.round(fullSets.length/normals.length*100)}% complete` : '');
+}
+
+// ─── Fetch ────────────────────────────────────────────────────────────────────
+const fetchItems = async () => {
+    try {
+        const [cs,ds,aus] = await Promise.all([
+            db.collection('characters').get(),
+            db.collection('dismissed').get(),
+            db.collection('alternativeUniverses').get(),
+        ]);
+        characters = cs.docs.map(d=>({id:d.id,...d.data()}));
+        dismissed  = ds.docs.map(d=>({id:d.id,...d.data(),isRetired:true}));
+        window.characters = characters;
+        window.dismissed  = dismissed;
+        alternativeUniverses = aus.docs.map(d=>({id:d.id,...d.data()}));
+        populateIrkFilter();
+        renderStats();
+        renderAdminPanel();
+        renderAuDefinitions();
+        if (selectedAuId) renderAuEntries();
+    } catch(e) {
+        console.error("Fetch error:", e);
+        dom.adminGrid.innerHTML = `<p class="col-span-full text-center text-lg text-red-500">Failed to load data.</p>`;
+    }
+};
+
+// ─── Quick Prompt Modal ───────────────────────────────────────────────────────
+function closeQuickPromptModal() { dom.quickPromptModal.classList.remove('visible'); dom.quickPromptModal.classList.add('hidden'); }
+function copyQpText(idx, btn) {
+    const text = (window._qpTexts || [])[idx];
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">check</span>';
+        btn.style.background = 'rgba(102,187,106,.2)';
+        btn.style.color = '#66bb6a';
+        btn.style.borderColor = 'rgba(102,187,106,.4)';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }, 1500);
+    }).catch(() => {
+        // Fallback: select textarea text
+        const ta = btn.closest('.relative').querySelector('textarea');
+        if (ta) { ta.select(); document.execCommand('copy'); }
+    });
+}
+async function openQuickPromptModal(charId, charName) {
+    dom.qpCharName.textContent = charName;
+    dom.qpContent.innerHTML=''; dom.qpLoading.classList.remove('hidden'); dom.qpContent.classList.add('hidden'); dom.qpEmpty.classList.add('hidden');
+    dom.quickPromptModal.classList.remove('hidden'); dom.quickPromptModal.classList.add('visible');
+    try {
+        const snap = await db.collection('promptLibrary').where('charId','==',charId).get();
+        if (snap.empty) { dom.qpLoading.classList.add('hidden'); dom.qpEmpty.classList.remove('hidden'); return; }
+        const order = {'1':1,'2':2,'3':3,'FÜZYON':4,'EK':5};
+        const prompts = snap.docs.map(d=>d.data()).sort((a,b)=>(order[a.charStar]||99)-(order[b.charStar]||99));
+        window._qpTexts = prompts.map(p => p.prompt);
+        let html='';
+        prompts.forEach((p, idx) => {
+            const badgeMap = {'1':'bg-orange-900/50 text-orange-200 border-orange-700/50','2':'bg-slate-700/50 text-slate-200 border-slate-600/50','3':'bg-amber-900/50 text-amber-200 border-amber-700/50','FÜZYON':'bg-fuchsia-900/50 text-fuchsia-200 border-fuchsia-700/50'};
+            const bc = badgeMap[p.charStar]||'bg-gray-700 text-gray-300';
+            const label = p.charStar==='FÜZYON'?'FUSION':(isNaN(p.charStar)?p.charStar:p.charStar+' ★');
+            html += `<div class="bg-[#131318] p-4 rounded-lg border border-gray-700 relative">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="px-2 py-1 rounded text-xs font-bold border ${bc}">${label}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">${p.title||'Untitled'}</span>
+                        <button onclick="copyQpText(${idx},this)" class="flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors" style="background:rgba(var(--primary-rgb),.15);color:var(--primary);border:1px solid rgba(var(--primary-rgb),.3);" title="Copy"><span class="material-symbols-outlined" style="font-size:14px;">content_copy</span></button>
+                    </div>
+                </div>
+                <textarea class="w-full bg-transparent text-sm font-mono text-gray-300 focus:outline-none resize-y min-h-[6rem]" rows="4" spellcheck="false" autocomplete="off" style="user-select:text;-webkit-user-select:text;">${p.prompt}</textarea>
+            </div>`;
+        });
+        dom.qpContent.innerHTML=html; dom.qpLoading.classList.add('hidden'); dom.qpContent.classList.remove('hidden');
+    } catch(e) { console.error(e); dom.qpLoading.classList.add('hidden'); dom.qpContent.innerHTML=`<p class="text-red-400 text-center">Load error.</p>`; dom.qpContent.classList.remove('hidden'); }
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+function openExportModal() {
+    dom.exportModal.classList.add('visible'); dom.exportModal.classList.remove('hidden');
+    dom.exportStatus.textContent=''; dom.exportBtn.disabled=false;
+    syncAuToggleState();
+}
+function closeExportModal() { dom.exportModal.classList.remove('visible'); dom.exportModal.classList.add('hidden'); }
+function syncAuToggleState() {
+    const unlocked = document.getElementById('export-include-au-unlocked');
+    const subOpts  = document.getElementById('au-sub-options');
+    if (!unlocked || !subOpts) return;
+    subOpts.classList.toggle('collapsed', !unlocked.checked);
+    if (!unlocked.checked) {
+        const locked = document.getElementById('export-include-au-locked');
+        if (locked) locked.checked = false;
+    }
+}
+async function downloadPrompts() {
+    const incRetired       = dom.exportIncludeRetired.checked;
+    const incAuUnlocked    = document.getElementById('export-include-au-unlocked')?.checked ?? false;
+    const incAuLocked      = document.getElementById('export-include-au-locked')?.checked ?? false;
+    const incAU            = incAuUnlocked || incAuLocked;
+    dom.exportBtn.disabled=true; dom.exportStatus.textContent='Fetching data...';
+    try {
+        const snap = await db.collection('promptLibrary').get();
+        if (snap.empty && !incAU) throw new Error("No prompts found.");
+
+        // ── Build prompt lookup: charId → { star → promptData } ──
+        const promptsByChar = {};
+        snap.docs.map(d => d.data()).forEach(p => {
+            if (!promptsByChar[p.charId]) promptsByChar[p.charId] = {};
+            promptsByChar[p.charId][p.charStar] = p;
+        });
+
+        // ── Star label helper ──
+        const starLabel = (star) => {
+            if (star === '1') return '1★';
+            if (star === '2') return '2★';
+            if (star === '3') return '3★';
+            if (star === 'FÜZYON' || star === 'FUSION') return 'Fusion';
+            if (star === 'EK') return 'Extra';
+            return star;
+        };
+
+        // ── AU section helper ──
+        const buildAuSection = (char) => {
+            if (!char.auData || !incAU) return '';
+
+            const unlockedLines = [], lockedLines = [];
+            Object.entries(char.auData).forEach(([auId, entry]) => {
+                if (!entry.prompt) return;
+                const auDef = alternativeUniverses.find(a => a.id === auId);
+                const auName = auDef ? auDef.name : auId;
+                const isLocked = auDef?.locked ? true : false;
+                if (isLocked && !incAuLocked) return;
+                if (!isLocked && !incAuUnlocked) return;
+                const type = char.isFusion ? 'Fusion' : '3★';
+                const line = `#### ${auName} AU (${type})\n\n${entry.prompt}\n`;
+                if (isLocked) lockedLines.push(line);
+                else unlockedLines.push(line);
+            });
+
+            let out = '';
+            if (unlockedLines.length) {
+                out += `\n##### 🌿 Unlocked AUs\n\n` + unlockedLines.join('\n---\n\n');
+            }
+            if (lockedLines.length) {
+                out += `\n##### 🔒 Locked AUs\n\n` + lockedLines.join('\n---\n\n');
+            }
+            return out;
+        };
+
+        // ── Collect all chars in sorted order ──
+        const allPool = [...characters, ...(incRetired ? dismissed : [])];
+        const normals = allPool.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
+        const fusions = allPool.filter(c => c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
+        const sorted = [...normals, ...fusions];
+
+        const date = new Date().toISOString().slice(0,10);
+        let md = `# Prompt Archive\n_Generated: ${date}_\n\n---\n\n`;
+        let count = 0;
+
+        sorted.forEach(char => {
+            const charPrompts = promptsByChar[char.id] || {};
+            const auSection = buildAuSection(char);
+            const hasPrompts = Object.keys(charPrompts).length > 0;
+
+            if (!hasPrompts && !auSection) return;
+
+            // ── Character heading ──
+            let heading = `## ${char.name}`;
+            if (char.isFusion && char.fusionPartners) {
+                const allPeople = [...characters, ...dismissed];
+                const pNames = char.fusionPartners.map(pid => allPeople.find(c=>c.id===pid)?.name || 'Unknown');
+                heading += ` *(${pNames.join(' + ')})*`;
+            }
+            if (char.isRetired) heading += ' *(Retired)*';
+            md += heading + '\n\n';
+            if (char.irk) md += `**Race:** ${char.irk}\n\n`;
+
+            // ── Star prompts in order: 1★, 2★, 3★, Fusion, Extra ──
+            const starOrder = ['1','2','3','FÜZYON','FUSION','EK'];
+            let addedPromptsForChar = false;
+            starOrder.forEach(star => {
+                const p = charPrompts[star];
+                if (!p) return;
+                const label = starLabel(star);
+                md += `### ${label} Prompt`;
+                if (p.title) md += ` — *${p.title}*`;
+                md += `\n\n${p.prompt}\n\n`;
+                count++;
+                addedPromptsForChar = true;
+            });
+
+            // ── AU prompts right after this character ──
+            if (auSection) {
+                md += `### Alt. Universe Prompts\n${auSection}\n\n`;
+                count++;
+            }
+
+            md += '---\n\n';
+        });
+
+        if (count === 0) throw new Error("No prompts match the selected criteria.");
+
+        const blob = new Blob([md], {type: 'text/markdown'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `prompt_archive_${date}.md`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        dom.exportStatus.textContent = `✓ ${count} prompt block(s) exported as .md`;
+        setTimeout(closeExportModal, 2200);
+    } catch(e) {
+        dom.exportStatus.textContent = `Error: ${e.message}`;
+        dom.exportStatus.classList.add('text-red-400');
+    } finally {
+        dom.exportBtn.disabled = false;
+    }
+}
+
+// ─── Bulk Title Manager ───────────────────────────────────────────────────────
+async function openBulkTitleModal() {
+    const modal = document.getElementById('bulk-title-modal');
+    modal.classList.add('visible'); modal.classList.remove('hidden');
+    document.getElementById('bulk-title-status').textContent = '';
+    document.getElementById('bulk-select-all').checked = false;
+    await renderBulkTitleList();
+}
+function closeBulkTitleModal() {
+    const modal = document.getElementById('bulk-title-modal');
+    modal.classList.remove('visible'); modal.classList.add('hidden');
+}
+async function renderBulkTitleList() {
+    const list = document.getElementById('bulk-title-list');
+    list.innerHTML = '<p class="text-center text-gray-400 py-8">Loading…</p>';
+    try {
+        const snap = await db.collection('promptLibrary').get();
+        const prompts = snap.docs.map(d => ({docId: d.id, ...d.data()})).filter(p => p.title && p.title.trim());
+        if (!prompts.length) {
+            list.innerHTML = '<p class="text-center text-gray-400 py-8"><span class="material-symbols-outlined block text-4xl mb-2 opacity-40">check_circle</span>No prompts with titles found.</p>';
+            return;
+        }
+        prompts.sort((a, b) => a.charName.localeCompare(b.charName, 'tr'));
+        const starLabels = {'1':'1 ★','2':'2 ★','3':'3 ★','FÜZYON':'FUSION','EK':'EK'};
+        list.innerHTML = '';
+        prompts.forEach(p => {
+            const el = document.createElement('label');
+            el.className = 'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors';
+            el.style.background = 'var(--surface-high)';
+            el.style.border = '1px solid var(--outline-var)';
+            el.innerHTML = `
+                <input type="checkbox" class="bulk-title-check w-4 h-4 accent-[var(--primary)] flex-shrink-0" data-doc-id="${p.docId}">
+                <div class="flex-grow min-w-0">
+                    <p class="font-semibold text-sm truncate">${p.charName}</p>
+                    <p class="text-xs text-gray-400">${starLabels[p.charStar] || p.charStar} — <span class="text-gray-300">"${p.title}"</span></p>
+                </div>`;
+            list.appendChild(el);
+        });
+        updateBulkSelectedCount();
+        list.querySelectorAll('.bulk-title-check').forEach(cb => {
+            cb.addEventListener('change', updateBulkSelectedCount);
+        });
+    } catch(e) {
+        list.innerHTML = `<p class="text-red-400 text-center py-4">Load error: ${e.message}</p>`;
+    }
+}
+function updateBulkSelectedCount() {
+    const total = document.querySelectorAll('.bulk-title-check').length;
+    const checked = document.querySelectorAll('.bulk-title-check:checked').length;
+    const el = document.getElementById('bulk-selected-count');
+    if (el) el.textContent = checked > 0 ? `${checked} / ${total} selected` : '';
+}
+async function deleteBulkTitles() {
+    if (!firebase.auth().currentUser) { alert("Please sign in first."); return; }
+    const checked = [...document.querySelectorAll('.bulk-title-check:checked')];
+    if (!checked.length) { alert("No titles selected."); return; }
+    if (!confirm(`Clear titles from ${checked.length} prompt(s)?`)) return;
+    const statusEl = document.getElementById('bulk-title-status');
+    statusEl.textContent = 'Deleting…';
+    try {
+        const batch = db.batch();
+        checked.forEach(cb => {
+            batch.update(db.collection('promptLibrary').doc(cb.dataset.docId), { title: '' });
+        });
+        await batch.commit();
+        statusEl.textContent = `✓ ${checked.length} title(s) cleared.`;
+        document.getElementById('bulk-select-all').checked = false;
+        await renderBulkTitleList();
+    } catch(e) {
+        statusEl.textContent = `Hata: ${e.message}`;
+    }
+}
+
+// ─── Image enlarge ────────────────────────────────────────────────────────────
+const enlargeImage = (e, src) => { if(e)e.stopPropagation(); if(src){dom.enlargedImage.src=src;dom.enlargedImageOverlay.classList.remove('hidden');} };
+const closeEnlargedImage = (e) => { if(e)e.stopPropagation(); dom.enlargedImageOverlay.classList.add('hidden'); };
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    });
+});
+
+// ─── DOMContentLoaded ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    setupImageInputTogglers();
+    setupPromptCharCounters();
+    setupIdRenameWarning();
+    setupDuplicateNameWarning();
+    dom.loginSubmitBtn.addEventListener('click', async () => {
+        const email=dom.adminEmailInput.value, pw=dom.adminPasswordInput.value;
+        dom.loginStatus.textContent='';
+        try { dom.loginSubmitBtn.disabled=true; dom.loginSubmitBtn.textContent='Signing in...'; await firebase.auth().signInWithEmailAndPassword(email,pw); }
+        catch(e) { dom.loginStatus.textContent=`Error: ${e.code}`; }
+        finally { dom.loginSubmitBtn.disabled=false; dom.loginSubmitBtn.textContent='Sign In'; }
+    });
+    firebase.auth().onAuthStateChanged(updateAuthUI);
+    dom.itemTypeSelect.addEventListener('change', toggleFormFields);
+    dom.addEditForm.addEventListener('submit', handleFormSubmit);
+    dom.cancelButton.addEventListener('click', () => { resetForm(); dom.addEditFormContainer.classList.add('hidden'); dom.toggleFormText.textContent='Add New'; dom.toggleFormIcon.textContent='add'; });
+    dom.searchInput.addEventListener('input', renderAdminPanel);
+    dom.viewFilter.addEventListener('change', e => {
+        viewState.filter = e.target.value;
+        renderAdminPanel();
+        // After showing report modal, reset back to 'all'
+        if (e.target.value !== 'all' && e.target.value !== 'available') {
+            setTimeout(() => { dom.viewFilter.value = 'all'; viewState.filter = 'all'; }, 100);
+        }
+    });
+    dom.sortBy.addEventListener('change', e => { viewState.sortBy=e.target.value; renderAdminPanel(); });
+    dom.toggleFormBtn.addEventListener('click', () => {
+        const hidden = dom.addEditFormContainer.classList.toggle('hidden');
+        dom.toggleFormText.textContent = hidden?'Add New':'Close Form';
+        dom.toggleFormIcon.textContent = hidden?'add':'close';
+        if (!hidden) resetForm();
+    });
+    dom.selectorSearchInput.addEventListener('input', () => renderCharacterSelector(dom.selectorSearchInput.value));
+
+    // Type filter chips
+    document.querySelectorAll('[data-type-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-type-filter]').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            viewState.typeFilter = btn.dataset.typeFilter;
+            viewState.filter = 'all'; // reset report filter
+            dom.viewFilter.value = 'all';
+            renderAdminPanel();
+        });
+    });
+
+    // Irk filter
+    document.getElementById('irk-filter').addEventListener('change', e => {
+        viewState.irkFilter = e.target.value;
+        renderAdminPanel();
+    });
+
+    // Bulk title select-all
+    document.getElementById('bulk-select-all').addEventListener('change', e => {
+        document.querySelectorAll('.bulk-title-check').forEach(cb => cb.checked = e.target.checked);
+        updateBulkSelectedCount();
+    });
+
+    // AU tab listeners
+    document.getElementById('create-au-btn').addEventListener('click', () => openAuFormModal());
+    document.getElementById('add-au-entry-btn').addEventListener('click', openAuEntryModalNew);
+    document.getElementById('au-form-save').addEventListener('click', saveAuDefinition);
+    document.getElementById('au-form-cancel').addEventListener('click', closeAuFormModal);
+    // Live icon preview
+    document.getElementById('au-icon-input').addEventListener('input', e => {
+        const v = e.target.value.trim() || 'auto_fix_high';
+        document.getElementById('au-icon-preview').textContent = v;
+    });
+    dom.auColorInput.addEventListener('input', e => {
+        document.getElementById('au-icon-preview').style.color = e.target.value;
+    });
+    document.getElementById('au-entry-save').addEventListener('click', saveAuEntry);
+    document.getElementById('au-entry-cancel').addEventListener('click', closeAuEntryModal);
+    dom.auEntrySearch.addEventListener('input', () => renderAuEntrySelector(dom.auEntrySearch.value));
+
+    toggleFormFields();
+});
+</script>
+<!-- Cache toast -->
+<div id="cache-toast" class="hidden">
+    <span id="cache-toast-icon" class="material-symbols-outlined" style="font-size:18px">cloud_download</span>
+    <span id="cache-toast-text">Starting…</span>
+    <div class="toast-bar"><div class="toast-fill" id="cache-toast-fill" style="width:0%"></div></div>
+    <div id="cache-toast-detail" style="font-size:11px;color:#aaa;margin-top:2px;max-height:32px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
+</div>
+
+<script>
+// ─── Image Cache Manager ──────────────────────────────────────────────────────
+(function() {
+    // Collect all image URLs from the loaded data
+    function collectImageUrls() {
+        const urls = new Set();
+        // Include both active and dismissed characters
+        const all = [...(window.characters||[]), ...(window.dismissed||[])];
+
+        all.forEach(c => {
+            if (c.imageUrl && !c.isFusion) urls.add(c.imageUrl);
+            (c.evolutions || []).forEach(e => { if (e.imageUrl) urls.add(e.imageUrl); });
+            if (c.isFusion) {
+                if (c.previewUrl) urls.add(c.previewUrl);
+            }
+            const auData = c.auData || {};
+            Object.values(auData).forEach(entry => {
+                if (entry.star3ImageUrl)  urls.add(entry.star3ImageUrl);
+                if (entry.fusionImageUrl) urls.add(entry.fusionImageUrl);
+            });
+        });
+
+        return [...new Set([...urls].map(u => {
+            u = u.replace(/[?&]_t=\d+/g, '');
+            u = u.replace(/\?&/, '?');
+            u = u.replace(/\?$/, '');
+            return u;
+        }))];
+    }
+
+    function formatDuration(ms) {
+        if (ms < 1000) return ms + 'ms';
+        const s = Math.round(ms / 1000);
+        if (s < 60) return s + 's';
+        const m = Math.floor(s / 60);
+        return m + 'm ' + (s % 60) + 's';
+    }
+
+    function shortName(url) {
+        try {
+            const path = new URL(url).pathname;
+            const parts = path.split('/');
+            return parts[parts.length - 1] || path;
+        } catch { return url.slice(-30); }
+    }
+
+    const toast       = document.getElementById('cache-toast');
+    const toastIcon   = document.getElementById('cache-toast-icon');
+    const toastText   = document.getElementById('cache-toast-text');
+    const toastFill   = document.getElementById('cache-toast-fill');
+    const toastDetail = document.getElementById('cache-toast-detail');
+    let toastTimer;
+
+    function showToast(icon, text, pct, autohide, detail) {
+        clearTimeout(toastTimer);
+        toastIcon.textContent = icon;
+        toastText.textContent = text;
+        toastFill.style.width = (pct ?? 0) + '%';
+        toastDetail.textContent = detail || '';
+        toast.classList.remove('hidden');
+        if (autohide) toastTimer = setTimeout(() => toast.classList.add('hidden'), 4500);
+    }
+
+    const cacheBtn     = document.getElementById('cache-btn');
+    const cacheBtnIcon = document.getElementById('cache-btn-icon');
+    const cacheBtnText = document.getElementById('cache-btn-text');
+
+    function setBtnState(state) {
+        cacheBtn.disabled = state === 'loading' || state === 'clearing';
+        if (state === 'idle')     { cacheBtnIcon.textContent = 'cloud_download'; cacheBtnText.textContent = 'Cache Images'; }
+        if (state === 'loading')  { cacheBtnIcon.textContent = 'sync';           cacheBtnText.textContent = 'Caching…'; }
+        if (state === 'done')     { cacheBtnIcon.textContent = 'cloud_done';     cacheBtnText.textContent = 'Cache Images'; }
+        if (state === 'clearing') { cacheBtnIcon.textContent = 'sync';           cacheBtnText.textContent = 'Refreshing…'; }
+    }
+
+    // ── Ensure we have an active SW controller before sending messages ───────
+    async function getController() {
+        // If we already have one, use it
+        if (navigator.serviceWorker.controller) {
+            return navigator.serviceWorker.controller;
+        }
+        // Wait for the SW to claim this page (up to 5 seconds)
+        console.log('[Cache] No controller yet, waiting for SW to claim…');
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('SW controller not available after 5s'));
+            }, 5000);
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                clearTimeout(timeout);
+                console.log('[Cache] Controller acquired:', navigator.serviceWorker.controller?.scriptURL);
+                resolve(navigator.serviceWorker.controller);
+            }, { once: true });
+
+            // Also try registering fresh
+            navigator.serviceWorker.ready.then(reg => {
+                if (navigator.serviceWorker.controller) {
+                    clearTimeout(timeout);
+                    resolve(navigator.serviceWorker.controller);
+                }
+            });
+        });
+    }
+
+    // Listen for SW progress messages
+    navigator.serviceWorker.addEventListener('message', e => {
+        const d = e.data || {};
+        console.log('[Cache] SW message:', d.type, d.done !== undefined ? `${d.done}/${d.total}` : '');
+
+        if (d.type === 'CACHE_PROGRESS') {
+            const { done, total, skipped, failedCount, elapsedMs, currentBatch, batchDurationMs } = d;
+            const pct = Math.round((done / total) * 100);
+            const elapsed = formatDuration(elapsedMs || 0);
+
+            let failTxt = failedCount ? ` · ${failedCount} failed` : '';
+            let skipTxt = skipped ? ` · ${skipped} already cached` : '';
+            showToast('cloud_download', `${done} / ${total}${skipTxt}${failTxt} — ${elapsed}`, pct, false,
+                currentBatch ? `${currentBatch.map(shortName).join(', ')}` :
+                batchDurationMs ? `Son batch: ${formatDuration(batchDurationMs)}` : '');
+
+            cacheBtnText.textContent = `${pct}%`;
+        }
+        if (d.type === 'CACHE_COMPLETE') {
+            const { total, skipped, failed, elapsedMs } = d;
+            const elapsed = formatDuration(elapsedMs || 0);
+            const newDownloads = total - (skipped || 0) - (failed ? failed.length : 0);
+
+            if (failed && failed.length) {
+                const reasons = {};
+                failed.forEach(f => { reasons[f.reason] = (reasons[f.reason] || 0) + 1; });
+                const summary = Object.entries(reasons).map(([r,c]) => `${c}x ${r}`).join(', ');
+
+                showToast('warning',
+                    `${total - failed.length}/${total} cached, ${failed.length} failed — ${elapsed}`,
+                    100, false,
+                    summary);
+
+                console.group(`[Cache] ${failed.length} images failed:`);
+                failed.forEach(f => {
+                    const dur = f.durationMs ? ` (${formatDuration(f.durationMs)})` : '';
+                    console.warn(f.reason + dur, '→', f.url);
+                });
+                console.groupEnd();
+            } else {
+                const detail = skipped ? `${newDownloads} new, ${skipped} already cached` : '';
+                showToast('cloud_done', `${total} images cached — ${elapsed}`, 100, true, detail);
+            }
+            setBtnState('done');
+        }
+        if (d.type === 'CACHE_CLEARED') {
+            showToast('sync', 'Cache cleared — re-downloading…', 0);
+        }
+    });
+
+    // Click handler
+    cacheBtn.addEventListener('click', async e => {
+        const urls = collectImageUrls();
+        console.log('[Cache] Collected URLs:', urls.length);
+        if (!urls.length) {
+            alert('No character data loaded yet. Wait for the page to finish loading.');
+            return;
+        }
+
+        let controller;
+        try {
+            controller = await getController();
+        } catch (err) {
+            console.error('[Cache]', err.message);
+            alert('Service worker not active. Try refreshing the page (Ctrl+Shift+R).');
+            return;
+        }
+
+        console.log('[Cache] Sending to SW:', controller.scriptURL);
+
+        if (e.shiftKey) {
+            if (!confirm(`Wipe the image cache and re-download all ${urls.length} images?`)) return;
+            setBtnState('clearing');
+            showToast('sync', 'Cache temizleniyor…', 0);
+            controller.postMessage({ type: 'CLEAR_IMAGE_CACHE', urls });
+        } else {
+            setBtnState('loading');
+            showToast('cloud_download', `Caching ${urls.length} images…`, 0);
+            controller.postMessage({ type: 'PRECACHE_IMAGES', urls });
+        }
+    });
+
+    cacheBtn.title = 'Cache all images for fast loading • Shift+click to force refresh';
+
+    // Log SW state on load for debugging
+    console.log('[Cache] SW controller on load:', navigator.serviceWorker.controller?.scriptURL || 'NONE');
+    navigator.serviceWorker.ready.then(reg => {
+        console.log('[Cache] SW ready — active:', reg.active?.scriptURL, 'waiting:', reg.waiting?.scriptURL);
+    });
+})();
+</script>
+</body>
+</html>
