@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tek Yıldız Migrasyonu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <style>
+        :root {
+            --bg: #131318; --surface: #201f25; --surface-high: #2a2830;
+            --on-bg: #e5e1e6; --on-surface: #e5e1e6; --on-surface-var: #c8c4d0;
+            --outline-var: #48454e; --primary: #bdb3ff; --amber: #fbbf24;
+            --fuchsia: #e879f9;
+        }
+        body { font-family:'Manrope',sans-serif; background:var(--bg); color:var(--on-bg); margin:0; padding:0 0 80px; }
+        h1 { font-size:1.5rem; font-weight:800; }
+        .char-block {
+            background:var(--surface); border-radius:16px; padding:16px;
+            border:1px solid var(--outline-var); transition:border-color 0.2s;
+        }
+        .char-block.done { border-color:#22c55e55; }
+        .char-block.pending { border-color:var(--outline-var); }
+        .star-option {
+            flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;
+            cursor:pointer; border-radius:12px; padding:8px; border:2px solid transparent;
+            transition:border-color 0.15s, background 0.15s; min-width:0;
+            background:var(--surface-high);
+        }
+        .star-option:hover { border-color:var(--amber)55; }
+        .star-option.selected { border-color:var(--amber); background:rgba(251,191,36,0.1); }
+        .star-option.na { opacity:0.35; cursor:not-allowed; pointer-events:none; }
+        .star-option img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; }
+        .star-option .lbl { font-size:0.75rem; font-weight:700; color:var(--amber); display:flex; align-items:center; gap:3px; }
+        .star-option.na .lbl { color:var(--on-surface-var); }
+        .apply-btn {
+            padding:6px 14px; border-radius:99px; font-weight:700; font-size:0.8rem;
+            background:rgba(var(--primary-rgb,189,179,255),0.15); color:var(--primary);
+            border:1px solid rgba(189,179,255,0.3); cursor:pointer; transition:background 0.15s;
+            display:flex; align-items:center; gap:4px;
+        }
+        .apply-btn:hover { background:rgba(189,179,255,0.25); }
+        .apply-btn:disabled { opacity:0.4; cursor:not-allowed; }
+        .apply-btn.done-btn { background:rgba(34,197,94,0.15); color:#4ade80; border-color:rgba(34,197,94,0.3); }
+        #apply-all-btn {
+            padding:12px 28px; border-radius:99px; font-weight:800; font-size:1rem;
+            background:#bdb3ff; color:#2d235c; border:none; cursor:pointer;
+            display:flex; align-items:center; gap:6px;
+        }
+        #apply-all-btn:hover { background:#d4ceff; }
+        #apply-all-btn:disabled { opacity:0.5; cursor:not-allowed; }
+        .progress-bar-wrap { background:var(--outline-var); border-radius:99px; height:6px; overflow:hidden; }
+        .progress-bar { height:100%; background:var(--amber); border-radius:99px; transition:width 0.3s; }
+        .status-chip {
+            font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:99px;
+            background:rgba(251,191,36,0.15); color:var(--amber); border:1px solid rgba(251,191,36,0.3);
+        }
+        .status-chip.done { background:rgba(34,197,94,0.15); color:#4ade80; border-color:rgba(34,197,94,0.3); }
+        #toast {
+            position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+            padding:10px 20px; border-radius:12px; background:#2a2830; border:1px solid var(--outline-var);
+            color:var(--on-bg); font-weight:600; opacity:0; transition:all 0.3s; z-index:999;
+            pointer-events:none; white-space:nowrap;
+        }
+        #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        .section-header { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--on-surface-var); margin-bottom:8px; }
+    </style>
+</head>
+<body>
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col gap-3 mb-8">
+        <div class="flex items-center gap-3 flex-wrap">
+            <a href="index2.html" class="text-sm" style="color:var(--on-surface-var);">← Admin Panel</a>
+        </div>
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+                <h1>Tek Yıldız Migrasyonu</h1>
+                <p class="text-sm mt-1" style="color:var(--on-surface-var);">Her karakter için hangi fotoğrafın tek yıldız olacağını seç, sonra uygula.</p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <div id="progress-label" class="text-sm font-bold" style="color:var(--on-surface-var);">Yükleniyor…</div>
+                <button id="apply-all-btn" disabled>
+                    <span class="material-symbols-outlined" style="font-size:20px;">done_all</span>
+                    Tümünü Uygula
+                </button>
+            </div>
+        </div>
+        <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+        </div>
+    </div>
+
+    <!-- Login gate -->
+    <div id="login-gate" class="hidden flex flex-col items-center justify-center gap-4 py-16">
+        <span class="material-symbols-outlined text-5xl" style="color:var(--on-surface-var);">lock</span>
+        <p class="font-semibold">Bu sayfayı kullanmak için giriş yapman gerekiyor.</p>
+        <button onclick="loginWithGoogle()" class="apply-btn" style="font-size:0.9rem;padding:10px 24px;">
+            <span class="material-symbols-outlined">account_circle</span> Google ile Giriş
+        </button>
+    </div>
+
+    <!-- Characters grid -->
+    <div id="char-sections"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyDAmMtRBGyNOb6R2ZjSZrhN5NnGA_p-L3w",
+    authDomain: "character-gallery-e23ee.firebaseapp.com",
+    projectId: "character-gallery-e23ee",
+    storageBucket: "character-gallery-e23ee.firebasestorage.app",
+    messagingSenderId: "737596044949",
+    appId: "1:737596044949:web:5ddf2bda9fcfce9f990d9c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let allCharacters = [];   // { id, name, imageUrl, evolutions, auData, isDismissed, collection }
+let alternativeUniverses = [];
+// charId → selected imageUrl
+const selections = {};
+// charId → bool (migrated)
+const migrated = {};
+
+function toast(msg, dur=2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function loginWithGoogle() {
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message));
+}
+
+auth.onAuthStateChanged(async user => {
+    if (!user) {
+        document.getElementById('login-gate').classList.remove('hidden');
+        document.getElementById('char-sections').innerHTML = '';
+        return;
+    }
+    document.getElementById('login-gate').classList.add('hidden');
+    await loadData();
+});
+
+async function loadData() {
+    document.getElementById('progress-label').textContent = 'Yükleniyor…';
+    const [charsSnap, dismissedSnap, auSnap] = await Promise.all([
+        db.collection('characters').get(),
+        db.collection('dismissed').get(),
+        db.collection('alternativeUniverses').get(),
+    ]);
+
+    alternativeUniverses = auSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const chars = charsSnap.docs.map(d => ({ id: d.id, ...d.data(), collection: 'characters' }));
+    const dismissed = dismissedSnap.docs.map(d => ({ id: d.id, ...d.data(), isDismissed: true, collection: 'dismissed' }));
+
+    // Only non-fusion characters
+    allCharacters = [...chars, ...dismissed].filter(c => !c.isFusion);
+    allCharacters.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    // Set default selections
+    allCharacters.forEach(c => {
+        // Check if already migrated (no evolutions)
+        const hasEvolutions = c.evolutions && c.evolutions.length > 0;
+        if (!hasEvolutions) {
+            migrated[c.id] = true;
+        }
+        const evo3 = c.evolutions?.find(e => e.star === 3)?.imageUrl;
+        const evo2 = c.evolutions?.find(e => e.star === 2)?.imageUrl;
+        selections[c.id] = evo3 || evo2 || c.imageUrl || '';
+    });
+
+    renderAll();
+    updateProgress();
+    document.getElementById('apply-all-btn').disabled = false;
+}
+
+function updateProgress() {
+    const total = allCharacters.length;
+    const done = Object.keys(migrated).length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = `${done} / ${total} tamamlandı`;
+}
+
+function renderAll() {
+    const container = document.getElementById('char-sections');
+    container.innerHTML = '';
+
+    // Separate migrated and pending
+    const pending = allCharacters.filter(c => !migrated[c.id]);
+    const done = allCharacters.filter(c => migrated[c.id]);
+
+    if (pending.length) {
+        const ph = document.createElement('div');
+        ph.className = 'section-header';
+        ph.textContent = `Bekleyen — ${pending.length} karakter`;
+        container.appendChild(ph);
+        const pg = document.createElement('div');
+        pg.className = 'flex flex-col gap-4 mb-8';
+        pending.forEach(c => pg.appendChild(buildCharBlock(c)));
+        container.appendChild(pg);
+    }
+
+    if (done.length) {
+        const dh = document.createElement('div');
+        dh.className = 'section-header mt-4';
+        dh.textContent = `Tamamlananlar — ${done.length} karakter`;
+        container.appendChild(dh);
+        const dg = document.createElement('div');
+        dg.className = 'flex flex-col gap-4';
+        done.forEach(c => dg.appendChild(buildCharBlock(c)));
+        container.appendChild(dg);
+    }
+}
+
+function buildCharBlock(char) {
+    const isDone = !!migrated[char.id];
+    const block = document.createElement('div');
+    block.id = `block-${char.id}`;
+    block.className = `char-block ${isDone ? 'done' : 'pending'}`;
+
+    const evo1Url = char.imageUrl || '';
+    const evo2Url = char.evolutions?.find(e => e.star === 2)?.imageUrl || '';
+    const evo3Url = char.evolutions?.find(e => e.star === 3)?.imageUrl || '';
+
+    const selected = selections[char.id] || evo1Url;
+
+    const makeOption = (url, label, labelColor) => {
+        const div = document.createElement('div');
+        div.className = `star-option ${!url ? 'na' : ''} ${url && url === selected ? 'selected' : ''}`;
+        div.dataset.url = url;
+        div.dataset.charId = char.id;
+        if (url) {
+            div.innerHTML = `
+                <img src="${url}" alt="${label}" loading="lazy" onerror="this.style.opacity='0.3'">
+                <div class="lbl" style="color:${labelColor}">
+                    <span class="material-symbols-outlined" style="font-size:13px;font-variation-settings:'FILL' 1;">star</span>
+                    ${label}
+                </div>
+            `;
+            div.addEventListener('click', () => selectOption(char.id, url, div));
+        } else {
+            div.innerHTML = `
+                <div style="width:100%;aspect-ratio:1;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;">
+                    <span class="material-symbols-outlined" style="color:var(--outline-var);font-size:32px;">image_not_supported</span>
+                </div>
+                <div class="lbl" style="color:var(--on-surface-var);">${label} — yok</div>
+            `;
+        }
+        return div;
+    };
+
+    const optionsWrap = document.createElement('div');
+    optionsWrap.className = 'flex gap-3 mt-3';
+    optionsWrap.id = `opts-${char.id}`;
+    optionsWrap.appendChild(makeOption(evo1Url, '1★', '#fb923c'));
+    optionsWrap.appendChild(makeOption(evo2Url, '2★', '#94a3b8'));
+    optionsWrap.appendChild(makeOption(evo3Url, '3★', '#fbbf24'));
+
+    const applyBtn = document.createElement('button');
+    applyBtn.className = `apply-btn ${isDone ? 'done-btn' : ''}`;
+    applyBtn.id = `btn-${char.id}`;
+    applyBtn.disabled = isDone;
+    applyBtn.innerHTML = isDone
+        ? `<span class="material-symbols-outlined" style="font-size:15px;">check</span> Tamamlandı`
+        : `<span class="material-symbols-outlined" style="font-size:15px;">save</span> Uygula`;
+    applyBtn.addEventListener('click', () => applySingle(char));
+
+    const statusChip = document.createElement('span');
+    statusChip.className = `status-chip ${isDone ? 'done' : ''}`;
+    statusChip.id = `chip-${char.id}`;
+    statusChip.textContent = isDone ? 'Taşındı' : (char.isDismissed ? 'Dismissed' : 'Normal');
+
+    block.innerHTML = `
+        <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-base">${char.name}</span>
+                <span class="text-xs" style="color:var(--on-surface-var);">ID: ${char.id}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="chip-${char.id}" class="status-chip ${isDone ? 'done' : ''}">${isDone ? 'Taşındı' : (char.isDismissed ? 'Dismissed' : 'Normal')}</span>
+            </div>
+        </div>
+    `;
+    block.appendChild(optionsWrap);
+    const footer = document.createElement('div');
+    footer.className = 'flex justify-end mt-3';
+    footer.appendChild(applyBtn);
+    block.appendChild(footer);
+
+    return block;
+}
+
+function selectOption(charId, url, clickedDiv) {
+    const wrap = document.getElementById(`opts-${charId}`);
+    wrap.querySelectorAll('.star-option').forEach(o => o.classList.remove('selected'));
+    clickedDiv.classList.add('selected');
+    selections[charId] = url;
+}
+
+async function applySingle(char) {
+    const btn = document.getElementById(`btn-${char.id}`);
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;animation:spin 1s linear infinite;">progress_activity</span> Kaydediliyor…`;
+
+    try {
+        const chosenUrl = selections[char.id] || char.imageUrl || '';
+        await saveChar(char, chosenUrl);
+        markDone(char.id);
+        toast(`${char.name} taşındı ✓`);
+    } catch(e) {
+        console.error(e);
+        toast(`Hata: ${e.message}`);
+        btn.disabled = false;
+        btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;">save</span> Uygula`;
+    }
+}
+
+async function applyAll() {
+    const pending = allCharacters.filter(c => !migrated[c.id]);
+    if (!pending.length) { toast('Tümü zaten taşındı!'); return; }
+
+    const applyAllBtn = document.getElementById('apply-all-btn');
+    applyAllBtn.disabled = true;
+    applyAllBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;animation:spin 1s linear infinite;">progress_activity</span> Uygulanıyor…`;
+
+    let done = 0;
+    for (const char of pending) {
+        const btn = document.getElementById(`btn-${char.id}`);
+        if (btn) { btn.disabled = true; btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;">hourglass_empty</span> Bekliyor…`; }
+    }
+
+    for (const char of pending) {
+        const btn = document.getElementById(`btn-${char.id}`);
+        if (btn) btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;animation:spin 1s linear infinite;">progress_activity</span> Kaydediliyor…`;
+        try {
+            const chosenUrl = selections[char.id] || char.imageUrl || '';
+            await saveChar(char, chosenUrl);
+            markDone(char.id);
+            done++;
+            toast(`${done}/${pending.length} — ${char.name} ✓`, 1200);
+        } catch(e) {
+            console.error(`${char.id}:`, e);
+            if (btn) { btn.disabled = false; btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;">error</span> Hata`; }
+        }
+    }
+
+    applyAllBtn.disabled = false;
+    applyAllBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;">done_all</span> Tümünü Uygula`;
+    toast(`Tamamlandı! ${done} karakter taşındı.`, 3500);
+    renderAll();
+    updateProgress();
+}
+
+async function saveChar(char, chosenUrl) {
+    const coll = char.isDismissed ? 'dismissed' : 'characters';
+    const ref = db.collection(coll).doc(char.id);
+
+    // Build the new auData: rename star3ImageUrl → starImageUrl
+    let newAuData = null;
+    if (char.auData && Object.keys(char.auData).length > 0) {
+        newAuData = {};
+        for (const [auId, entry] of Object.entries(char.auData)) {
+            const newEntry = { ...entry };
+            if (newEntry.star3ImageUrl) {
+                newEntry.starImageUrl = newEntry.star3ImageUrl;
+                delete newEntry.star3ImageUrl;
+            }
+            newAuData[auId] = newEntry;
+        }
+    }
+
+    const update = {
+        imageUrl: chosenUrl,
+        evolutions: firebase.firestore.FieldValue.delete(),
+    };
+    if (newAuData !== null) {
+        update.auData = newAuData;
+    }
+
+    await ref.update(update);
+}
+
+function markDone(charId) {
+    migrated[charId] = true;
+    const block = document.getElementById(`block-${charId}`);
+    if (block) {
+        block.className = 'char-block done';
+        const chip = block.querySelector(`#chip-${charId}`);
+        if (chip) { chip.className = 'status-chip done'; chip.textContent = 'Taşındı'; }
+        const btn = document.getElementById(`btn-${charId}`);
+        if (btn) { btn.className = 'apply-btn done-btn'; btn.disabled = true; btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;">check</span> Tamamlandı`; }
+    }
+    updateProgress();
+}
+
+document.getElementById('apply-all-btn').addEventListener('click', applyAll);
+
+// Spin animation for progress icons
+const style = document.createElement('style');
+style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(style);
+</script>
+</body>
+</html>

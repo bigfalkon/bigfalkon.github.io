@@ -499,11 +499,7 @@ async function loadData() {
 
 // ── Render ───────────────────────────────────────────────────────────────────
 function get3StarUrl(char) {
-    if (char.evolutions && char.evolutions.length >= 2) {
-        return char.evolutions[1].imageUrl || char.evolutions[0].imageUrl || char.imageUrl;
-    }
-    if (char.evolutions && char.evolutions.length === 1) return char.evolutions[0].imageUrl || char.imageUrl;
-    return char.imageUrl;
+    return char.imageUrl || '';
 }
 
 function filterImages(images) {
@@ -570,8 +566,8 @@ function buildCard(char, filteredImages, totalCount) {
 
       <div class="card-originals">
         <div class="orig-img-wrap" data-url="${starUrl || ''}">
-          ${starUrl ? `<img src="${starUrl}" alt="${char.name} 3★" loading="lazy">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--on-surface-var);font-size:var(--fs-caption);">Resim yok</div>'}
-          <span class="orig-label">Orijinal 3★</span>
+          ${starUrl ? `<img src="${starUrl}" alt="${char.name}" loading="lazy">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--on-surface-var);font-size:var(--fs-caption);">Resim yok</div>'}
+          <span class="orig-label">Orijinal</span>
         </div>
         <div class="orig-img-wrap" data-url="${auMainUrl || ''}">
           ${auMainUrl ? `<img src="${auMainUrl}" alt="${char.name} Ekstra" loading="lazy">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--on-surface-var);font-size:var(--fs-caption);">Ekstra yok</div>'}

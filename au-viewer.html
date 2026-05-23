@@ -458,7 +458,7 @@ function buildEntryCaches(au) {
 
     allCharacters.forEach(char => {
         const entry   = char.auData?.[au.id];
-        const hasImg  = char.isFusion ? !!entry?.fusionImageUrl : !!entry?.star3ImageUrl;
+        const hasImg  = char.isFusion ? !!entry?.fusionImageUrl : !!(entry?.starImageUrl || entry?.star3ImageUrl);
         if (hasImg) inList.push({ char, entry });
         else        outList.push({ char, entry: entry || null });
     });
@@ -506,10 +506,10 @@ function renderCurrentView() {
         // Images
         let imgHtml = '';
         if (currentView === 'in') {
-            const auImg   = char.isFusion ? entry.fusionImageUrl : entry.star3ImageUrl;
+            const auImg   = char.isFusion ? entry.fusionImageUrl : (entry.starImageUrl || entry.star3ImageUrl);
             const origImg = char.isFusion
                 ? (char.previewUrl || char.imageUrl || '')
-                : (char.evolutions?.find(e=>e.star===3)?.imageUrl || char.imageUrl || '');
+                : (char.imageUrl || '');
             imgHtml = `
                 <div class="flex gap-2 flex-shrink-0">
                     <div class="flex flex-col items-center gap-1">
@@ -588,7 +588,7 @@ async function openPromptModal(charId, charName, auIdArg) {
     try {
         // Load main prompts
         const snap = await db.collection('promptLibrary').where('charId', '==', charId).get();
-        const starOrder = { '1': 0, '2': 1, '3': 2, 'fusion': 3, 'extra': 4 };
+        const starOrder = { '1': 0, 'extra': 1, 'EK': 1, 'fusion': 2, 'FÜZYON': 2 };
         const prompts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
             .sort((a, b) => (starOrder[a.charStar] ?? 99) - (starOrder[b.charStar] ?? 99));
 
@@ -721,12 +721,12 @@ async function openPromptExport() {
         let block = `=== ${char.name} ===\n`;
 
         if (prompts.length) {
-            const star3 = prompts.find(p => p.charStar === '3');
-            if (star3) {
-                const text = (star3.prompt || star3.promptText || star3.text || '').trim();
-                block += `\n[3★]\n${text}\n`;
+            const mainPrompt = prompts.find(p => p.charStar === '1') || prompts[0];
+            if (mainPrompt) {
+                const text = (mainPrompt.prompt || mainPrompt.promptText || mainPrompt.text || '').trim();
+                block += `\n[★]\n${text}\n`;
             } else {
-                block += '\n(3★ prompt bulunamadı)\n';
+                block += '\n(Ana prompt bulunamadı)\n';
             }
         } else {
             block += '\n(Ana prompt bulunamadı)\n';
@@ -781,12 +781,12 @@ function _buildPromptBlock(results, au) {
     const sep = '─'.repeat(48);
     return results.map(({ char, entry, prompts }) => {
         let block = `=== ${char.name} ===\n`;
-        const star3 = prompts.find(p => p.charStar === '3');
-        if (star3) {
-            const text = (star3.prompt || star3.promptText || star3.text || '').trim();
-            block += `\n[3★]\n${text}\n`;
+        const mainPrompt = prompts.find(p => p.charStar === '1') || prompts[0];
+        if (mainPrompt) {
+            const text = (mainPrompt.prompt || mainPrompt.promptText || mainPrompt.text || '').trim();
+            block += `\n[★]\n${text}\n`;
         } else {
-            block += '\n(3★ prompt bulunamadı)\n';
+            block += '\n(Ana prompt bulunamadı)\n';
         }
         if (entry?.prompt) {
             block += `\n[AU Prompt — ${au?.name || selectedAuId}]\n${entry.prompt.trim()}\n`;
