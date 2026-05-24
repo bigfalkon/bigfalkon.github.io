@@ -465,26 +465,7 @@
                     <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                 </div>
 
-                <div id="character-fields" class="flex flex-col gap-3">
-                    <div id="evo1-image-container">
-                        <label class="block text-sm font-medium mb-1">2★ Image</label>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="evolutions_1_file" class="form-input flex-grow image-upload-file" accept="image/*">
-                            <input type="text" name="evolutions_1_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
-                        </div>
-                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
-                    </div>
-                    <div id="evo2-image-container">
-                        <label class="block text-sm font-medium mb-1">3★ Image</label>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="evolutions_2_file" class="form-input flex-grow image-upload-file" accept="image/*">
-                            <input type="text" name="evolutions_2_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
-                        </div>
-                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
-                    </div>
-                </div>
+                <div id="character-fields" class="flex flex-col gap-3"></div>
 
                 <div id="fusion-fields" class="hidden flex flex-col gap-3">
                     <div class="character-selector-wrapper">
@@ -499,25 +480,11 @@
                 <div id="prompt-management-section" class="hidden">
                     <h3 class="prompt-section-header">Prompt Management</h3>
                     <div id="prompt-block-1" class="prompt-block hidden" data-level="1">
-                        <div class="prompt-label"><span>1★ Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
+                        <div class="prompt-label"><span>★ Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
                         <input type="text" id="prompt-title-1" class="form-input mb-2 text-sm" placeholder="Prompt Title (Optional)">
                         <textarea id="prompt-text-1" class="form-input text-sm font-mono" rows="4" placeholder="Enter prompt text here..."></textarea>
                         <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
                         <input type="hidden" id="prompt-docId-1">
-                    </div>
-                    <div id="prompt-block-2" class="prompt-block hidden" data-level="2">
-                        <div class="prompt-label"><span>2★ Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
-                        <input type="text" id="prompt-title-2" class="form-input mb-2 text-sm" placeholder="Prompt Title">
-                        <textarea id="prompt-text-2" class="form-input text-sm font-mono" rows="4" placeholder="Level 2 prompt text..."></textarea>
-                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
-                        <input type="hidden" id="prompt-docId-2">
-                    </div>
-                    <div id="prompt-block-3" class="prompt-block hidden" data-level="3">
-                        <div class="prompt-label"><span>3★ Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
-                        <input type="text" id="prompt-title-3" class="form-input mb-2 text-sm" placeholder="Prompt Title">
-                        <textarea id="prompt-text-3" class="form-input text-sm font-mono" rows="4" placeholder="Level 3 prompt text..."></textarea>
-                        <div class="text-right text-xs mt-1 prompt-char-count" style="color:var(--on-surface-var);"></div>
-                        <input type="hidden" id="prompt-docId-3">
                     </div>
                     <div id="prompt-block-FUSION" class="prompt-block hidden" data-level="FUSION">
                         <div class="prompt-label"><span class="text-fuchsia-400">Fusion Prompt</span><span class="saved-indicator"><span class="material-symbols-outlined text-sm">check_circle</span> Saved</span></div>
@@ -843,9 +810,9 @@
         </div>
 
         <div id="au-entry-image-fields" class="flex flex-col gap-4">
-            <!-- 3★ image for characters -->
+            <!-- AU image for characters -->
             <div id="au-star3-field">
-                <label class="block text-sm font-medium mb-1">3★ AU Image <span class="text-xs text-gray-400">(character alternative)</span></label>
+                <label class="block text-sm font-medium mb-1">AU Image <span class="text-xs text-gray-400">(character alternative)</span></label>
                 <div class="flex flex-col sm:flex-row gap-2">
                     <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
                     <input type="file" class="form-input flex-grow image-upload-file" id="au-star3-file">
@@ -989,10 +956,10 @@ const closeReportModal = () => {
     dom.viewFilter.value = 'all'; viewState.filter = 'all';
 };
 
-const getStarEmojis = (isFusion, starCount, iconName = 'star') => {
-    const colors = { 1: 'text-orange-400', 2: 'text-slate-400', 3: 'text-amber-400', 4: 'text-fuchsia-400' };
-    const icon = `<span class="material-symbols-outlined ${colors[isFusion ? 4 : Math.min(starCount||1, 4)]}" style="font-variation-settings:'FILL' 1;">${iconName}</span>`;
-    return `<div class="flex">${Array(starCount||1).fill(icon).join('')}</div>`;
+const getStarEmojis = (isFusion) => {
+    const color = isFusion ? 'text-fuchsia-400' : 'text-amber-400';
+    const icon = `<span class="material-symbols-outlined ${color}" style="font-variation-settings:'FILL' 1;">star</span>`;
+    return `<div class="flex">${icon}</div>`;
 };
 
 const getDate = item => item.eklenmeTarihi ? item.eklenmeTarihi.toDate() : new Date(0);
@@ -1150,15 +1117,7 @@ function renderAdminPanel() {
             const url = item.previewUrl || '';
             imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${url}')"><img src="${url}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy"></div>`;
         } else {
-            const e2 = item.evolutions?.find(e=>e.star===2), e3 = item.evolutions?.find(e=>e.star===3);
-            const tc = "w-8 h-12 md:w-16 md:h-24 flex-shrink-0 rounded-md overflow-hidden bg-black/20 border border-white/10 flex items-center justify-center";
-            imgBlock = `<div class="flex items-center gap-3">
-                <div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} 1★" class="w-full h-full object-cover" loading="lazy"></div>
-                <div class="flex flex-col gap-1.5">
-                    <div class="${tc}" ${e2?`onclick="enlargeImage(event,'${e2.imageUrl}')"`:''}>${e2?`<img src="${e2.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy">`:'<span class="text-sm font-bold text-gray-500">2★</span>'}</div>
-                    <div class="${tc}" ${e3?`onclick="enlargeImage(event,'${e3.imageUrl}')"`:''}>${e3?`<img src="${e3.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy">`:'<span class="text-sm font-bold text-gray-500">3★</span>'}</div>
-                </div>
-            </div>`;
+            imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy"></div>`;
         }
 
         let actionBtns;
@@ -1183,7 +1142,7 @@ function renderAdminPanel() {
         const auDots = Object.keys(item.auData||{}).filter(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             const auEntry = item.auData[auId];
-            return def && (isFusion ? auEntry?.fusionImageUrl : auEntry?.star3ImageUrl);
+            return def && (isFusion ? auEntry?.fusionImageUrl : (auEntry?.starImageUrl || auEntry?.star3ImageUrl));
         }).map(auId => {
             const def = alternativeUniverses.find(a=>a.id===auId);
             const color = def?.color || '#64dcb4';
@@ -1225,7 +1184,7 @@ function renderAdminPanel() {
         }
 
         card.id = `card-${item.id}`;
-        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion, isFusion?4:1, 'star')}</div>${dateHtml}${retiredBadge}${parentRow}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
+        card.innerHTML = `${imgBlock}<div class="flex-grow min-w-0"><h4 class="font-bold text-lg truncate ${nameClass}">${item.name}</h4><p class="text-sm text-gray-400">ID: ${item.id}</p>${irkBadge}<div class="flex mt-1">${getStarEmojis(isFusion)}</div>${dateHtml}${retiredBadge}${parentRow}${fusionMiniRow}${auDotsHtml}</div><div class="flex-shrink-0 flex flex-col gap-1">${actionBtns}</div>`;
         dom.adminGrid.appendChild(card);
     });
     setupActionListeners();
@@ -1299,7 +1258,7 @@ function renderAuEntries() {
     const entries = all.filter(c => {
         const e = c.auData?.[selectedAuId];
         if (!e) return false;
-        return c.isFusion ? !!e.fusionImageUrl : !!e.star3ImageUrl;
+        return c.isFusion ? !!e.fusionImageUrl : !!(e.starImageUrl || e.star3ImageUrl);
     });
 
     dom.auEntriesGrid.innerHTML = '';
@@ -1311,8 +1270,8 @@ function renderAuEntries() {
 
     entries.forEach(char => {
         const entry = char.auData[selectedAuId];
-        const imgUrl = char.isFusion ? entry.fusionImageUrl : entry.star3ImageUrl;
-        const origUrl = char.isFusion ? (char.previewUrl || char.imageUrl) : (char.evolutions?.find(e=>e.star===3)?.imageUrl || char.imageUrl);
+        const imgUrl = char.isFusion ? entry.fusionImageUrl : (entry.starImageUrl || entry.star3ImageUrl);
+        const origUrl = char.isFusion ? (char.previewUrl || char.imageUrl) : char.imageUrl;
         const card = document.createElement('div');
         card.className = 'au-entry-card';
         card.innerHTML = `
@@ -1329,7 +1288,7 @@ function renderAuEntries() {
             <div class="flex-grow min-w-0">
                 <p class="font-bold truncate">${char.name}</p>
                 <p class="text-xs text-gray-400">ID: ${char.id}</p>
-                <p class="text-xs text-gray-400 mt-1">${char.isFusion ? 'Fusion' : '3★ Character'}</p>
+                <p class="text-xs text-gray-400 mt-1">${char.isFusion ? 'Fusion' : 'Karakter'}</p>
                 ${entry.prompt ? `<p class="text-xs text-gray-500 mt-1 truncate">Prompt: ${entry.prompt.substring(0,60)}…</p>` : ''}
             </div>
             <div class="flex flex-col gap-1 flex-shrink-0">
@@ -1453,11 +1412,11 @@ function openAuEntryModalForCharInAu(charId) {
     const star3Preview = document.getElementById('au-star3-preview');
     const fusionPreview = document.getElementById('au-fusion-preview');
 
-    if (existing?.star3ImageUrl) {
-        star3Link.value = existing.star3ImageUrl;
-        star3Preview.src = existing.star3ImageUrl;
+    const existingStarUrl = existing?.starImageUrl || existing?.star3ImageUrl || '';
+    if (existingStarUrl) {
+        star3Link.value = existingStarUrl;
+        star3Preview.src = existingStarUrl;
         document.getElementById('au-star3-preview-wrap').classList.remove('hidden');
-        // set method to link
         const sel = document.querySelector('#au-star3-field .image-upload-method');
         sel.value = 'link';
         document.getElementById('au-star3-file').classList.add('hidden');
@@ -1523,7 +1482,7 @@ function renderAuEntrySelector(q) {
         const item = document.createElement('div');
         item.className = `character-selector-item ${auEntrySelectorCharId===char.id?'ring-1 ring-[var(--au)]':''}`;
         const imgUrl = char.isFusion ? (char.previewUrl||char.imageUrl) : char.imageUrl;
-        const typeLabel = char.isFusion ? '4★ Fusion' : `1★ Char`;
+        const typeLabel = char.isFusion ? '★ Fusion' : `★ Char`;
         item.innerHTML = `<img src="${imgUrl}" alt="${char.name}" class="w-12 h-16 object-cover rounded-md flex-shrink-0">
             <div><p class="font-bold">${char.name}</p><p class="text-xs text-gray-400">${typeLabel} · ID: ${char.id}</p></div>`;
         item.onclick = () => {
@@ -1553,13 +1512,13 @@ async function saveAuEntry() {
     saveBtn.disabled = true; saveBtn.textContent = 'Uploading...';
 
     try {
-        let star3Url = null, fusionUrl = null;
+        let starUrl = null, fusionUrl = null;
 
         if (!char.isFusion) {
             const methodSel = document.querySelector('#au-star3-field .image-upload-method');
             const fileInput = document.getElementById('au-star3-file');
             const linkInput = document.getElementById('au-star3-link');
-            star3Url = await processRawImageInput(methodSel, fileInput, linkInput);
+            starUrl = await processRawImageInput(methodSel, fileInput, linkInput);
         } else {
             const methodSel = document.querySelector('#au-fusion-field .image-upload-method');
             const fileInput = document.getElementById('au-fusion-file');
@@ -1569,11 +1528,11 @@ async function saveAuEntry() {
 
         const prompt = dom.auEntryPrompt.value.trim();
         const entryData = {};
-        if (star3Url)  entryData.star3ImageUrl = star3Url;
+        if (starUrl)   entryData.starImageUrl = starUrl;
         if (fusionUrl) entryData.fusionImageUrl = fusionUrl;
         if (prompt)    entryData.prompt = prompt;
 
-        if (!star3Url && !fusionUrl) throw new Error("Please provide an image URL or upload a file.");
+        if (!starUrl && !fusionUrl) throw new Error("Please provide an image URL or upload a file.");
 
         const coll = dismissed.find(d=>d.id===charId) ? 'dismissed' : 'characters';
         await db.collection(coll).doc(charId).set(
@@ -1801,7 +1760,7 @@ const loadItemForEdit = async (itemId, itemType) => {
         _showPreview(c, url);
     };
     setupImg('main-image-container', item.imageUrl);
-    if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
+    // no evolution image containers in single-star system
     if (itemType==='fusion') setupImg('preview-image-container', item.previewUrl);
 
     const updateSel = (inputId, charId) => {
@@ -1867,23 +1826,14 @@ const handleFormSubmit = async (e) => {
 
         if (type==='character') {
             data.isFusion=false; data.star=1;
-            const [u1,u2,u3] = await Promise.all([processImageInput('main-image-container'),processImageInput('evo1-image-container'),processImageInput('evo2-image-container')]);
+            const u1 = await processImageInput('main-image-container');
             if (!u1&&!isEditing) throw new Error("Main image is required.");
-            // On rename, carry over existing images if no new one provided
             if (isRename) {
                 const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
                 data.imageUrl = u1 || old?.imageUrl || null;
-                data.evolutions = [];
-                const eu2 = u2 || old?.evolutions?.find(e=>e.star===2)?.imageUrl;
-                const eu3 = u3 || old?.evolutions?.find(e=>e.star===3)?.imageUrl;
-                if(eu2) data.evolutions.push({star:2,imageUrl:eu2});
-                if(eu3) data.evolutions.push({star:3,imageUrl:eu3});
-                // Carry over auData
                 if (old?.auData) data.auData = old.auData;
             } else {
-                data.imageUrl=u1; data.evolutions=[];
-                if(u2) data.evolutions.push({star:2,imageUrl:u2});
-                if(u3) data.evolutions.push({star:3,imageUrl:u3});
+                data.imageUrl = u1;
             }
         } else if (type==='fusion') {
             data.isFusion=true; data.star=4;
@@ -1910,7 +1860,7 @@ const handleFormSubmit = async (e) => {
         batch.set(db.collection(coll).doc(newId), data, {merge: !isRename});
 
         if (type==='character'||type==='fusion') {
-            const levels = type==='character' ? ['1','2','3','EK'] : ['FUSION','EK'];
+            const levels = type==='character' ? ['1','EK'] : ['FUSION','EK'];
             levels.forEach(suffix => {
                 const dbKey = suffix==='FUSION' ? 'FÜZYON' : suffix;
                 const tv  = document.getElementById(`prompt-title-${suffix}`)?.value.trim();
@@ -2066,16 +2016,13 @@ function renderStats() {
     const auCount  = alternativeUniverses.length;
     const retCount = dismissed.length;
 
-    // Characters with all 3 evolutions = "full set"
-    const fullSets = normals.filter(c => c.imageUrl && c.evolutions?.length >= 2 && c.evolutions[1]?.imageUrl);
+    // Characters with image
+    const fullSets = normals.filter(c => c.imageUrl);
 
-    // Total unique images (1★ + all evos + fusions)
+    // Total unique images
     let imgCount = 0;
-    normals.forEach(c => {
-        if (c.imageUrl) imgCount++;
-        (c.evolutions || []).forEach(e => { if (e.imageUrl) imgCount++; });
-    });
-    fusions.forEach(f => { if (f.imageUrl) imgCount++; });
+    normals.forEach(c => { if (c.imageUrl) imgCount++; });
+    fusions.forEach(f => { if (f.imageUrl || f.previewUrl) imgCount++; });
 
     // Fusion usage: how many chars are fused at least once
     const fusedIds = new Set(fusions.flatMap(f => f.fusionPartners || []));
@@ -2513,13 +2460,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const all = [...(window.characters||[]), ...(window.dismissed||[])];
 
         all.forEach(c => {
-            if (c.imageUrl && !c.isFusion) urls.add(c.imageUrl);
-            (c.evolutions || []).forEach(e => { if (e.imageUrl) urls.add(e.imageUrl); });
-            if (c.isFusion) {
-                if (c.previewUrl) urls.add(c.previewUrl);
-            }
+            if (c.imageUrl) urls.add(c.imageUrl);
+            if (c.isFusion && c.previewUrl) urls.add(c.previewUrl);
             const auData = c.auData || {};
             Object.values(auData).forEach(entry => {
+                if (entry.starImageUrl)   urls.add(entry.starImageUrl);
                 if (entry.star3ImageUrl)  urls.add(entry.star3ImageUrl);
                 if (entry.fusionImageUrl) urls.add(entry.fusionImageUrl);
             });
