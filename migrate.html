@@ -4,39 +4,99 @@
     <meta charset="UTF-8">
     <title>Firebase Migration Tool</title>
     <style>
-        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 30px; max-width: 800px; margin: auto; }
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 30px; max-width: 900px; margin: auto; }
         h1 { color: #e94560; }
-        button { background: #e94560; color: #fff; border: none; padding: 12px 28px; font-size: 16px; cursor: pointer; border-radius: 6px; margin: 8px 4px; }
+        h2 { color: #4ecca3; font-size: 15px; margin: 0 0 8px; }
+        .configs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+        .config-box { background: #0f0f23; border: 1px solid #333; border-radius: 6px; padding: 16px; }
+        .config-box.source { border-left: 4px solid #e94560; }
+        .config-box.dest   { border-left: 4px solid #4ecca3; }
+        textarea {
+            width: 100%; box-sizing: border-box;
+            background: #1a1a2e; color: #eee; border: 1px solid #444;
+            border-radius: 4px; padding: 10px; font-family: monospace;
+            font-size: 12px; resize: vertical; min-height: 190px;
+        }
+        textarea:focus { outline: none; border-color: #4ecca3; }
+        .hint { font-size: 11px; color: #888; margin-top: 6px; }
+        .collections-row { margin: 12px 0; }
+        .collections-row label { font-size: 13px; color: #ccc; display: block; margin-bottom: 6px; }
+        .collections-row input {
+            width: 100%; box-sizing: border-box;
+            background: #0f0f23; color: #eee; border: 1px solid #444;
+            border-radius: 4px; padding: 8px 10px; font-family: monospace; font-size: 13px;
+        }
+        .collections-row input:focus { outline: none; border-color: #4ecca3; }
+        button { background: #e94560; color: #fff; border: none; padding: 12px 28px; font-size: 16px; cursor: pointer; border-radius: 6px; margin: 8px 4px 8px 0; }
+        button.sec { background: #333; }
         button:disabled { background: #555; cursor: not-allowed; }
-        #log { background: #0f0f23; border: 1px solid #333; padding: 16px; height: 420px; overflow-y: auto; border-radius: 6px; margin-top: 20px; font-size: 13px; line-height: 1.7; }
+        #log { background: #0f0f23; border: 1px solid #333; padding: 16px; height: 380px; overflow-y: auto; border-radius: 6px; margin-top: 20px; font-size: 13px; line-height: 1.7; }
         .ok   { color: #4ecca3; }
         .err  { color: #e94560; }
         .info { color: #f5a623; }
         .done { color: #fff; font-weight: bold; font-size: 15px; }
         #progress { margin-top: 12px; background: #333; border-radius: 4px; height: 16px; }
         #bar { height: 16px; background: #4ecca3; border-radius: 4px; width: 0%; transition: width 0.3s; }
-        .warning { background: #333; border-left: 4px solid #f5a623; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+        .warning { background: #333; border-left: 4px solid #f5a623; padding: 12px 16px; margin: 16px 0; border-radius: 4px; font-size: 13px; }
+        pre { margin: 8px 0; font-size: 12px; }
+        .parse-status { font-size: 11px; margin-top: 5px; min-height: 16px; }
     </style>
 </head>
 <body>
     <h1>🔥 Firebase Migration Tool</h1>
 
     <div class="warning">
-        ⚠️ <strong>Başlamadan önce:</strong> Yeni Firebase projesinde Firestore kurallarını geçici olarak açık yap:<br>
-        <code>Firebase Console → Firestore → Rules → aşağıdaki kodu yapıştır → Publish</code><br><br>
-        <code>rules_version = '2';<br>
-        service cloud.firestore {<br>
-        &nbsp;&nbsp;match /databases/{database}/documents {<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
-        &nbsp;&nbsp;}<br>
-        }</code><br><br>
+        ⚠️ <strong>Başlamadan önce:</strong> <em>Hedef</em> Firebase projesinde Firestore kurallarını geçici olarak aç:<br>
+        <code>Firebase Console → Firestore → Rules → Publish</code>
+        <pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
         Migration bittikten sonra kuralları eski haline getirmeyi unutma!
     </div>
 
+    <!-- Config Girişleri -->
+    <div class="configs">
+        <div class="config-box source">
+            <h2>🔴 Kaynak Firebase (Eski)</h2>
+            <textarea id="oldConfig" placeholder='{
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+}' oninput="validateConfig(this, 'old')"></textarea>
+            <div class="parse-status" id="oldStatus"></div>
+            <div class="hint">Firebase Console'dan kopyaladığın config objesini yapıştır.</div>
+        </div>
+        <div class="config-box dest">
+            <h2>🟢 Hedef Firebase (Yeni)</h2>
+            <textarea id="newConfig" placeholder='{
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+}' oninput="validateConfig(this, 'new')"></textarea>
+            <div class="parse-status" id="newStatus"></div>
+            <div class="hint">Verilerin taşınacağı yeni projenin config'ini yapıştır.</div>
+        </div>
+    </div>
+
+    <!-- Koleksiyon Listesi -->
+    <div class="collections-row">
+        <label>Taşınacak koleksiyonlar (virgülle ayır):</label>
+        <input id="collectionsInput" type="text" value="characters, dismissed, alternativeUniverses, promptLibrary, settings">
+    </div>
+
     <button id="btnStart" onclick="startMigration()">Migration'ı Başlat</button>
-    <button onclick="clearLog()">Logu Temizle</button>
+    <button class="sec" onclick="clearLog()">Logu Temizle</button>
 
     <div id="progress"><div id="bar"></div></div>
     <div id="log"></div>
@@ -46,31 +106,48 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
-        // ─── ESKİ PROJENİN CONFIG'İ ────────────────────────────────────────────────
-        const OLD_CONFIG = {
-            apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
-            authDomain: "karaktergalerisi-dc337.firebaseapp.com",
-            projectId: "karaktergalerisi-dc337",
-            storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
-            messagingSenderId: "486669559067",
-            appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
-        };
-
-        // ─── YENİ PROJENİN CONFIG'İ ────────────────────────────────────────────────
-        const NEW_CONFIG = {
-            apiKey: "AIzaSyDAmMtRBGyNOb6R2ZjSZrhN5NnGA_p-L3w",
-            authDomain: "character-gallery-e23ee.firebaseapp.com",
-            projectId: "character-gallery-e23ee",
-            storageBucket: "character-gallery-e23ee.firebasestorage.app",
-            messagingSenderId: "737596044949",
-            appId: "1:737596044949:web:5ddf2bda9fcfce9f990d9c"
-        };
-
-        // Migrate edilecek koleksiyonlar
-        const COLLECTIONS = ['characters', 'dismissed', 'alternativeUniverses', 'promptLibrary', 'settings'];
-
         const logEl = document.getElementById('log');
         const barEl = document.getElementById('bar');
+
+        // Firebase JS config objesini (JS literal veya JSON) parse et
+        function parseFirebaseConfig(raw) {
+            const trimmed = raw.trim();
+            if (!trimmed) throw new Error('Config boş');
+
+            // JSON dene (çift tırnaklı anahtarlar)
+            try { return JSON.parse(trimmed); } catch (_) {}
+
+            // JS object literal dene
+            try {
+                const jsonLike = trimmed
+                    .replace(/\/\/.*$/gm, '')
+                    .replace(/,\s*([\]}])/g, '$1')
+                    .replace(/([{,]\s*)([a-zA-Z_]\w*)\s*:/g, '$1"$2":')
+                    .replace(/'/g, '"');
+                return JSON.parse(jsonLike);
+            } catch (e2) {
+                throw new Error('Parse hatası: ' + e2.message);
+            }
+        }
+
+        function validateConfig(el, which) {
+            const statusEl = document.getElementById(which + 'Status');
+            try {
+                const cfg = parseFirebaseConfig(el.value);
+                const required = ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'];
+                const missing = required.filter(k => !cfg[k]);
+                if (missing.length) {
+                    statusEl.style.color = '#f5a623';
+                    statusEl.textContent = '⚠ Eksik alanlar: ' + missing.join(', ');
+                } else {
+                    statusEl.style.color = '#4ecca3';
+                    statusEl.textContent = '✓ Config geçerli — ' + cfg.projectId;
+                }
+            } catch (e) {
+                statusEl.style.color = '#e94560';
+                statusEl.textContent = '✗ ' + e.message;
+            }
+        }
 
         function log(msg, cls = '') {
             const d = document.createElement('div');
@@ -103,7 +180,7 @@
             }
 
             let success = 0, fail = 0;
-            const BATCH_SIZE = 400; // Firestore batch limit 500
+            const BATCH_SIZE = 400;
 
             for (let i = 0; i < docs.length; i += BATCH_SIZE) {
                 const chunk = docs.slice(i, i + BATCH_SIZE);
@@ -127,17 +204,51 @@
         }
 
         async function startMigration() {
+            let OLD_CONFIG, NEW_CONFIG;
+            try {
+                OLD_CONFIG = parseFirebaseConfig(document.getElementById('oldConfig').value);
+            } catch (e) {
+                log('✗ Kaynak config geçersiz: ' + e.message, 'err');
+                return;
+            }
+            try {
+                NEW_CONFIG = parseFirebaseConfig(document.getElementById('newConfig').value);
+            } catch (e) {
+                log('✗ Hedef config geçersiz: ' + e.message, 'err');
+                return;
+            }
+
+            if (OLD_CONFIG.projectId === NEW_CONFIG.projectId) {
+                log('✗ Kaynak ve hedef proje aynı olamaz!', 'err');
+                return;
+            }
+
+            const COLLECTIONS = document.getElementById('collectionsInput').value
+                .split(',').map(s => s.trim()).filter(Boolean);
+
+            if (COLLECTIONS.length === 0) {
+                log('✗ En az bir koleksiyon adı gir.', 'err');
+                return;
+            }
+
             document.getElementById('btnStart').disabled = true;
             clearLog();
             setProgress(0);
 
             log('🚀 Migration başlıyor...', 'info');
+            log(`   Kaynak: <strong>${OLD_CONFIG.projectId}</strong>`, 'info');
+            log(`   Hedef:  <strong>${NEW_CONFIG.projectId}</strong>`, 'info');
+            log(`   Koleksiyonlar: ${COLLECTIONS.join(', ')}`, 'info');
 
-            // Firebase app'lerini başlat
             let oldApp, newApp;
             try {
-                oldApp = firebase.apps.find(a => a.name === 'old') || firebase.initializeApp(OLD_CONFIG, 'old');
-                newApp = firebase.apps.find(a => a.name === 'new') || firebase.initializeApp(NEW_CONFIG, 'new');
+                const existingOld = firebase.apps.find(a => a.name === 'old');
+                const existingNew = firebase.apps.find(a => a.name === 'new');
+                if (existingOld) await existingOld.delete();
+                if (existingNew) await existingNew.delete();
+
+                oldApp = firebase.initializeApp(OLD_CONFIG, 'old');
+                newApp = firebase.initializeApp(NEW_CONFIG, 'new');
             } catch (e) {
                 log(`✗ Firebase başlatılamadı: ${e.message}`, 'err');
                 document.getElementById('btnStart').disabled = false;
@@ -146,7 +257,6 @@
 
             const oldDb = oldApp.firestore();
             const newDb = newApp.firestore();
-
             log('✓ Her iki Firebase bağlantısı kuruldu', 'ok');
 
             let totalSuccess = 0, totalFail = 0;
@@ -165,7 +275,7 @@
             log('<br>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', '');
             if (totalFail === 0) {
                 log(`🎉 Migration tamamlandı! ${totalSuccess} döküman başarıyla aktarıldı.`, 'done');
-                log('<br>⚠️ Şimdi yeni Firebase Firestore kurallarını güvenli hale getirmeyi unutma!', 'info');
+                log('<br>⚠️ Şimdi hedef Firebase Firestore kurallarını güvenli hale getirmeyi unutma!', 'info');
             } else {
                 log(`⚠️ Migration bitti: ${totalSuccess} başarılı, ${totalFail} başarısız.`, 'info');
                 log('Başarısız olanlar için Firestore kurallarını kontrol et ve tekrar dene.', 'err');
