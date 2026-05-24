@@ -207,8 +207,20 @@
                             <span class="material-symbols-outlined chip-icon">apps</span>All
                         </label>
                         <label class="mode-chip">
+                            <input type="radio" name="mode" value="stars_1">
+                            <span class="material-symbols-outlined chip-icon text-orange-400">filter_1</span>1★ Only
+                        </label>
+                        <label class="mode-chip">
+                            <input type="radio" name="mode" value="stars_2">
+                            <span class="material-symbols-outlined chip-icon text-slate-400">filter_2</span>2★ Only
+                        </label>
+                        <label class="mode-chip">
+                            <input type="radio" name="mode" value="stars_3">
+                            <span class="material-symbols-outlined chip-icon text-amber-400">filter_3</span>3★ Only
+                        </label>
+                        <label class="mode-chip">
                             <input type="radio" name="mode" value="fusions">
-                            <span class="material-symbols-outlined chip-icon text-fuchsia-400">auto_awesome</span>Fusions
+                            <span class="material-symbols-outlined chip-icon text-fuchsia-400">filter_4</span>Fusions
                         </label>
                         <label class="mode-chip" style="grid-column:span 2">
                             <input type="radio" name="mode" value="absolute_war">
@@ -532,13 +544,12 @@ function prepareContestants(settings) {
                     });
                 }
             } else {
-                const auImg = entry.starImageUrl || entry.star3ImageUrl;
-                if (auImg) {
+                if (entry.star3ImageUrl) {
                     pool.push({
                         id: `${char.id}_au_${auId}`,
                         name: char.name,
-                        label: '★',
-                        imageUrl: auImg,
+                        label: '3★',
+                        imageUrl: entry.star3ImageUrl,
                         auName: auDef?.name,
                         auColor: auDef?.color,
                     });
@@ -548,24 +559,37 @@ function prepareContestants(settings) {
 
     } else if (mode === 'fusions') {
         sourceList.filter(c => c.isFusion).forEach(char => {
-            pool.push({ id: char.id, name: char.name, label: '★', imageUrl: fusionImg(char) });
+            pool.push({ id: char.id, name: char.name, label: '4★', imageUrl: fusionImg(char) });
+        });
+
+    } else if (mode === 'stars_1' || mode === 'stars_2' || mode === 'stars_3') {
+        const star = parseInt(mode.split('_')[1]);
+        sourceList.filter(c => !c.isFusion).forEach(char => {
+            const imgUrl = star === 1 ? char.imageUrl : char.evolutions?.find(e => e.star === star)?.imageUrl;
+            if (imgUrl) pool.push({ id: `${char.id}_${star}`, name: char.name, label: `${star}★`, imageUrl: imgUrl });
         });
 
     } else if (mode === 'all') {
         sourceList.forEach(char => {
             if (char.isFusion) {
-                pool.push({ id: char.id, name: char.name, label: '★', imageUrl: fusionImg(char) });
-            } else if (char.imageUrl) {
-                pool.push({ id: char.id, name: char.name, label: '★', imageUrl: char.imageUrl });
+                pool.push({ id: char.id, name: char.name, label: '4★', imageUrl: fusionImg(char) });
+            } else {
+                [1, 2, 3].forEach(star => {
+                    const imgUrl = star === 1 ? char.imageUrl : char.evolutions?.find(e => e.star === star)?.imageUrl;
+                    if (imgUrl) pool.push({ id: `${char.id}_${star}`, name: char.name, label: `${star}★`, imageUrl: imgUrl });
+                });
             }
         });
 
     } else if (mode === 'random') {
         sourceList.forEach(char => {
             if (char.isFusion) {
-                pool.push({ id: char.id, name: char.name, label: '★', imageUrl: fusionImg(char) });
-            } else if (char.imageUrl) {
-                pool.push({ id: char.id, name: char.name, label: '★', imageUrl: char.imageUrl });
+                pool.push({ id: char.id, name: char.name, label: '4★', imageUrl: fusionImg(char) });
+            } else {
+                [1, 2, 3].forEach(star => {
+                    const imgUrl = star === 1 ? char.imageUrl : char.evolutions?.find(e => e.star === star)?.imageUrl;
+                    if (imgUrl) pool.push({ id: `${char.id}_${star}`, name: char.name, label: `${star}★`, imageUrl: imgUrl });
+                });
             }
         });
         pool.sort(() => Math.random() - 0.5);
@@ -597,7 +621,7 @@ function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
 function startAbsoluteWarStage() {
     const stage = gameState.absoluteWar.stage;
     let pool, stageName;
-    const stageMap = { 1: ['all','Characters Battle'], 2: ['fusions','Fusions Battle'] };
+    const stageMap = { 1: ['stars_1','1★ Battle'], 2: ['stars_2','2★ Battle'], 3: ['stars_3','3★ Battle'], 4: ['fusions','Fusions Battle'] };
     if (stageMap[stage]) {
         const [modeKey, name] = stageMap[stage];
         stageName = name;

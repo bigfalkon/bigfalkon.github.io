@@ -365,7 +365,10 @@ let customPool    = new Set(); // char ids in the custom pool (mode 3)
 const dom = {};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const get3StarUrl = (char) => char?.imageUrl || '';
+const get3StarUrl = (char) =>
+    char?.evolutions?.find(e => e.star === 3)?.imageUrl
+    || char?.imageUrl
+    || '';
 
 
 function getRandomItems(arr, n) {
