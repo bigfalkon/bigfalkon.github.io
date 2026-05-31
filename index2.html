@@ -234,9 +234,14 @@
         .img-focus-row { display:flex; flex-direction:column; gap:4px; padding-top:8px; border-top:1px solid var(--outline-var); }
         .img-focus-header { display:flex; justify-content:space-between; font-size:.72rem; color:var(--on-surface-var); }
         .img-focus-header .focus-val-label { color:var(--primary); font-weight:700; }
-        .img-focus-slider-row { display:flex; align-items:center; gap:6px; }
+        .img-focus-slider-row { display:flex; align-items:flex-start; gap:10px; }
         .focus-slider { flex:1; cursor:pointer; }
         .img-focus-tip { font-size:.68rem; color:var(--on-surface-var); flex-shrink:0; }
+        .img-focus-hint { font-size:.7rem; color:var(--on-surface-var); }
+        /* Natural-size preview (no crop) */
+        .img-natural { width:100%; height:auto; display:block; max-height:400px; object-fit:contain; background:rgba(0,0,0,.2); }
+        /* Small 2:3 crop preview box */
+        .img-crop-preview-wrap { width:54px; height:81px; flex-shrink:0; border-radius:8px; overflow:hidden; border:2px solid var(--primary); background:var(--surface-container,#201f25); }
 
         /* Scrollbars */
         .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
@@ -469,7 +474,7 @@
                         <label class="img-drop-zone">
                             <input type="file" name="fusion_preview_file" class="image-upload-file sr-only" accept="image/*">
                             <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
-                            <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;display:block;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                            <div class="img-preview hidden"><img alt="" class="img-natural"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
                         </label>
                         <input type="text" name="previewUrl" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
                     </div>
@@ -483,12 +488,18 @@
                     <label class="img-drop-zone">
                         <input type="file" name="imageFile" class="image-upload-file sr-only" accept="image/*">
                         <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
-                        <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;object-position:50% center;display:block;transition:object-position 0.15s ease;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                        <div class="img-preview hidden"><img alt="" class="img-natural"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
                     </label>
                     <input type="text" name="imageUrl" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
                     <div class="img-focus-row">
                         <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
-                        <div class="img-focus-slider-row"><span class="img-focus-tip">◀ Sol</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">Sağ ▶</span></div>
+                        <div class="img-focus-slider-row">
+                            <div class="img-crop-preview-wrap"><img class="img-crop-preview" alt="" src="" style="width:100%;height:100%;object-fit:cover;object-position:50% center;transition:object-position .15s ease;display:none;"></div>
+                            <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                                <div style="display:flex;align-items:center;gap:6px;"><span class="img-focus-tip">◀</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">▶</span></div>
+                                <p class="img-focus-hint">Galeri kırpma önizlemesi için görsel seçin.</p>
+                            </div>
+                        </div>
                         <input type="hidden" class="focus-hidden" value="50% center">
                     </div>
                 </div>
@@ -502,12 +513,18 @@
                         <label class="img-drop-zone">
                             <input type="file" name="evolutions_1_file" class="image-upload-file sr-only" accept="image/*">
                             <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
-                            <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;object-position:50% center;display:block;transition:object-position 0.15s ease;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                            <div class="img-preview hidden"><img alt="" class="img-natural"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
                         </label>
                         <input type="text" name="evolutions_1_url" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
                         <div class="img-focus-row">
                             <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
-                            <div class="img-focus-slider-row"><span class="img-focus-tip">◀ Sol</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">Sağ ▶</span></div>
+                            <div class="img-focus-slider-row">
+                                <div class="img-crop-preview-wrap"><img class="img-crop-preview" alt="" src="" style="width:100%;height:100%;object-fit:cover;object-position:50% center;transition:object-position .15s ease;display:none;"></div>
+                                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                                    <div style="display:flex;align-items:center;gap:6px;"><span class="img-focus-tip">◀</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">▶</span></div>
+                                    <p class="img-focus-hint">Galeri kırpma önizlemesi için görsel seçin.</p>
+                                </div>
+                            </div>
                             <input type="hidden" class="focus-hidden" value="50% center">
                         </div>
                     </div>
@@ -519,12 +536,18 @@
                         <label class="img-drop-zone">
                             <input type="file" name="evolutions_2_file" class="image-upload-file sr-only" accept="image/*">
                             <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
-                            <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;object-position:50% center;display:block;transition:object-position 0.15s ease;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                            <div class="img-preview hidden"><img alt="" class="img-natural"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
                         </label>
                         <input type="text" name="evolutions_2_url" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
                         <div class="img-focus-row">
                             <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
-                            <div class="img-focus-slider-row"><span class="img-focus-tip">◀ Sol</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">Sağ ▶</span></div>
+                            <div class="img-focus-slider-row">
+                                <div class="img-crop-preview-wrap"><img class="img-crop-preview" alt="" src="" style="width:100%;height:100%;object-fit:cover;object-position:50% center;transition:object-position .15s ease;display:none;"></div>
+                                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                                    <div style="display:flex;align-items:center;gap:6px;"><span class="img-focus-tip">◀</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">▶</span></div>
+                                    <p class="img-focus-hint">Galeri kırpma önizlemesi için görsel seçin.</p>
+                                </div>
+                            </div>
                             <input type="hidden" class="focus-hidden" value="50% center">
                         </div>
                     </div>
@@ -938,12 +961,12 @@ function initFocusSliders() {
 
 function _applyCardFocus(card, pct) {
     if (!card) return;
-    const hidden = card.querySelector('.focus-hidden');
-    const lbl    = card.querySelector('.focus-val-label');
-    const img    = card.querySelector('.img-preview img');
+    const hidden   = card.querySelector('.focus-hidden');
+    const lbl      = card.querySelector('.focus-val-label');
+    const cropImg  = card.querySelector('.img-crop-preview');
     if (hidden) hidden.value = `${pct}% center`;
     if (lbl) lbl.textContent = pct === 50 ? 'Merkez' : pct < 50 ? `Sol ${pct}%` : `Sağ ${pct}%`;
-    if (img)  img.style.objectPosition = `${pct}% center`;
+    if (cropImg) cropImg.style.objectPosition = `${pct}% center`;
 }
 
 function setCardFocus(card, value) {
@@ -1759,12 +1782,21 @@ function _showPreview(container, src) {
     img.onerror = () => { wrap.classList.add('hidden'); placeholder?.classList.remove('hidden'); };
     img.onload  = () => { wrap.classList.remove('hidden'); placeholder?.classList.add('hidden'); };
     img.src = src;
+    // Sync the small crop preview box
+    const cropImg  = container.querySelector('.img-crop-preview');
+    const cropHint = container.querySelector('.img-focus-hint');
+    if (cropImg) { cropImg.src = src; cropImg.style.display = 'block'; }
+    if (cropHint) cropHint.style.display = 'none';
 }
 function _hidePreview(container) {
     const placeholder = container?.querySelector('.img-placeholder');
     const wrap = container?.querySelector('.img-preview');
     if (wrap) { wrap.classList.add('hidden'); const img = wrap.querySelector('img'); if (img) img.src = ''; }
     placeholder?.classList.remove('hidden');
+    const cropImg  = container?.querySelector('.img-crop-preview');
+    const cropHint = container?.querySelector('.img-focus-hint');
+    if (cropImg) { cropImg.src = ''; cropImg.style.display = 'none'; }
+    if (cropHint) cropHint.style.display = '';
 }
 
 // ── Prompt char counters ──────────────────────────────────────────────────────
@@ -1898,11 +1930,23 @@ const loadItemForEdit = async (itemId, itemType) => {
     if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
     if (itemType==='fusion') setupImg('preview-image-container', item.previewUrl);
 
-    // Restore focus points per star
+    // Restore focus points per star + sync crop previews
     initFocusSliders();
-    setCardFocus(document.getElementById('main-image-container'), item.imagePosition || '50% center');
-    setCardFocus(document.getElementById('evo1-image-container'), item.evolutions?.find(e=>e.star===2)?.imagePosition || '50% center');
-    setCardFocus(document.getElementById('evo2-image-container'), item.evolutions?.find(e=>e.star===3)?.imagePosition || '50% center');
+    const _syncCrop = (cardId, pos) => {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        setCardFocus(card, pos || '50% center');
+        const src = card.querySelector('.img-preview img')?.src;
+        const cropImg  = card.querySelector('.img-crop-preview');
+        const cropHint = card.querySelector('.img-focus-hint');
+        if (cropImg && src && !src.endsWith(location.href)) {
+            cropImg.src = src; cropImg.style.display = 'block';
+            if (cropHint) cropHint.style.display = 'none';
+        }
+    };
+    _syncCrop('main-image-container', item.imagePosition);
+    _syncCrop('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imagePosition);
+    _syncCrop('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imagePosition);
 
     const updateSel = (inputId, charId) => {
         const ch = [...characters, ...dismissed].find(c=>c.id===charId);
