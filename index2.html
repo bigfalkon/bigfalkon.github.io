@@ -225,23 +225,24 @@
         .img-method-select { padding:5px 8px !important; font-size:.75rem !important; border-radius:8px !important; width:auto !important; min-width:80px; background:var(--surface-container,#201f25); }
         .img-drop-zone { display:block; cursor:pointer; border-radius:10px; overflow:hidden; position:relative; border:2px dashed var(--outline-var); transition:border-color 0.2s, background 0.2s; }
         .img-drop-zone:hover { border-color:var(--primary); background:rgba(var(--primary-rgb),.04); }
-        .img-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:130px; color:var(--on-surface-var); font-size:.8rem; }
+        .img-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:120px; color:var(--on-surface-var); font-size:.8rem; }
         .img-placeholder .material-symbols-outlined { font-size:38px; opacity:.45; }
         .img-preview { position:relative; }
         .img-preview-edit { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.5); opacity:0; transition:opacity 0.2s; color:#fff; }
         .img-preview-edit .material-symbols-outlined { font-size:28px; }
         .img-drop-zone:hover .img-preview-edit { opacity:1; }
-        .img-focus-row { display:flex; flex-direction:column; gap:4px; padding-top:8px; border-top:1px solid var(--outline-var); }
+        /* Natural-size preview: fixed 120px height, full image visible */
+        .img-natural { width:100%; height:120px; object-fit:contain; display:block; background:rgba(0,0,0,.25); }
+        /* Focus row */
+        .img-focus-row { display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px solid var(--outline-var); }
         .img-focus-header { display:flex; justify-content:space-between; font-size:.72rem; color:var(--on-surface-var); }
         .img-focus-header .focus-val-label { color:var(--primary); font-weight:700; }
-        .img-focus-slider-row { display:flex; align-items:flex-start; gap:10px; }
+        .img-focus-slider-row { display:flex; align-items:center; gap:10px; }
         .focus-slider { flex:1; cursor:pointer; }
         .img-focus-tip { font-size:.68rem; color:var(--on-surface-var); flex-shrink:0; }
         .img-focus-hint { font-size:.7rem; color:var(--on-surface-var); }
-        /* Natural-size preview (no crop) */
-        .img-natural { width:100%; height:auto; display:block; max-height:400px; object-fit:contain; background:rgba(0,0,0,.2); }
-        /* Small 2:3 crop preview box */
-        .img-crop-preview-wrap { width:54px; height:81px; flex-shrink:0; border-radius:8px; overflow:hidden; border:2px solid var(--primary); background:var(--surface-container,#201f25); }
+        /* Crop preview box: 2:3 ratio, prominent */
+        .img-crop-preview-wrap { width:72px; height:108px; flex-shrink:0; border-radius:8px; overflow:hidden; border:2px solid var(--primary); background:var(--surface-container,#201f25); }
 
         /* Scrollbars */
         .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
@@ -520,7 +521,7 @@
                             <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
                             <div class="img-focus-slider-row">
                                 <div class="img-crop-preview-wrap"><img class="img-crop-preview" alt="" src="" style="width:100%;height:100%;object-fit:cover;object-position:50% center;transition:object-position .15s ease;display:none;"></div>
-                                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                                <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
                                     <div style="display:flex;align-items:center;gap:6px;"><span class="img-focus-tip">◀</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">▶</span></div>
                                     <p class="img-focus-hint">Galeri kırpma önizlemesi için görsel seçin.</p>
                                 </div>
@@ -543,7 +544,7 @@
                             <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
                             <div class="img-focus-slider-row">
                                 <div class="img-crop-preview-wrap"><img class="img-crop-preview" alt="" src="" style="width:100%;height:100%;object-fit:cover;object-position:50% center;transition:object-position .15s ease;display:none;"></div>
-                                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                                <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
                                     <div style="display:flex;align-items:center;gap:6px;"><span class="img-focus-tip">◀</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">▶</span></div>
                                     <p class="img-focus-hint">Galeri kırpma önizlemesi için görsel seçin.</p>
                                 </div>
