@@ -217,6 +217,15 @@
             50% { opacity: 1; }
         }
 
+        /* Focus grid */
+        .focus-cell {
+            width: 26px; height: 26px; border-radius: 4px; cursor: pointer;
+            background: var(--surface-high); border: 1.5px solid var(--outline-var);
+            transition: all 0.15s;
+        }
+        .focus-cell:hover { background: rgba(var(--primary-rgb), 0.2); border-color: var(--primary); }
+        .focus-cell.selected { background: var(--primary); border-color: var(--primary); }
+
         /* Scrollbars */
         .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
         .modal-content::-webkit-scrollbar-track, #selector-grid::-webkit-scrollbar-track, #qp-content::-webkit-scrollbar-track { background: transparent; }
@@ -463,6 +472,21 @@
                         <input type="text" name="imageUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
                     </div>
                     <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
+                </div>
+
+                <!-- Galeri kırpma odak noktası seçici -->
+                <div id="image-focus-picker" class="mt-1">
+                    <label class="block text-sm font-medium mb-2">Gallery Crop Focus</label>
+                    <div class="flex items-start gap-4">
+                        <div id="focus-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:90px;flex-shrink:0;">
+                            <!-- 9 grid cells, filled by JS -->
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <p class="text-xs" style="color:var(--on-surface-var);">Click a cell to choose which part of the image stays visible when cropped in the gallery.</p>
+                            <p class="text-xs font-semibold" id="focus-label" style="color:var(--primary);">center center</p>
+                        </div>
+                    </div>
+                    <input type="hidden" name="imagePosition" id="image-position-input" value="center center">
                 </div>
 
                 <div id="character-fields" class="flex flex-col gap-3">
@@ -883,6 +907,48 @@
 </div>
 
 <script>
+// ─── Image focus grid ─────────────────────────────────────────────────────────
+const FOCUS_OPTIONS = [
+    ['left top','center top','right top'],
+    ['left center','center center','right center'],
+    ['left bottom','center bottom','right bottom'],
+];
+const FOCUS_LABELS = [
+    ['↖ Sol Üst','↑ Üst Orta','↗ Sağ Üst'],
+    ['← Sol Orta','⊙ Merkez','→ Sağ Orta'],
+    ['↙ Sol Alt','↓ Alt Orta','↘ Sağ Alt'],
+];
+
+function buildFocusGrid() {
+    const grid = document.getElementById('focus-grid');
+    if (!grid || grid.dataset.built) return;
+    grid.dataset.built = '1';
+    FOCUS_OPTIONS.forEach((row, ri) => {
+        row.forEach((val, ci) => {
+            const cell = document.createElement('div');
+            cell.className = 'focus-cell' + (val === 'center center' ? ' selected' : '');
+            cell.dataset.value = val;
+            cell.title = FOCUS_LABELS[ri][ci];
+            cell.addEventListener('click', () => setFocusCell(val));
+            grid.appendChild(cell);
+        });
+    });
+}
+
+function setFocusCell(value) {
+    const grid = document.getElementById('focus-grid');
+    if (!grid) return;
+    grid.querySelectorAll('.focus-cell').forEach(c => c.classList.toggle('selected', c.dataset.value === value));
+    const inp = document.getElementById('image-position-input');
+    const lbl = document.getElementById('focus-label');
+    if (inp) inp.value = value;
+    if (lbl) lbl.textContent = value;
+}
+
+function getFocusValue() {
+    return document.getElementById('image-position-input')?.value || 'center center';
+}
+
 const firebaseConfig = {
     apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
   authDomain: "karaktergalerisi-dc337.firebaseapp.com",
@@ -1761,6 +1827,8 @@ function resetForm() {
     document.getElementById('id-rename-warning')?.classList.add('hidden');
     document.getElementById('duplicate-name-warning')?.classList.add('hidden');
     dom.dateEditContainer.classList.add('hidden');
+    // Reset focus grid
+    setFocusCell('center center');
     ['fusionPartners_0','fusionPartners_1','originalCharacterId'].forEach(id => {
         const dp = document.getElementById(`${id}_display`);
         const ip = document.querySelector(`[name="${id}"]`);
@@ -1803,6 +1871,10 @@ const loadItemForEdit = async (itemId, itemType) => {
     setupImg('main-image-container', item.imageUrl);
     if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
     if (itemType==='fusion') setupImg('preview-image-container', item.previewUrl);
+
+    // Restore focus point
+    buildFocusGrid();
+    setFocusCell(item.imagePosition || 'center center');
 
     const updateSel = (inputId, charId) => {
         const ch = [...characters, ...dismissed].find(c=>c.id===charId);
@@ -1858,7 +1930,8 @@ const handleFormSubmit = async (e) => {
     try {
         const type = dom.itemTypeSelect.value;
         const irkVal = form.elements['irk'].value.trim();
-        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null };
+        const focusVal = getFocusValue();
+        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null, imagePosition: focusVal === 'center center' ? null : focusVal };
         const coll = 'characters';
         if (isEditing) {
             const dv = form.elements['eklenmeTarihi'].value;
@@ -2447,7 +2520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hidden = dom.addEditFormContainer.classList.toggle('hidden');
         dom.toggleFormText.textContent = hidden?'Add New':'Close Form';
         dom.toggleFormIcon.textContent = hidden?'add':'close';
-        if (!hidden) resetForm();
+        if (!hidden) { resetForm(); buildFocusGrid(); }
     });
     dom.selectorSearchInput.addEventListener('input', () => renderCharacterSelector(dom.selectorSearchInput.value));
 

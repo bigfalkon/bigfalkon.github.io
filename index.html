@@ -796,13 +796,14 @@ function _buildCard(char, index) {
     }
 
     const resolvedImgUrl = resolveCardImage(char);
+    const focusStyle = char.imagePosition ? ` style="object-position:${char.imagePosition}"` : '';
     let imageHtml;
     if (isFusion && char.previewUrl) {
         const auFusionImg = state.activeAuId ? char.auData?.[state.activeAuId]?.fusionImageUrl : null;
         const previewSrc = auFusionImg || char.previewUrl;
         imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy">`;
     } else {
-        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy">`;
+        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
     }
 
     card.innerHTML = `
