@@ -796,7 +796,15 @@ function _buildCard(char, index) {
     }
 
     const resolvedImgUrl = resolveCardImage(char);
-    const focusStyle = char.imagePosition ? ` style="object-position:${char.imagePosition}"` : '';
+    // Pick imagePosition for the current display star
+    let displayImagePosition;
+    if (char.displayStar === 1 || !char.displayStar) {
+        displayImagePosition = char.imagePosition;
+    } else {
+        const evo = char.evolutions?.find(e => e.star === char.displayStar);
+        displayImagePosition = evo?.imagePosition;
+    }
+    const focusStyle = displayImagePosition ? ` style="object-position:${displayImagePosition}"` : '';
     let imageHtml;
     if (isFusion && char.previewUrl) {
         const auFusionImg = state.activeAuId ? char.auData?.[state.activeAuId]?.fusionImageUrl : null;
