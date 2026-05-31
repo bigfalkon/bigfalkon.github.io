@@ -217,15 +217,6 @@
             50% { opacity: 1; }
         }
 
-        /* Focus grid */
-        .focus-cell {
-            width: 26px; height: 26px; border-radius: 4px; cursor: pointer;
-            background: var(--surface-high); border: 1.5px solid var(--outline-var);
-            transition: all 0.15s;
-        }
-        .focus-cell:hover { background: rgba(var(--primary-rgb), 0.2); border-color: var(--primary); }
-        .focus-cell.selected { background: var(--primary); border-color: var(--primary); }
-
         /* Scrollbars */
         .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
         .modal-content::-webkit-scrollbar-track, #selector-grid::-webkit-scrollbar-track, #qp-content::-webkit-scrollbar-track { background: transparent; }
@@ -474,19 +465,18 @@
                     <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                 </div>
 
-                <!-- Galeri kırpma odak noktası seçici -->
+                <!-- Galeri yatay kırpma kaydırıcısı -->
                 <div id="image-focus-picker" class="mt-1">
-                    <label class="block text-sm font-medium mb-2">Gallery Crop Focus</label>
-                    <div class="flex items-start gap-4">
-                        <div id="focus-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:90px;flex-shrink:0;">
-                            <!-- 9 grid cells, filled by JS -->
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <p class="text-xs" style="color:var(--on-surface-var);">Click a cell to choose which part of the image stays visible when cropped in the gallery.</p>
-                            <p class="text-xs font-semibold" id="focus-label" style="color:var(--primary);">center center</p>
-                        </div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-sm font-medium">Gallery Horizontal Focus</label>
+                        <span id="focus-label" class="text-xs font-semibold" style="color:var(--primary);">Merkez (50%)</span>
                     </div>
-                    <input type="hidden" name="imagePosition" id="image-position-input" value="center center">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs" style="color:var(--on-surface-var);">Sol</span>
+                        <input type="range" id="image-focus-slider" min="0" max="100" value="50" step="1" class="flex-grow" style="accent-color:var(--primary);">
+                        <span class="text-xs" style="color:var(--on-surface-var);">Sağ</span>
+                    </div>
+                    <input type="hidden" name="imagePosition" id="image-position-input" value="50% center">
                 </div>
 
                 <div id="character-fields" class="flex flex-col gap-3">
@@ -907,46 +897,44 @@
 </div>
 
 <script>
-// ─── Image focus grid ─────────────────────────────────────────────────────────
-const FOCUS_OPTIONS = [
-    ['left top','center top','right top'],
-    ['left center','center center','right center'],
-    ['left bottom','center bottom','right bottom'],
-];
-const FOCUS_LABELS = [
-    ['↖ Sol Üst','↑ Üst Orta','↗ Sağ Üst'],
-    ['← Sol Orta','⊙ Merkez','→ Sağ Orta'],
-    ['↙ Sol Alt','↓ Alt Orta','↘ Sağ Alt'],
-];
-
+// ─── Image focus slider ───────────────────────────────────────────────────────
 function buildFocusGrid() {
-    const grid = document.getElementById('focus-grid');
-    if (!grid || grid.dataset.built) return;
-    grid.dataset.built = '1';
-    FOCUS_OPTIONS.forEach((row, ri) => {
-        row.forEach((val, ci) => {
-            const cell = document.createElement('div');
-            cell.className = 'focus-cell' + (val === 'center center' ? ' selected' : '');
-            cell.dataset.value = val;
-            cell.title = FOCUS_LABELS[ri][ci];
-            cell.addEventListener('click', () => setFocusCell(val));
-            grid.appendChild(cell);
-        });
+    const slider = document.getElementById('image-focus-slider');
+    if (!slider || slider.dataset.built) return;
+    slider.dataset.built = '1';
+    slider.addEventListener('input', () => {
+        const pct = parseInt(slider.value, 10);
+        _applyFocusValue(pct);
     });
 }
 
-function setFocusCell(value) {
-    const grid = document.getElementById('focus-grid');
-    if (!grid) return;
-    grid.querySelectorAll('.focus-cell').forEach(c => c.classList.toggle('selected', c.dataset.value === value));
+function _applyFocusValue(pct) {
     const inp = document.getElementById('image-position-input');
     const lbl = document.getElementById('focus-label');
-    if (inp) inp.value = value;
-    if (lbl) lbl.textContent = value;
+    if (inp) inp.value = `${pct}% center`;
+    if (lbl) {
+        const label = pct === 50 ? 'Merkez (50%)' : pct < 50 ? `Sol (%${pct})` : `Sağ (%${pct})`;
+        lbl.textContent = label;
+    }
+}
+
+function setFocusCell(value) {
+    // value: "50% center" or legacy "center center" etc.
+    const slider = document.getElementById('image-focus-slider');
+    if (!slider) return;
+    let pct = 50;
+    if (value && value !== 'center center') {
+        const m = value.match(/^(\d+)%/);
+        if (m) pct = parseInt(m[1], 10);
+        else if (value.startsWith('left')) pct = 0;
+        else if (value.startsWith('right')) pct = 100;
+    }
+    slider.value = pct;
+    _applyFocusValue(pct);
 }
 
 function getFocusValue() {
-    return document.getElementById('image-position-input')?.value || 'center center';
+    return document.getElementById('image-position-input')?.value || '50% center';
 }
 
 const firebaseConfig = {
@@ -1931,7 +1919,7 @@ const handleFormSubmit = async (e) => {
         const type = dom.itemTypeSelect.value;
         const irkVal = form.elements['irk'].value.trim();
         const focusVal = getFocusValue();
-        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null, imagePosition: focusVal === 'center center' ? null : focusVal };
+        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null, imagePosition: (focusVal === '50% center' || focusVal === 'center center') ? null : focusVal };
         const coll = 'characters';
         if (isEditing) {
             const dv = form.elements['eklenmeTarihi'].value;
