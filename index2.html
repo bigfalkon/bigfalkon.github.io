@@ -217,6 +217,27 @@
             50% { opacity: 1; }
         }
 
+        /* ── Modern image upload cards ── */
+        .img-card { background:var(--surface-high); border:1.5px solid var(--outline-var); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:10px; transition:border-color 0.2s; }
+        .img-card:hover { border-color:rgba(var(--primary-rgb),.5); }
+        .img-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .img-card-title { font-size:.875rem; font-weight:700; color:var(--on-surface); }
+        .img-method-select { padding:5px 8px !important; font-size:.75rem !important; border-radius:8px !important; width:auto !important; min-width:80px; background:var(--surface-container,#201f25); }
+        .img-drop-zone { display:block; cursor:pointer; border-radius:10px; overflow:hidden; position:relative; border:2px dashed var(--outline-var); transition:border-color 0.2s, background 0.2s; }
+        .img-drop-zone:hover { border-color:var(--primary); background:rgba(var(--primary-rgb),.04); }
+        .img-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:130px; color:var(--on-surface-var); font-size:.8rem; }
+        .img-placeholder .material-symbols-outlined { font-size:38px; opacity:.45; }
+        .img-preview { position:relative; }
+        .img-preview-edit { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.5); opacity:0; transition:opacity 0.2s; color:#fff; }
+        .img-preview-edit .material-symbols-outlined { font-size:28px; }
+        .img-drop-zone:hover .img-preview-edit { opacity:1; }
+        .img-focus-row { display:flex; flex-direction:column; gap:4px; padding-top:8px; border-top:1px solid var(--outline-var); }
+        .img-focus-header { display:flex; justify-content:space-between; font-size:.72rem; color:var(--on-surface-var); }
+        .img-focus-header .focus-val-label { color:var(--primary); font-weight:700; }
+        .img-focus-slider-row { display:flex; align-items:center; gap:6px; }
+        .focus-slider { flex:1; cursor:pointer; }
+        .img-focus-tip { font-size:.68rem; color:var(--on-surface-var); flex-shrink:0; }
+
         /* Scrollbars */
         .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
         .modal-content::-webkit-scrollbar-track, #selector-grid::-webkit-scrollbar-track, #qp-content::-webkit-scrollbar-track { background: transparent; }
@@ -439,74 +460,73 @@
                 <input type="text" name="irk" id="irk-input" placeholder="Race (optional)" class="form-input" list="irk-datalist" autocomplete="off">
                 <datalist id="irk-datalist"></datalist>
 
-                <div id="fusion-preview-image-field" class="hidden flex flex-col gap-3">
-                    <div id="preview-image-container">
-                        <label class="block text-sm font-medium mb-1">Main Fusion Image (PNG/JPG)</label>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="fusion_preview_file" class="form-input flex-grow image-upload-file" accept="image/*">
-                            <input type="text" name="previewUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                <div id="fusion-preview-image-field" class="hidden">
+                    <div id="preview-image-container" class="img-card">
+                        <div class="img-card-header">
+                            <span class="img-card-title">Fusion Ana Görseli</span>
+                            <select class="image-upload-method img-method-select"><option value="imgbb">ImgBB</option><option value="imgbb2">ImgBB 2</option><option value="vgy">VGY.ME</option><option value="link">Link</option></select>
                         </div>
-                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
+                        <label class="img-drop-zone">
+                            <input type="file" name="fusion_preview_file" class="image-upload-file sr-only" accept="image/*">
+                            <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
+                            <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;display:block;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                        </label>
+                        <input type="text" name="previewUrl" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
                     </div>
                 </div>
 
-                <div id="main-image-container">
-                    <label class="block text-sm font-medium mb-1">Main Image</label>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <select class="form-select sm:w-1/3 image-upload-method">
-                            <option value="imgbb">ImgBB Upload</option>
-                            <option value="vgy">VGY.ME Upload</option>
-                            <option value="link">Direct Link</option>
-                        </select>
-                        <input type="file" name="imageFile" class="form-input flex-grow image-upload-file" accept="image/*">
-                        <input type="text" name="imageUrl" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                <div id="main-image-container" class="img-card">
+                    <div class="img-card-header">
+                        <span class="img-card-title">1★ Ana Görsel</span>
+                        <select class="image-upload-method img-method-select"><option value="imgbb">ImgBB</option><option value="vgy">VGY.ME</option><option value="link">Link</option></select>
                     </div>
-                    <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
+                    <label class="img-drop-zone">
+                        <input type="file" name="imageFile" class="image-upload-file sr-only" accept="image/*">
+                        <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
+                        <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;object-position:50% center;display:block;transition:object-position 0.15s ease;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                    </label>
+                    <input type="text" name="imageUrl" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
+                    <div class="img-focus-row">
+                        <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
+                        <div class="img-focus-slider-row"><span class="img-focus-tip">◀ Sol</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">Sağ ▶</span></div>
+                        <input type="hidden" class="focus-hidden" value="50% center">
+                    </div>
                 </div>
 
-                <!-- Galeri yatay kırpma kaydırıcısı -->
-                <div id="image-focus-picker" class="mt-1">
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="text-sm font-medium">Gallery Horizontal Focus</label>
-                        <span id="focus-label" class="text-xs font-semibold" style="color:var(--primary);">Merkez (50%)</span>
-                    </div>
-                    <div class="flex gap-3 items-center">
-                        <!-- Canlı önizleme -->
-                        <div id="focus-preview-wrap" class="hidden flex-shrink-0" style="width:60px;height:90px;border-radius:8px;overflow:hidden;border:2px solid var(--primary);background:var(--surface-high);">
-                            <img id="focus-preview-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% center;transition:object-position 0.15s ease;">
+                <div id="character-fields" class="flex flex-col gap-4">
+                    <div id="evo1-image-container" class="img-card">
+                        <div class="img-card-header">
+                            <span class="img-card-title">2★ Görsel</span>
+                            <select class="image-upload-method img-method-select"><option value="imgbb">ImgBB</option><option value="imgbb2">ImgBB 2</option><option value="vgy">VGY.ME</option><option value="link">Link</option></select>
                         </div>
-                        <!-- Slider -->
-                        <div class="flex flex-col flex-grow gap-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs" style="color:var(--on-surface-var);">Sol</span>
-                                <input type="range" id="image-focus-slider" min="0" max="100" value="50" step="1" class="flex-grow" style="accent-color:var(--primary);">
-                                <span class="text-xs" style="color:var(--on-surface-var);">Sağ</span>
-                            </div>
-                            <p id="focus-no-image" class="text-xs" style="color:var(--on-surface-var);">Önizleme için önce bir görsel seçin.</p>
+                        <label class="img-drop-zone">
+                            <input type="file" name="evolutions_1_file" class="image-upload-file sr-only" accept="image/*">
+                            <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
+                            <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;object-position:50% center;display:block;transition:object-position 0.15s ease;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                        </label>
+                        <input type="text" name="evolutions_1_url" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
+                        <div class="img-focus-row">
+                            <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
+                            <div class="img-focus-slider-row"><span class="img-focus-tip">◀ Sol</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">Sağ ▶</span></div>
+                            <input type="hidden" class="focus-hidden" value="50% center">
                         </div>
                     </div>
-                    <input type="hidden" name="imagePosition" id="image-position-input" value="50% center">
-                </div>
-
-                <div id="character-fields" class="flex flex-col gap-3">
-                    <div id="evo1-image-container">
-                        <label class="block text-sm font-medium mb-1">2★ Image</label>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="evolutions_1_file" class="form-input flex-grow image-upload-file" accept="image/*">
-                            <input type="text" name="evolutions_1_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                    <div id="evo2-image-container" class="img-card">
+                        <div class="img-card-header">
+                            <span class="img-card-title">3★ Görsel</span>
+                            <select class="image-upload-method img-method-select"><option value="imgbb">ImgBB</option><option value="imgbb2">ImgBB 2</option><option value="vgy">VGY.ME</option><option value="link">Link</option></select>
                         </div>
-                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
-                    </div>
-                    <div id="evo2-image-container">
-                        <label class="block text-sm font-medium mb-1">3★ Image</label>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <select class="form-select sm:w-1/3 image-upload-method"><option value="imgbb">ImgBB Upload</option><option value="imgbb2">ImgBB 2 Upload</option><option value="vgy">VGY.ME Upload</option><option value="link">Direct Link</option></select>
-                            <input type="file" name="evolutions_2_file" class="form-input flex-grow image-upload-file" accept="image/*">
-                            <input type="text" name="evolutions_2_url" placeholder="https://..." class="form-input flex-grow image-upload-link hidden">
+                        <label class="img-drop-zone">
+                            <input type="file" name="evolutions_2_file" class="image-upload-file sr-only" accept="image/*">
+                            <div class="img-placeholder"><span class="material-symbols-outlined">add_photo_alternate</span><span>Görsel seç veya sürükle</span></div>
+                            <div class="img-preview hidden"><img alt="" style="width:100%;max-height:260px;object-fit:cover;object-position:50% center;display:block;transition:object-position 0.15s ease;"><div class="img-preview-edit"><span class="material-symbols-outlined">edit</span></div></div>
+                        </label>
+                        <input type="text" name="evolutions_2_url" class="form-input image-upload-link hidden" style="margin-top:4px;" placeholder="https://...">
+                        <div class="img-focus-row">
+                            <div class="img-focus-header"><span>Yatay Odak</span><span class="focus-val-label">Merkez</span></div>
+                            <div class="img-focus-slider-row"><span class="img-focus-tip">◀ Sol</span><input type="range" class="focus-slider" min="0" max="100" value="50" style="flex:1;accent-color:var(--primary);"><span class="img-focus-tip">Sağ ▶</span></div>
+                            <input type="hidden" class="focus-hidden" value="50% center">
                         </div>
-                        <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                     </div>
                 </div>
 
@@ -907,77 +927,49 @@
 </div>
 
 <script>
-// ─── Image focus slider ───────────────────────────────────────────────────────
-function buildFocusGrid() {
-    const slider = document.getElementById('image-focus-slider');
-    if (!slider || slider.dataset.built) return;
-    slider.dataset.built = '1';
-    slider.addEventListener('input', () => _applyFocusValue(parseInt(slider.value, 10)));
-
-    // Watch main image container for URL changes to update preview
-    const mainContainer = document.getElementById('main-image-container');
-    if (mainContainer) {
-        const imgEl = mainContainer.querySelector('.img-preview img');
-        if (imgEl) {
-            new MutationObserver(() => _syncFocusPreview()).observe(imgEl, { attributes: true, attributeFilter: ['src'] });
-        }
-        const fileInput = mainContainer.querySelector('.image-upload-file');
-        fileInput?.addEventListener('change', () => {
-            const file = fileInput.files[0];
-            if (file) { const url = URL.createObjectURL(file); _setFocusPreviewSrc(url); }
-        });
-        const linkInput = mainContainer.querySelector('.image-upload-link');
-        linkInput?.addEventListener('input', () => _setFocusPreviewSrc(linkInput.value.trim()));
-    }
+// ─── Per-card focus sliders ───────────────────────────────────────────────────
+function initFocusSliders() {
+    document.querySelectorAll('.img-card .focus-slider').forEach(slider => {
+        if (slider.dataset.init) return;
+        slider.dataset.init = '1';
+        slider.addEventListener('input', () => _applyCardFocus(slider.closest('.img-card'), parseInt(slider.value, 10)));
+    });
 }
 
-function _syncFocusPreview() {
-    const src = document.getElementById('main-image-container')?.querySelector('.img-preview img')?.src;
-    if (src && !src.endsWith(location.href)) _setFocusPreviewSrc(src);
+function _applyCardFocus(card, pct) {
+    if (!card) return;
+    const hidden = card.querySelector('.focus-hidden');
+    const lbl    = card.querySelector('.focus-val-label');
+    const img    = card.querySelector('.img-preview img');
+    if (hidden) hidden.value = `${pct}% center`;
+    if (lbl) lbl.textContent = pct === 50 ? 'Merkez' : pct < 50 ? `Sol ${pct}%` : `Sağ ${pct}%`;
+    if (img)  img.style.objectPosition = `${pct}% center`;
 }
 
-function _setFocusPreviewSrc(url) {
-    const wrap = document.getElementById('focus-preview-wrap');
-    const img  = document.getElementById('focus-preview-img');
-    const note = document.getElementById('focus-no-image');
-    if (!wrap || !img) return;
-    if (url) {
-        img.src = url;
-        wrap.classList.remove('hidden');
-        if (note) note.classList.add('hidden');
-    } else {
-        wrap.classList.add('hidden');
-        if (note) note.classList.remove('hidden');
-    }
-}
-
-function _applyFocusValue(pct) {
-    const inp = document.getElementById('image-position-input');
-    const lbl = document.getElementById('focus-label');
-    const prevImg = document.getElementById('focus-preview-img');
-    if (inp) inp.value = `${pct}% center`;
-    if (lbl) lbl.textContent = pct === 50 ? 'Merkez (50%)' : pct < 50 ? `Sol (%${pct})` : `Sağ (%${pct})`;
-    if (prevImg) prevImg.style.objectPosition = `${pct}% center`;
-}
-
-function setFocusCell(value) {
-    const slider = document.getElementById('image-focus-slider');
+function setCardFocus(card, value) {
+    if (!card) return;
+    const slider = card.querySelector('.focus-slider');
     if (!slider) return;
     let pct = 50;
-    if (value && value !== 'center center') {
+    if (value) {
         const m = value.match(/^(\d+)%/);
         if (m) pct = parseInt(m[1], 10);
-        else if (value.startsWith('left')) pct = 0;
-        else if (value.startsWith('right')) pct = 100;
+        else if (/^left/.test(value)) pct = 0;
+        else if (/^right/.test(value)) pct = 100;
     }
     slider.value = pct;
-    _applyFocusValue(pct);
-    _syncFocusPreview();
+    _applyCardFocus(card, pct);
 }
 
-function getFocusValue() {
-    return document.getElementById('image-position-input')?.value || '50% center';
+function getCardFocusValue(card) {
+    const v = card?.querySelector('.focus-hidden')?.value;
+    return v || '50% center';
 }
+
+// Legacy shims (still called by resetForm / loadItemForEdit)
+function buildFocusGrid() { initFocusSliders(); }
+function setFocusCell(v) { setCardFocus(document.getElementById('main-image-container'), v); }
+function getFocusValue() { return getCardFocusValue(document.getElementById('main-image-container')); }
 
 const firebaseConfig = {
     apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
@@ -1703,8 +1695,10 @@ function toggleFormFields() {
     dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', t !== 'character');
     dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', t !== 'fusion');
     dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'fusion');
-    dom.addEditForm.querySelector('#main-image-container > label').textContent =
-        t === 'fusion' ? 'Fusion GIF (Optional)' : 'Main Image';
+    const titleEl = dom.addEditForm.querySelector('#main-image-container .img-card-title');
+    if (titleEl) titleEl.textContent = t === 'fusion' ? 'Fusion GIF (İsteğe Bağlı)' : '1★ Ana Görsel';
+    const mainFocus = dom.addEditForm.querySelector('#main-image-container .img-focus-row');
+    if (mainFocus) mainFocus.classList.toggle('hidden', t === 'fusion');
     dom.promptSection.classList.remove('hidden');
     const show1 = t==='character', showF = t==='fusion';
     ['prompt-block-1','prompt-block-2','prompt-block-3'].forEach(id => document.getElementById(id).classList.toggle('hidden', !show1));
@@ -1717,34 +1711,31 @@ function setupImageInputTogglers() {
         if (sel.dataset.toggler) return;
         sel.dataset.toggler = '1';
         sel.addEventListener('change', e => {
-            const p = e.target.parentElement;
-            const f = p.querySelector('.image-upload-file');
-            const l = p.querySelector('.image-upload-link');
+            const card = e.target.closest('.img-card');
+            if (!card) return;
+            const f = card.querySelector('.image-upload-file');
+            const l = card.querySelector('.image-upload-link');
             if (!f || !l) return;
             const isLink = e.target.value === 'link';
             f.classList.toggle('hidden', isLink);
             l.classList.toggle('hidden', !isLink);
-            // reset preview when method changes
-            const container = p.closest('[id$="-container"], [id$="-field"]') || p.parentElement;
-            _hidePreview(container);
+            _hidePreview(card);
         });
     });
 
-    // Image preview: file input
     document.querySelectorAll('.image-upload-file').forEach(inp => {
         if (inp.dataset.preview) return;
         inp.dataset.preview = '1';
         inp.addEventListener('change', e => {
             const file = e.target.files[0];
-            const container = inp.closest('[class*="flex flex-col"]')?.parentElement || inp.parentElement.parentElement;
-            if (!file) { _hidePreview(container); return; }
+            const card = inp.closest('.img-card');
+            if (!file) { _hidePreview(card); return; }
             const reader = new FileReader();
-            reader.onload = ev => _showPreview(container, ev.target.result);
+            reader.onload = ev => _showPreview(card, ev.target.result);
             reader.readAsDataURL(file);
         });
     });
 
-    // Image preview: link input (debounced)
     document.querySelectorAll('.image-upload-link').forEach(inp => {
         if (inp.dataset.preview) return;
         inp.dataset.preview = '1';
@@ -1752,26 +1743,28 @@ function setupImageInputTogglers() {
         inp.addEventListener('input', e => {
             clearTimeout(t);
             const url = e.target.value.trim();
-            const container = inp.closest('[class*="flex flex-col"]')?.parentElement || inp.parentElement.parentElement;
-            if (!url) { _hidePreview(container); return; }
-            t = setTimeout(() => _showPreview(container, url), 600);
+            const card = inp.closest('.img-card');
+            if (!url) { _hidePreview(card); return; }
+            t = setTimeout(() => _showPreview(card, url), 600);
         });
     });
 }
 
 function _showPreview(container, src) {
-    const wrap = container?.querySelector?.('.img-preview');
+    const placeholder = container?.querySelector('.img-placeholder');
+    const wrap = container?.querySelector('.img-preview');
     if (!wrap) return;
     const img = wrap.querySelector('img');
-    img.onerror = () => { wrap.classList.add('hidden'); };
-    img.onload  = () => { wrap.classList.remove('hidden'); };
+    if (!img) return;
+    img.onerror = () => { wrap.classList.add('hidden'); placeholder?.classList.remove('hidden'); };
+    img.onload  = () => { wrap.classList.remove('hidden'); placeholder?.classList.add('hidden'); };
     img.src = src;
-    // Sync focus preview if this is the main image container
-    if (container?.id === 'main-image-container') _setFocusPreviewSrc(src);
 }
 function _hidePreview(container) {
-    const wrap = container?.querySelector?.('.img-preview');
+    const placeholder = container?.querySelector('.img-placeholder');
+    const wrap = container?.querySelector('.img-preview');
     if (wrap) { wrap.classList.add('hidden'); const img = wrap.querySelector('img'); if (img) img.src = ''; }
+    placeholder?.classList.remove('hidden');
 }
 
 // ── Prompt char counters ──────────────────────────────────────────────────────
@@ -1859,8 +1852,9 @@ function resetForm() {
     document.getElementById('id-rename-warning')?.classList.add('hidden');
     document.getElementById('duplicate-name-warning')?.classList.add('hidden');
     dom.dateEditContainer.classList.add('hidden');
-    // Reset focus grid
-    setFocusCell('center center');
+    // Reset all focus sliders
+    ['main-image-container','evo1-image-container','evo2-image-container'].forEach(id =>
+        setCardFocus(document.getElementById(id), '50% center'));
     ['fusionPartners_0','fusionPartners_1','originalCharacterId'].forEach(id => {
         const dp = document.getElementById(`${id}_display`);
         const ip = document.querySelector(`[name="${id}"]`);
@@ -1904,9 +1898,11 @@ const loadItemForEdit = async (itemId, itemType) => {
     if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
     if (itemType==='fusion') setupImg('preview-image-container', item.previewUrl);
 
-    // Restore focus point
-    buildFocusGrid();
-    setFocusCell(item.imagePosition || 'center center');
+    // Restore focus points per star
+    initFocusSliders();
+    setCardFocus(document.getElementById('main-image-container'), item.imagePosition || '50% center');
+    setCardFocus(document.getElementById('evo1-image-container'), item.evolutions?.find(e=>e.star===2)?.imagePosition || '50% center');
+    setCardFocus(document.getElementById('evo2-image-container'), item.evolutions?.find(e=>e.star===3)?.imagePosition || '50% center');
 
     const updateSel = (inputId, charId) => {
         const ch = [...characters, ...dismissed].find(c=>c.id===charId);
@@ -1962,8 +1958,8 @@ const handleFormSubmit = async (e) => {
     try {
         const type = dom.itemTypeSelect.value;
         const irkVal = form.elements['irk'].value.trim();
-        const focusVal = getFocusValue();
-        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null, imagePosition: (focusVal === '50% center' || focusVal === 'center center') ? null : focusVal };
+        const mainPos = getCardFocusValue(document.getElementById('main-image-container'));
+        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null, imagePosition: (mainPos === '50% center' || mainPos === 'center center') ? null : mainPos };
         const coll = 'characters';
         if (isEditing) {
             const dv = form.elements['eklenmeTarihi'].value;
@@ -1975,20 +1971,24 @@ const handleFormSubmit = async (e) => {
             const [u1,u2,u3] = await Promise.all([processImageInput('main-image-container'),processImageInput('evo1-image-container'),processImageInput('evo2-image-container')]);
             if (!u1&&!isEditing) throw new Error("Main image is required.");
             // On rename, carry over existing images if no new one provided
+            const evo1Pos = getCardFocusValue(document.getElementById('evo1-image-container'));
+            const evo2Pos = getCardFocusValue(document.getElementById('evo2-image-container'));
+            const p1 = (evo1Pos === '50% center') ? null : evo1Pos;
+            const p2 = (evo2Pos === '50% center') ? null : evo2Pos;
             if (isRename) {
                 const old = [...characters,...dismissed].find(c=>c.id===editingItemId);
                 data.imageUrl = u1 || old?.imageUrl || null;
                 data.evolutions = [];
                 const eu2 = u2 || old?.evolutions?.find(e=>e.star===2)?.imageUrl;
                 const eu3 = u3 || old?.evolutions?.find(e=>e.star===3)?.imageUrl;
-                if(eu2) data.evolutions.push({star:2,imageUrl:eu2});
-                if(eu3) data.evolutions.push({star:3,imageUrl:eu3});
+                if(eu2) data.evolutions.push({star:2, imageUrl:eu2, imagePosition:p1});
+                if(eu3) data.evolutions.push({star:3, imageUrl:eu3, imagePosition:p2});
                 // Carry over auData
                 if (old?.auData) data.auData = old.auData;
             } else {
                 data.imageUrl=u1; data.evolutions=[];
-                if(u2) data.evolutions.push({star:2,imageUrl:u2});
-                if(u3) data.evolutions.push({star:3,imageUrl:u3});
+                if(u2) data.evolutions.push({star:2, imageUrl:u2, imagePosition:p1});
+                if(u3) data.evolutions.push({star:3, imageUrl:u3, imagePosition:p2});
             }
         } else if (type==='fusion') {
             data.isFusion=true; data.star=4;
@@ -2552,7 +2552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hidden = dom.addEditFormContainer.classList.toggle('hidden');
         dom.toggleFormText.textContent = hidden?'Add New':'Close Form';
         dom.toggleFormIcon.textContent = hidden?'add':'close';
-        if (!hidden) { resetForm(); buildFocusGrid(); }
+        if (!hidden) { resetForm(); initFocusSliders(); }
     });
     dom.selectorSearchInput.addEventListener('input', () => renderCharacterSelector(dom.selectorSearchInput.value));
 
