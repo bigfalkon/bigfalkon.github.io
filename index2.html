@@ -465,6 +465,20 @@
                     <div class="img-preview hidden mt-2"><img class="h-20 w-auto rounded-lg object-cover border" style="border-color:var(--outline-var);"></div>
                 </div>
 
+                <!-- Galeri yatay kırpma kaydırıcısı -->
+                <div id="image-focus-picker" class="mt-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-sm font-medium">Gallery Horizontal Focus</label>
+                        <span id="focus-label" class="text-xs font-semibold" style="color:var(--primary);">Merkez (50%)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs" style="color:var(--on-surface-var);">Sol</span>
+                        <input type="range" id="image-focus-slider" min="0" max="100" value="50" step="1" class="flex-grow" style="accent-color:var(--primary);">
+                        <span class="text-xs" style="color:var(--on-surface-var);">Sağ</span>
+                    </div>
+                    <input type="hidden" name="imagePosition" id="image-position-input" value="50% center">
+                </div>
+
                 <div id="character-fields" class="flex flex-col gap-3">
                     <div id="evo1-image-container">
                         <label class="block text-sm font-medium mb-1">2★ Image</label>
@@ -883,6 +897,46 @@
 </div>
 
 <script>
+// ─── Image focus slider ───────────────────────────────────────────────────────
+function buildFocusGrid() {
+    const slider = document.getElementById('image-focus-slider');
+    if (!slider || slider.dataset.built) return;
+    slider.dataset.built = '1';
+    slider.addEventListener('input', () => {
+        const pct = parseInt(slider.value, 10);
+        _applyFocusValue(pct);
+    });
+}
+
+function _applyFocusValue(pct) {
+    const inp = document.getElementById('image-position-input');
+    const lbl = document.getElementById('focus-label');
+    if (inp) inp.value = `${pct}% center`;
+    if (lbl) {
+        const label = pct === 50 ? 'Merkez (50%)' : pct < 50 ? `Sol (%${pct})` : `Sağ (%${pct})`;
+        lbl.textContent = label;
+    }
+}
+
+function setFocusCell(value) {
+    // value: "50% center" or legacy "center center" etc.
+    const slider = document.getElementById('image-focus-slider');
+    if (!slider) return;
+    let pct = 50;
+    if (value && value !== 'center center') {
+        const m = value.match(/^(\d+)%/);
+        if (m) pct = parseInt(m[1], 10);
+        else if (value.startsWith('left')) pct = 0;
+        else if (value.startsWith('right')) pct = 100;
+    }
+    slider.value = pct;
+    _applyFocusValue(pct);
+}
+
+function getFocusValue() {
+    return document.getElementById('image-position-input')?.value || '50% center';
+}
+
 const firebaseConfig = {
     apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
   authDomain: "karaktergalerisi-dc337.firebaseapp.com",
@@ -1761,6 +1815,8 @@ function resetForm() {
     document.getElementById('id-rename-warning')?.classList.add('hidden');
     document.getElementById('duplicate-name-warning')?.classList.add('hidden');
     dom.dateEditContainer.classList.add('hidden');
+    // Reset focus grid
+    setFocusCell('center center');
     ['fusionPartners_0','fusionPartners_1','originalCharacterId'].forEach(id => {
         const dp = document.getElementById(`${id}_display`);
         const ip = document.querySelector(`[name="${id}"]`);
@@ -1803,6 +1859,10 @@ const loadItemForEdit = async (itemId, itemType) => {
     setupImg('main-image-container', item.imageUrl);
     if (itemType==='character') { setupImg('evo1-image-container', item.evolutions?.find(e=>e.star===2)?.imageUrl); setupImg('evo2-image-container', item.evolutions?.find(e=>e.star===3)?.imageUrl); }
     if (itemType==='fusion') setupImg('preview-image-container', item.previewUrl);
+
+    // Restore focus point
+    buildFocusGrid();
+    setFocusCell(item.imagePosition || 'center center');
 
     const updateSel = (inputId, charId) => {
         const ch = [...characters, ...dismissed].find(c=>c.id===charId);
@@ -1858,7 +1918,8 @@ const handleFormSubmit = async (e) => {
     try {
         const type = dom.itemTypeSelect.value;
         const irkVal = form.elements['irk'].value.trim();
-        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null };
+        const focusVal = getFocusValue();
+        let data = { name: form.elements['name'].value.trim(), irk: irkVal || null, imagePosition: (focusVal === '50% center' || focusVal === 'center center') ? null : focusVal };
         const coll = 'characters';
         if (isEditing) {
             const dv = form.elements['eklenmeTarihi'].value;
@@ -2447,7 +2508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hidden = dom.addEditFormContainer.classList.toggle('hidden');
         dom.toggleFormText.textContent = hidden?'Add New':'Close Form';
         dom.toggleFormIcon.textContent = hidden?'add':'close';
-        if (!hidden) resetForm();
+        if (!hidden) { resetForm(); buildFocusGrid(); }
     });
     dom.selectorSearchInput.addEventListener('input', () => renderCharacterSelector(dom.selectorSearchInput.value));
 
