@@ -471,10 +471,20 @@
                         <label class="text-sm font-medium">Gallery Horizontal Focus</label>
                         <span id="focus-label" class="text-xs font-semibold" style="color:var(--primary);">Merkez (50%)</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs" style="color:var(--on-surface-var);">Sol</span>
-                        <input type="range" id="image-focus-slider" min="0" max="100" value="50" step="1" class="flex-grow" style="accent-color:var(--primary);">
-                        <span class="text-xs" style="color:var(--on-surface-var);">Sağ</span>
+                    <div class="flex gap-3 items-center">
+                        <!-- Canlı önizleme -->
+                        <div id="focus-preview-wrap" class="hidden flex-shrink-0" style="width:60px;height:90px;border-radius:8px;overflow:hidden;border:2px solid var(--primary);background:var(--surface-high);">
+                            <img id="focus-preview-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% center;transition:object-position 0.15s ease;">
+                        </div>
+                        <!-- Slider -->
+                        <div class="flex flex-col flex-grow gap-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs" style="color:var(--on-surface-var);">Sol</span>
+                                <input type="range" id="image-focus-slider" min="0" max="100" value="50" step="1" class="flex-grow" style="accent-color:var(--primary);">
+                                <span class="text-xs" style="color:var(--on-surface-var);">Sağ</span>
+                            </div>
+                            <p id="focus-no-image" class="text-xs" style="color:var(--on-surface-var);">Önizleme için önce bir görsel seçin.</p>
+                        </div>
                     </div>
                     <input type="hidden" name="imagePosition" id="image-position-input" value="50% center">
                 </div>
@@ -902,24 +912,55 @@ function buildFocusGrid() {
     const slider = document.getElementById('image-focus-slider');
     if (!slider || slider.dataset.built) return;
     slider.dataset.built = '1';
-    slider.addEventListener('input', () => {
-        const pct = parseInt(slider.value, 10);
-        _applyFocusValue(pct);
-    });
+    slider.addEventListener('input', () => _applyFocusValue(parseInt(slider.value, 10)));
+
+    // Watch main image container for URL changes to update preview
+    const mainContainer = document.getElementById('main-image-container');
+    if (mainContainer) {
+        const imgEl = mainContainer.querySelector('.img-preview img');
+        if (imgEl) {
+            new MutationObserver(() => _syncFocusPreview()).observe(imgEl, { attributes: true, attributeFilter: ['src'] });
+        }
+        const fileInput = mainContainer.querySelector('.image-upload-file');
+        fileInput?.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (file) { const url = URL.createObjectURL(file); _setFocusPreviewSrc(url); }
+        });
+        const linkInput = mainContainer.querySelector('.image-upload-link');
+        linkInput?.addEventListener('input', () => _setFocusPreviewSrc(linkInput.value.trim()));
+    }
+}
+
+function _syncFocusPreview() {
+    const src = document.getElementById('main-image-container')?.querySelector('.img-preview img')?.src;
+    if (src && !src.endsWith(location.href)) _setFocusPreviewSrc(src);
+}
+
+function _setFocusPreviewSrc(url) {
+    const wrap = document.getElementById('focus-preview-wrap');
+    const img  = document.getElementById('focus-preview-img');
+    const note = document.getElementById('focus-no-image');
+    if (!wrap || !img) return;
+    if (url) {
+        img.src = url;
+        wrap.classList.remove('hidden');
+        if (note) note.classList.add('hidden');
+    } else {
+        wrap.classList.add('hidden');
+        if (note) note.classList.remove('hidden');
+    }
 }
 
 function _applyFocusValue(pct) {
     const inp = document.getElementById('image-position-input');
     const lbl = document.getElementById('focus-label');
+    const prevImg = document.getElementById('focus-preview-img');
     if (inp) inp.value = `${pct}% center`;
-    if (lbl) {
-        const label = pct === 50 ? 'Merkez (50%)' : pct < 50 ? `Sol (%${pct})` : `Sağ (%${pct})`;
-        lbl.textContent = label;
-    }
+    if (lbl) lbl.textContent = pct === 50 ? 'Merkez (50%)' : pct < 50 ? `Sol (%${pct})` : `Sağ (%${pct})`;
+    if (prevImg) prevImg.style.objectPosition = `${pct}% center`;
 }
 
 function setFocusCell(value) {
-    // value: "50% center" or legacy "center center" etc.
     const slider = document.getElementById('image-focus-slider');
     if (!slider) return;
     let pct = 50;
@@ -931,6 +972,7 @@ function setFocusCell(value) {
     }
     slider.value = pct;
     _applyFocusValue(pct);
+    _syncFocusPreview();
 }
 
 function getFocusValue() {
@@ -1724,6 +1766,8 @@ function _showPreview(container, src) {
     img.onerror = () => { wrap.classList.add('hidden'); };
     img.onload  = () => { wrap.classList.remove('hidden'); };
     img.src = src;
+    // Sync focus preview if this is the main image container
+    if (container?.id === 'main-image-container') _setFocusPreviewSrc(src);
 }
 function _hidePreview(container) {
     const wrap = container?.querySelector?.('.img-preview');
