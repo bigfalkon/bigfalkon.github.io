@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Layer Eraser</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#443a74"/>
@@ -39,6 +39,7 @@
             background: var(--bg); color: var(--on-bg);
             margin: 0; overflow: hidden;
             display: flex; flex-direction: column;
+            height: 100vh; height: 100dvh;
         }
         body::before {
             content: ''; position: fixed; inset: 0; z-index: -1;
@@ -83,9 +84,10 @@
 
         /* ── Header ── */
         header {
-            height: var(--header-h); flex-shrink: 0;
+            height: calc(var(--header-h) + env(safe-area-inset-top, 0px)); flex-shrink: 0;
             display: flex; align-items: center; gap: 10px;
             padding: 0 16px;
+            padding-top: env(safe-area-inset-top, 0px);
             background: rgba(32,31,37,.78); backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--outline-var);
             z-index: 20;
@@ -313,17 +315,38 @@
 
         /* ── Mobile ── */
         .header-label { display: inline; }
+        #mobileTabs { display: none; margin-bottom: 0; flex-shrink: 0; }
         @media (max-width: 1023px) {
+            header {
+                gap: 6px; padding-left: 10px; padding-right: 10px;
+                /* buffer for camera cutout / status bar on edge-to-edge displays */
+                padding-top: max(env(safe-area-inset-top, 0px), 24px);
+                height: calc(var(--header-h) + max(env(safe-area-inset-top, 0px), 24px));
+            }
+            header h1 { font-size: .92rem; gap: 6px; }
             .header-label { display: none; }
-            .btn { padding: 9px 12px; }
+            header .btn { padding: 8px; }
+            .icon-btn { width: 34px; height: 34px; }
+            #btnHelp, #hintBadge { display: none; }
             #editor { flex-direction: column; }
             #sidebar {
                 width: 100%; border-left: none; border-top: 1px solid var(--outline-var);
-                flex-direction: row; overflow-x: auto; overflow-y: hidden;
-                max-height: 218px; align-items: stretch; gap: 10px;
+                max-height: 46dvh; overflow-y: auto; gap: 10px;
+                padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
             }
-            .section-card { min-width: 262px; overflow-y: auto; }
-            #hintBadge { display: none; }
+            #mobileTabs { display: flex; }
+            #sidebar .section-card { display: none; padding: 12px 14px; }
+            #sidebar[data-tab="layers"] #cardLayers,
+            #sidebar[data-tab="brush"] #cardBrush,
+            #sidebar[data-tab="actions"] #cardActions { display: block; }
+            .brush-preview-wrap { display: none; }
+            .card-title { margin-bottom: 10px; }
+            .dropzones { gap: 12px; }
+            .dropzone { width: min(250px, calc(50vw - 36px)); height: min(250px, calc(50vw - 36px)); gap: 6px; }
+            .empty-hint { display: none; }
+            .dropzone .material-symbols-outlined { font-size: 34px; }
+            .dropzone .dz-title { font-size: .88rem; }
+            .dropzone .dz-sub { font-size: .68rem; }
         }
     </style>
 </head>
@@ -374,8 +397,13 @@
             <div id="zoomBadge">100%</div>
             <div id="hintBadge" title="Show keyboard shortcuts">Press <kbd>?</kbd> for shortcuts</div>
         </div>
-        <aside id="sidebar">
-            <div class="section-card">
+        <aside id="sidebar" data-tab="brush">
+            <nav class="segmented" id="mobileTabs">
+                <button data-tab="layers"><span class="material-symbols-outlined">layers</span>Layers</button>
+                <button data-tab="brush" class="active"><span class="material-symbols-outlined">brush</span>Brush</button>
+                <button data-tab="actions"><span class="material-symbols-outlined">bolt</span>Actions</button>
+            </nav>
+            <div class="section-card" id="cardLayers">
                 <p class="card-title"><span class="material-symbols-outlined">layers</span>Layers</p>
                 <div class="layer-row" style="margin-bottom:8px">
                     <img class="layer-thumb" id="thumbTop" alt="Top layer">
@@ -403,7 +431,7 @@
                 <div class="hint-note" id="resInfo"></div>
             </div>
 
-            <div class="section-card">
+            <div class="section-card" id="cardBrush">
                 <p class="card-title"><span class="material-symbols-outlined">brush</span>Brush</p>
                 <div class="segmented" id="modeToggle">
                     <button id="modeErase" class="active" title="Erase the top layer (E)"><span class="material-symbols-outlined">ink_eraser</span>Erase</button>
@@ -420,7 +448,7 @@
                 <div class="brush-preview-wrap"><div id="brushPreview"></div></div>
             </div>
 
-            <div class="section-card">
+            <div class="section-card" id="cardActions">
                 <p class="card-title"><span class="material-symbols-outlined">bolt</span>Actions</p>
                 <div class="action-grid">
                     <button class="btn btn-secondary" id="btnPeek" title="Hold to see the bottom layer alone (hold B)"><span class="material-symbols-outlined">visibility</span>Peek</button>
@@ -494,7 +522,7 @@ const MIN_S = 512, MAX_S = 2048, MAX_ZOOM = 8;
 const state = {
     imgs: [null, null],        // 0 = bottom, 1 = top (ImageBitmap or HTMLImageElement)
     names: ['', ''],
-    urls: [null, null],        // object URLs for thumbnails
+    thumbs: [null, null],      // small data-URL previews (blob/object URLs are unreliable on Android pickers)
     S: 0,
     base: null, top: null, mask: null, scratch: null,
     bctx: null, tctx: null, mctx: null, sctx: null,
@@ -532,6 +560,17 @@ async function decodeImage(blob) {
 
 const dims = img => ({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height });
 
+function makeThumb(img) {
+    const T = 192;
+    const c = makeCanvas(T), x = c.getContext('2d');
+    x.fillStyle = '#17161c';
+    x.fillRect(0, 0, T, T);
+    const { w, h } = dims(img);
+    const s = Math.min(w, h);
+    x.drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, T, T);
+    return c.toDataURL('image/jpeg', 0.85);
+}
+
 async function loadFile(blob, slot) {
     if (!blob || !(blob.type || '').startsWith('image/')) {
         toast('That file is not an image.', 'error', 'error'); return;
@@ -540,10 +579,9 @@ async function loadFile(blob, slot) {
     try { img = await decodeImage(blob); }
     catch { toast('Could not read that image (unsupported format?).', 'error', 'error'); return; }
 
-    if (state.urls[slot]) URL.revokeObjectURL(state.urls[slot]);
     state.imgs[slot] = img;
     state.names[slot] = blob.name || 'Pasted image';
-    state.urls[slot] = URL.createObjectURL(blob);
+    state.thumbs[slot] = makeThumb(img);
 
     const { w, h } = dims(img);
     if (Math.abs(w - h) / Math.max(w, h) > 0.02)
@@ -559,7 +597,7 @@ async function loadFile(blob, slot) {
 function updateDropzone(slot) {
     const dz = slot === 0 ? $('dzBottom') : $('dzTop');
     dz.classList.add('filled');
-    dz.querySelector('.dz-preview').src = state.urls[slot];
+    dz.querySelector('.dz-preview').src = state.thumbs[slot];
 }
 
 /* ═══════════════ Workspace ═══════════════ */
@@ -614,8 +652,8 @@ function enterEditor() {
 }
 
 function updateSidebar() {
-    $('thumbBottom').src = state.urls[0];
-    $('thumbTop').src = state.urls[1];
+    $('thumbBottom').src = state.thumbs[0];
+    $('thumbTop').src = state.thumbs[1];
     $('nameBottom').textContent = state.names[0];
     $('nameTop').textContent = state.names[1];
     $('resInfo').textContent = `Working canvas: ${state.S} × ${state.S} px`;
@@ -625,8 +663,7 @@ function startOver() {
     if (state.maskDirty && !confirm('Start over? Your current erasing will be lost.')) return;
     state.ready = false;
     state.imgs = [null, null]; state.names = ['', ''];
-    state.urls.forEach(u => u && URL.revokeObjectURL(u));
-    state.urls = [null, null];
+    state.thumbs = [null, null];
     state.history.length = 0; state.redoStack.length = 0;
     state.maskDirty = false;
     editor.style.display = 'none';
@@ -1025,7 +1062,7 @@ $('btnSwap').addEventListener('click', () => {
     if (state.maskDirty && !confirm('Swapping layers resets your erasing. Continue?')) return;
     [state.imgs[0], state.imgs[1]] = [state.imgs[1], state.imgs[0]];
     [state.names[0], state.names[1]] = [state.names[1], state.names[0]];
-    [state.urls[0], state.urls[1]] = [state.urls[1], state.urls[0]];
+    [state.thumbs[0], state.thumbs[1]] = [state.thumbs[1], state.thumbs[0]];
     state.maskDirty = false;
     rebuildWorkspace(false);
     toast('Layers swapped.', '', 'swap_vert');
@@ -1146,6 +1183,14 @@ window.addEventListener('paste', e => {
         pendingBlob = blob;
         $('replaceModal').hidden = false;
     }
+});
+
+/* ═══════════════ Mobile tabs ═══════════════ */
+$('mobileTabs').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-tab]');
+    if (!btn) return;
+    $('sidebar').dataset.tab = btn.dataset.tab;
+    for (const b of $('mobileTabs').querySelectorAll('button')) b.classList.toggle('active', b === btn);
 });
 
 /* ═══════════════ Help modal ═══════════════ */
