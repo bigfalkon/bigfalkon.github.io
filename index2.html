@@ -226,14 +226,14 @@
         .img-drop-zone { display:block; cursor:pointer; border-radius:10px; overflow:hidden; position:relative; border:2px dashed var(--outline-var); transition:border-color 0.2s, background 0.2s; }
         .img-drop-zone:hover { border-color:var(--primary); background:rgba(var(--primary-rgb),.04); }
         .img-drop-zone.drag-over { border-color:var(--primary); border-style:solid; background:rgba(var(--primary-rgb),.1); }
-        .img-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:120px; color:var(--on-surface-var); font-size:.8rem; }
+        .img-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:200px; color:var(--on-surface-var); font-size:.8rem; }
         .img-placeholder .material-symbols-outlined { font-size:38px; opacity:.45; }
         .img-preview { position:relative; }
         .img-preview-edit { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.5); opacity:0; transition:opacity 0.2s; color:#fff; }
         .img-preview-edit .material-symbols-outlined { font-size:28px; }
         .img-drop-zone:hover .img-preview-edit { opacity:1; }
-        /* Natural-size preview: fixed 120px height, full image visible */
-        .img-natural { width:100%; height:120px; object-fit:contain; display:block; background:rgba(0,0,0,.25); }
+        /* Natural-size preview: fixed height, full image visible */
+        .img-natural { width:100%; height:200px; object-fit:contain; display:block; background:rgba(0,0,0,.25); }
         /* Focus row */
         .img-focus-row { display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px solid var(--outline-var); }
         .img-focus-header { display:flex; justify-content:space-between; font-size:.72rem; color:var(--on-surface-var); }
@@ -243,7 +243,14 @@
         .img-focus-tip { font-size:.68rem; color:var(--on-surface-var); flex-shrink:0; }
         .img-focus-hint { font-size:.7rem; color:var(--on-surface-var); }
         /* Crop preview box: 2:3 ratio, prominent */
-        .img-crop-preview-wrap { width:72px; height:108px; flex-shrink:0; border-radius:8px; overflow:hidden; border:2px solid var(--primary); background:var(--surface-container,#201f25); }
+        .img-crop-preview-wrap { width:84px; height:126px; flex-shrink:0; border-radius:8px; overflow:hidden; border:2px solid var(--primary); background:var(--surface-container,#201f25); }
+        @media (min-width: 1280px) {
+            .img-crop-preview-wrap { width:96px; height:144px; }
+        }
+        /* Image cards grid: 1 col on phones, 2 on tablets, 3 on wide screens */
+        #image-cards-grid { display:grid; grid-template-columns:1fr; gap:1rem; align-items:start; }
+        @media (min-width: 640px)  { #image-cards-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+        @media (min-width: 1280px) { #image-cards-grid { grid-template-columns:repeat(3, minmax(0,1fr)); } }
 
         /* Scrollbars */
         .modal-content::-webkit-scrollbar, #selector-grid::-webkit-scrollbar, #qp-content::-webkit-scrollbar { width: 6px; }
@@ -480,15 +487,18 @@
                 <input type="text" name="irk" id="irk-input" placeholder="Race (optional)" class="form-input" list="irk-datalist" autocomplete="off">
                 <datalist id="irk-datalist"></datalist>
 
-                <div id="fusion-preview-image-field" class="hidden">
-                    <div id="preview-image-container" data-imgcard='{"title":"Fusion Ana Görseli","file":"fusion_preview_file","link":"previewUrl","focus":true}'></div>
-                </div>
+                <!-- Image cards: 1 col on phones, 2 on tablets, 3 on wide screens -->
+                <div id="image-cards-grid">
+                    <div id="fusion-preview-image-field" style="display:none;">
+                        <div id="preview-image-container" data-imgcard='{"title":"Fusion Ana Görseli","file":"fusion_preview_file","link":"previewUrl","focus":true}'></div>
+                    </div>
 
-                <div id="main-image-container" data-imgcard='{"title":"1★ Ana Görsel","file":"imageFile","link":"imageUrl","focus":true}'></div>
+                    <div id="main-image-container" data-imgcard='{"title":"1★ Ana Görsel","file":"imageFile","link":"imageUrl","focus":true}'></div>
 
-                <div id="character-fields" class="flex flex-col gap-4">
-                    <div id="evo1-image-container" data-imgcard='{"title":"2★ Görsel","file":"evolutions_1_file","link":"evolutions_1_url","focus":true}'></div>
-                    <div id="evo2-image-container" data-imgcard='{"title":"3★ Görsel","file":"evolutions_2_file","link":"evolutions_2_url","focus":true}'></div>
+                    <div id="character-fields" style="display:contents;">
+                        <div id="evo1-image-container" data-imgcard='{"title":"2★ Görsel","file":"evolutions_1_file","link":"evolutions_1_url","focus":true}'></div>
+                        <div id="evo2-image-container" data-imgcard='{"title":"3★ Görsel","file":"evolutions_2_file","link":"evolutions_2_url","focus":true}'></div>
+                    </div>
                 </div>
 
                 <div id="fusion-fields" class="hidden flex flex-col gap-3">
@@ -1813,9 +1823,10 @@ async function deleteAuEntry(charId) {
 // ─── Form (Characters/Fusions) ───────────────────────────────────────────────
 function toggleFormFields() {
     const t = dom.itemTypeSelect.value;
-    dom.addEditForm.querySelector('#character-fields').classList.toggle('hidden', t !== 'character');
+    // display:contents makes the evo cards direct items of the image grid
+    dom.addEditForm.querySelector('#character-fields').style.display = t === 'character' ? 'contents' : 'none';
     dom.addEditForm.querySelector('#fusion-fields').classList.toggle('hidden', t !== 'fusion');
-    dom.addEditForm.querySelector('#fusion-preview-image-field').classList.toggle('hidden', t !== 'fusion');
+    dom.addEditForm.querySelector('#fusion-preview-image-field').style.display = t === 'fusion' ? '' : 'none';
     const titleEl = dom.addEditForm.querySelector('#main-image-container .img-card-title');
     if (titleEl) titleEl.textContent = t === 'fusion' ? 'Fusion GIF (İsteğe Bağlı)' : '1★ Ana Görsel';
     const mainFocus = dom.addEditForm.querySelector('#main-image-container .img-focus-row');
