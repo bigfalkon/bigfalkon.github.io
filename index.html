@@ -796,9 +796,18 @@ function _buildCard(char, index) {
     }
 
     const resolvedImgUrl = resolveCardImage(char);
-    // Pick imagePosition for the current display star
+    // Pick imagePosition for the image actually being displayed.
+    // When an AU image replaces the original, use the AU entry's own position
+    // instead of the original character's crop.
+    const activeAuEntry = state.activeAuId ? char.auData?.[state.activeAuId] : null;
     let displayImagePosition;
-    if (char.displayStar === 1 || !char.displayStar) {
+    if (isFusion) {
+        displayImagePosition = (activeAuEntry?.fusionImageUrl)
+            ? activeAuEntry.fusionImagePosition
+            : char.previewPosition;
+    } else if (char.displayStar === 3 && activeAuEntry?.star3ImageUrl) {
+        displayImagePosition = activeAuEntry.star3ImagePosition;
+    } else if (char.displayStar === 1 || !char.displayStar) {
         displayImagePosition = char.imagePosition;
     } else {
         const evo = char.evolutions?.find(e => e.star === char.displayStar);
@@ -807,9 +816,9 @@ function _buildCard(char, index) {
     const focusStyle = displayImagePosition ? ` style="object-position:${displayImagePosition}"` : '';
     let imageHtml;
     if (isFusion && char.previewUrl) {
-        const auFusionImg = state.activeAuId ? char.auData?.[state.activeAuId]?.fusionImageUrl : null;
+        const auFusionImg = activeAuEntry?.fusionImageUrl || null;
         const previewSrc = auFusionImg || char.previewUrl;
-        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy">`;
+        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
     } else {
         imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
     }
