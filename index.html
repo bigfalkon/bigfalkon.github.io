@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Character Gallery</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00000000"/>
+    <meta name="theme-color" content="#131318"/>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Karakterler">
@@ -14,9 +14,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(r => console.log('SW registered:', r.scope))
-                    .catch(e => console.log('SW failed:', e));
+                navigator.serviceWorker.register('./service-worker.js').catch(() => {});
             });
         }
     </script>
@@ -57,12 +55,13 @@
             --outline-var: #48454e;
         }
         body.modal-open { overflow: hidden; }
+        /* Guard: keep raw ligature names from blowing up layout before the icon font loads */
+        .material-symbols-outlined { display: inline-block; width: 1em; overflow: hidden; }
         body {
             font-family: 'Manrope', sans-serif;
             background-color: var(--bg);
             color: var(--on-bg);
             overflow-x: hidden;
-            transition: --primary 0.4s ease;
             /* Yanlara ve alta güvenli boşluk */
             padding-bottom: env(safe-area-inset-bottom);
             padding-left: env(safe-area-inset-left);
@@ -117,8 +116,6 @@
         .chip:hover { background-color: rgba(255,255,255,0.08); }
         .chip.selected { background-color: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 700; }
         .chip.dismissed-selected { background-color: var(--dismissed); color: var(--on-dismissed); border-color: var(--dismissed); font-weight: 700; }
-        .chip.au-selected { background-color: var(--au); color: #0a2e22; border-color: var(--au); font-weight: 700; }
-
         /* AU mode chip in filter */
         .au-mode-btn.active { background-color: var(--au); color: #0a2e22; border-color: var(--au); }
         .chip.au-selected { background-color: var(--au-container); color: var(--on-au-container); border-color: var(--au); font-weight: 700; }
@@ -277,7 +274,7 @@
         /* Modal AU icon buttons in header */
         .modal-au-btn {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 40px; height: 40px; border-radius: 50%;
+            width: 36px; height: 36px; border-radius: 50%;
             border: 1px solid rgba(var(--au-rgb), 0.5);
             background: rgba(var(--au-rgb), 0.08);
             color: var(--au); cursor: pointer;
@@ -285,7 +282,25 @@
         }
         .modal-au-btn:hover { background: var(--au); color: #0a2e22; }
         .modal-au-btn.active-au { background: var(--au); color: #0a2e22; box-shadow: 0 0 0 2px var(--au); }
-        .modal-au-btn .material-symbols-outlined { font-size: 20px; }
+        .modal-au-btn .material-symbols-outlined { font-size: 18px; }
+
+        /* Modal image crop: same 2:3 focal crop as gallery cards */
+        .modal-img-crop { aspect-ratio: 2/3; width: 100%; overflow: hidden; border-radius: 12px; }
+        .modal-img-crop img { object-fit: cover; width: 100%; height: 100%; display: block; }
+
+        /* Grid status states (loading / error / empty) */
+        .grid-status {
+            grid-column: 1 / -1;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            gap: 14px; padding: 70px 20px; color: var(--on-surface-var);
+        }
+        .grid-status .material-symbols-outlined { font-size: 44px; opacity: .8; }
+        .m3-spinner {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: 4px solid var(--outline-var); border-top-color: var(--primary);
+            animation: m3spin 0.9s linear infinite;
+        }
+        @keyframes m3spin { to { transform: rotate(360deg); } }
 
         /* AU switch btn (old bottom row — keep small variant) */
         .au-switch-btn {
@@ -431,9 +446,9 @@
 </div>
 
 <!-- CHARACTER MODAL -->
-<div id="character-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" onclick="closeCharacterModal()">
+<div id="character-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" role="dialog" aria-modal="true" aria-labelledby="modal-char-name" onclick="closeCharacterModal()">
     <div class="m3-dialog" id="character-modal-content" onclick="event.stopPropagation()">
-        <div class="absolute top-3 right-3 z-10 flex items-center gap-1" id="char-modal-header-btns">
+        <div class="absolute top-3 right-3 z-10 flex flex-wrap items-center justify-end gap-1" style="max-width: calc(100% - 96px);" id="char-modal-header-btns">
             <!-- AU icon buttons injected here dynamically -->
             <button class="icon-btn" onclick="closeCharacterModal()"><span class="material-symbols-outlined">close</span></button>
         </div>
@@ -456,9 +471,9 @@
 </div>
 
 <!-- FUSION MODAL -->
-<div id="fusion-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" onclick="closeFusionModal()">
+<div id="fusion-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" role="dialog" aria-modal="true" aria-labelledby="modal-fusion-name" onclick="closeFusionModal()">
     <div class="m3-dialog fusion-modal-bg" id="fusion-modal-content" onclick="event.stopPropagation()">
-        <div class="absolute top-3 right-3 z-10 flex items-center gap-1" id="fusion-modal-header-btns">
+        <div class="absolute top-3 right-3 z-10 flex flex-wrap items-center justify-end gap-1" style="max-width: calc(100% - 96px);" id="fusion-modal-header-btns">
             <!-- AU icon buttons injected here dynamically -->
             <button class="icon-btn" onclick="closeFusionModal()"><span class="material-symbols-outlined">close</span></button>
         </div>
@@ -469,17 +484,17 @@
         <div class="m3-dialog-content px-4 py-6 flex-grow">
             <div class="flex flex-col md:flex-row items-center justify-center gap-6">
                 <div id="fusion-partner-left" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                    <img id="modal-fusion-left-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <div class="modal-img-crop fusion-partner-card"><img id="modal-fusion-left-img" src="" alt="" class="transition-transform duration-300 group-hover:scale-105"></div>
                     <p id="modal-fusion-left-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-left-star" class="text-lg font-medium"></p>
                     <p id="modal-fusion-left-irk" class="hidden" style="margin-top:4px;"></p>
                 </div>
                 <div id="fusion-main-img-wrap" class="flex flex-col items-center text-center">
-                    <img id="modal-fusion-img" src="" alt="" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl">
+                    <div class="modal-img-crop w-full shadow-2xl" style="border-radius:16px;"><img id="modal-fusion-img" src="" alt="" class="cursor-zoom-in"></div>
                     <p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p>
                 </div>
                 <div id="fusion-partner-right" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                    <img id="modal-fusion-right-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <div class="modal-img-crop fusion-partner-card"><img id="modal-fusion-right-img" src="" alt="" class="transition-transform duration-300 group-hover:scale-105"></div>
                     <p id="modal-fusion-right-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-right-star" class="text-lg font-medium"></p>
                     <p id="modal-fusion-right-irk" class="hidden" style="margin-top:4px;"></p>
@@ -494,7 +509,7 @@
 </div>
 
 <!-- SEARCH MODAL -->
-<div id="search-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" onclick="closeSearchModal()">
+<div id="search-modal" class="fixed inset-0 m3-backdrop hidden items-center justify-center p-2" role="dialog" aria-modal="true" aria-label="Character Search" onclick="closeSearchModal()">
     <div class="m3-dialog" id="search-modal-content" onclick="event.stopPropagation()">
         <button class="icon-btn absolute top-4 right-4 z-10" onclick="closeSearchModal()"><span class="material-symbols-outlined">close</span></button>
         <header class="p-4 flex-shrink-0"><h2 class="text-3xl font-bold">Character Search</h2></header>
@@ -540,7 +555,7 @@ auth.onAuthStateChanged(user => {
     if (!user && state.unlockedAuIds.size > 0) {
         // Logged out → re-lock hidden AUs (only if something was unlocked)
         state.unlockedAuIds.clear();
-        if (alternativeUniverses.length) { buildAuDropdown(); renderCharacters(); }
+        if (dom.characterGrid && alternativeUniverses.length) { buildAuDropdown(); renderCharacters(); }
     }
 });
 
@@ -632,20 +647,12 @@ const getReachableAus = () => alternativeUniverses.filter(isAuReachable);
 /** Check if char has entry in at least one reachable AU */
 const hasReachableAuEntry = (char) => getReachableAus().some(au => hasAuEntry(char, au.id));
 
-// ─── Image Observer (lazy GIF swap) ──────────────────────────────────────────
-let observer;
-function setupImageObserver() {
-    observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            const img = entry.target;
-            img.src = entry.isIntersecting ? img.dataset.gifSrc : img.dataset.previewSrc;
-        });
-    }, { threshold: 0.75 });
-}
-function observeImages() {
-    if (observer) observer.disconnect();
-    document.querySelectorAll('img[data-gif-src]').forEach(img => observer.observe(img));
-}
+/** imagePosition for whichever image a display item is showing (1★ base / evolution / fusion preview) */
+const displayPositionFor = (item) => {
+    if (item.isFusion) return item.previewPosition || '';
+    if (!item.displayStar || item.displayStar === 1) return item.imagePosition || '';
+    return item.evolutions?.find(e => e.star === item.displayStar)?.imagePosition || '';
+};
 
 // ─── Render ───────────────────────────────────────────────────────────────────
 let renderTimer = null;
@@ -655,10 +662,7 @@ function renderCharacters() {
     renderTimer = setTimeout(_doRender, 180);
 }
 
-function _doRender() {
-    dom.characterGrid.innerHTML = '';
-    dom.characterGrid.classList.remove('fade-out');
-
+function applyGridColumns() {
     const cardW = parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth, 10);
     if (state.isFitToScreenMode) {
         const gap = 24;
@@ -668,6 +672,12 @@ function _doRender() {
     } else {
         dom.characterGrid.style.gridTemplateColumns = `repeat(auto-fit, minmax(${sizeProfiles[state.imageSizeIndex].minCardWidth}, 1fr))`;
     }
+}
+
+function _doRender() {
+    dom.characterGrid.innerHTML = '';
+    dom.characterGrid.classList.remove('fade-out');
+    applyGridColumns();
 
     const visibleDismissed = dismissedCharacters.filter(c => c.type !== 'easterEgg');
 
@@ -742,6 +752,15 @@ function _doRender() {
         items = auOnlyItems;
     }
 
+    if (!items.length) {
+        dom.characterGrid.innerHTML = `
+            <div class="grid-status">
+                <span class="material-symbols-outlined">search_off</span>
+                <p class="font-semibold">No characters match this filter.</p>
+            </div>`;
+        return;
+    }
+
     const frag = document.createDocumentFragment();
     items.forEach((char, index) => {
         const card = _buildCard(char, index);
@@ -750,7 +769,6 @@ function _doRender() {
     dom.characterGrid.appendChild(frag);
 
     addInteractiveEffects();
-    observeImages();
 }
 
 function _buildCard(char, index) {
@@ -768,7 +786,7 @@ function _buildCard(char, index) {
 
     card.className = cls;
     card.dataset.id = char.id;
-    card.style.animationDelay = `${index * 35}ms`;
+    card.style.animationDelay = `${Math.min(index, 20) * 35}ms`;
 
     if (isFusion)         card.onclick = () => openFusionModal(char.id);
     else if (isDismissed) card.onclick = () => openCharacterModal(char.id, true);
@@ -1196,18 +1214,20 @@ function openCharacterModal(charId, isDismissed = false) {
         // AU Only mode: show AU image + 3★ original side by side
         const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
         const auEntry = char.auData?.[state.activeAuId];
-        const star3Img = char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl;
+        const star3Evo = char.evolutions?.find(e => e.star === 3);
+        const star3Img = star3Evo?.imageUrl || char.imageUrl;
+        const star3Pos = star3Evo?.imageUrl ? star3Evo.imagePosition : char.imagePosition;
         const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
         const color = auDef?.color || '#64dcb4';
 
-        const makeCard = (imgSrc, labelHtml, cardColor) => {
+        const makeCard = (imgSrc, labelHtml, cardColor, imgPos) => {
             const div = document.createElement('div');
             div.className = `flex flex-col items-center p-3 rounded-2xl ${cardColor ? 'au-evo-card' : ''}`;
             div.style.cssText = cardColor
                 ? `border-color:${cardColor}88; background:linear-gradient(135deg,${cardColor}18 0%,rgba(32,31,37,0.95) 100%);`
                 : 'background-color:var(--surface);';
             div.innerHTML = `
-                <div style="width:${w}"><img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div>
+                <div class="modal-img-crop mb-2" style="width:${w}"><img src="${imgSrc}" alt="${char.name}" class="cursor-zoom-in"${imgPos ? ` style="object-position:${imgPos}"` : ''} onclick="enlargeImage(this.src)"></div>
                 <p class="text-sm font-bold flex items-center gap-1" style="color:${cardColor||'var(--on-surface-var)'};">${labelHtml}</p>
             `;
             return div;
@@ -1216,23 +1236,25 @@ function openCharacterModal(charId, isDismissed = false) {
         if (auEntry?.star3ImageUrl) {
             m.evolutions.appendChild(makeCard(auEntry.star3ImageUrl,
                 `<span class="material-symbols-outlined" style="font-size:15px;">${auDef?.icon||'auto_fix_high'}</span>${auDef?.name||'AU'} Version`,
-                color));
+                color, auEntry.star3ImagePosition));
         }
         m.evolutions.appendChild(makeCard(star3Img,
-            `<span class="material-symbols-outlined" style="font-size:15px;">star</span>3★ Original`, null));
+            `<span class="material-symbols-outlined" style="font-size:15px;">star</span>3★ Original`, null, star3Pos));
 
         document.getElementById('char-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
 
     } else {
         // Normal mode: show all evolutions
-        const allEvos = [{ star: 1, imageUrl: char.imageUrl }, ...(char.evolutions || [])];
+        const allEvos = [{ star: 1, imageUrl: char.imageUrl, imagePosition: char.imagePosition }, ...(char.evolutions || [])];
         allEvos.forEach(evo => {
             const div = document.createElement('div');
             div.className = 'flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--surface-high)]';
             div.style.backgroundColor = 'var(--surface)';
             const wrap = document.createElement('div');
+            wrap.className = 'modal-img-crop mb-2';
             wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
-            wrap.innerHTML = `<img src="${evo.imageUrl || char.imageUrl}" alt="${char.name} ${evo.star}★" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            const evoPos = evo.imageUrl ? evo.imagePosition : char.imagePosition;
+            wrap.innerHTML = `<img src="${evo.imageUrl || char.imageUrl}" alt="${char.name} ${evo.star}★" class="cursor-zoom-in"${evoPos ? ` style="object-position:${evoPos}"` : ''} onclick="enlargeImage(this.src)">`;
             const p = document.createElement('p');
             p.className = 'text-lg font-medium';
             p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
@@ -1248,8 +1270,10 @@ function openCharacterModal(charId, isDismissed = false) {
             div.dataset.auId = au.id;
             div.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
             const wrap = document.createElement('div');
+            wrap.className = 'modal-img-crop mb-2';
             wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
-            wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            const auPos = auEntry.star3ImagePosition;
+            wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="cursor-zoom-in"${auPos ? ` style="object-position:${auPos}"` : ''} onclick="enlargeImage(this.src)">`;
             const p = document.createElement('p');
             p.className = 'text-sm font-bold flex items-center gap-1';
             p.style.color = au.color || 'var(--au)';
@@ -1271,7 +1295,8 @@ function openCharacterModal(charId, isDismissed = false) {
             fc.className = 'rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105';
             fc.style.backgroundColor = 'var(--fusion-container)';
             fc.onclick = e => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
-            fc.innerHTML = `<img src="${fusion.previewUrl || fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center font-fantastical" style="color:var(--on-fusion-container);">${fusion.name}</p>`;
+            const fPos = fusion.previewPosition;
+            fc.innerHTML = `<div class="modal-img-crop mb-2" style="width:6rem;border-radius:8px;"><img src="${fusion.previewUrl || fusion.imageUrl}" alt="${fusion.name}"${fPos ? ` style="object-position:${fPos}"` : ''}></div><p class="text-sm font-semibold text-center font-fantastical" style="color:var(--on-fusion-container);">${fusion.name}</p>`;
             m.fusionList.appendChild(fc);
         });
     }
@@ -1305,11 +1330,12 @@ function openFusionModal(fusionId) {
     if (isAuOnlyMode) {
         // AU Only mode: AU image main + original as extra card
         const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
-        const auImg  = fusion.auData?.[state.activeAuId]?.fusionImageUrl;
+        const auEntry = fusion.auData?.[state.activeAuId];
+        const auImg  = auEntry?.fusionImageUrl;
         const color  = auDef?.color || '#64dcb4';
 
         m.img.src = auImg || fusion.previewUrl || fusion.imageUrl || '';
-        m.img.setAttribute('onclick', `enlargeImage('${m.img.src}')`);
+        m.img.style.objectPosition = (auImg ? auEntry?.fusionImagePosition : fusion.previewPosition) || '';
         m.star.innerHTML = auDef
             ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${color}"><span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version</span>`
             : getStarEmojis(true, false, 4);
@@ -1318,11 +1344,12 @@ function openFusionModal(fusionId) {
         const origCard = document.createElement('div');
         origCard.className = 'fusion-au-extra-card flex flex-col items-center text-center rounded-2xl p-4';
         origCard.style.cssText = `width:${w}; border:1px solid var(--outline-var); display:block;`;
+        const origPos = fusion.previewPosition;
         origCard.innerHTML = `
             <p class="text-xs font-bold mb-2 flex items-center gap-1 justify-center" style="color:var(--on-surface-var);">
                 <span class="material-symbols-outlined" style="font-size:14px;">star</span>Original
             </p>
-            <img src="${fusion.previewUrl || fusion.imageUrl||''}" alt="${fusion.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+            <div class="modal-img-crop"><img src="${fusion.previewUrl || fusion.imageUrl||''}" alt="${fusion.name}" class="cursor-zoom-in"${origPos ? ` style="object-position:${origPos}"` : ''} onclick="enlargeImage(this.src)"></div>
         `;
         m.imgWrap.insertAdjacentElement('afterend', origCard);
 
@@ -1332,7 +1359,7 @@ function openFusionModal(fusionId) {
     } else {
         // Normal mode
         m.img.src = fusion.previewUrl || fusion.imageUrl || '';
-        m.img.setAttribute('onclick', `enlargeImage('${fusion.previewUrl || fusion.imageUrl||''}')`);
+        m.img.style.objectPosition = fusion.previewPosition || '';
         m.star.innerHTML = getStarEmojis(true, false, 4);
         m.left.container.style.display = '';
         m.right.container.style.display = '';
@@ -1340,13 +1367,20 @@ function openFusionModal(fusionId) {
         const getOriginal3Star = (charId) => {
             const c = characters.find(x => x.id === charId && !x.isFusion)
                    || dismissedCharacters.find(x => x.id === charId && !x.isFusion);
-            return c ? (c.evolutions?.find(e => e.star === 3)?.imageUrl || c.imageUrl || '') : '';
+            if (!c) return { url: '', pos: '' };
+            const evo = c.evolutions?.find(e => e.star === 3);
+            return {
+                url: evo?.imageUrl || c.imageUrl || '',
+                pos: (evo?.imageUrl ? evo.imagePosition : c.imagePosition) || '',
+            };
         };
         const [p1, p2] = (fusion.fusionPartners || []).map(id =>
             characters.find(c => c.id === id) || dismissedCharacters.find(c => c.id === id));
         const setPartner = (side, pChar, irkElId) => {
             if (!pChar) return;
-            side.img.src = getOriginal3Star(pChar.id);
+            const { url, pos } = getOriginal3Star(pChar.id);
+            side.img.src = url;
+            side.img.style.objectPosition = pos;
             side.container.style.width = `${parseInt(w) * 0.75}px`;
             side.name.textContent = pChar.name;
             side.container.dataset.characterId = pChar.id;
@@ -1362,11 +1396,12 @@ function openFusionModal(fusionId) {
             auCard.className = 'fusion-au-extra-card flex flex-col items-center text-center au-fusion-card rounded-2xl p-4';
             auCard.dataset.auId = au.id;
             auCard.style.cssText = `width:${w}; border-color:${au.color||'#64dcb4'}88; display:none;`;
+            const auCardPos = auEntry.fusionImagePosition;
             auCard.innerHTML = `
                 <p class="text-sm font-bold mb-2 flex items-center gap-1" style="color:${au.color||'var(--au)'}">
                     <span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}
                 </p>
-                <img src="${auEntry.fusionImageUrl}" alt="${fusion.name} ${au.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+                <div class="modal-img-crop"><img src="${auEntry.fusionImageUrl}" alt="${fusion.name} ${au.name}" class="cursor-zoom-in"${auCardPos ? ` style="object-position:${auCardPos}"` : ''} onclick="enlargeImage(this.src)"></div>
             `;
             m.imgWrap.insertAdjacentElement('afterend', auCard);
         });
@@ -1418,12 +1453,16 @@ function renderSearchResults() {
 function _buildSearchCard(item) {
     const card = document.createElement('div');
     card.className = 'search-result-card';
-    const action = item.isFusion
-        ? `closeSearchModal(); setTimeout(()=>openFusionModal('${item.id}'),310);`
-        : `closeSearchModal(); setTimeout(()=>openCharacterModal('${item.id}',${!!item.isDismissed}),310);`;
-    card.setAttribute('onclick', action);
+    card.addEventListener('click', () => {
+        closeSearchModal();
+        setTimeout(() => {
+            if (item.isFusion) openFusionModal(item.id);
+            else openCharacterModal(item.id, !!item.isDismissed);
+        }, 310);
+    });
     const nc = (item.isFusion || item.isDismissed) ? 'font-fantastical' : '';
-    card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0" loading="lazy">
+    const pos = displayPositionFor(item);
+    card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0" loading="lazy"${pos ? ` style="object-position:${pos}"` : ''}>
         <div class="flex flex-col gap-1">
             <h4 class="text-lg font-bold ${nc}">${item.name}</h4>
             <div>${getStarEmojis(item.isFusion, item.isDismissed, item.displayStar)}</div>
@@ -1482,7 +1521,9 @@ function updateModalNav(id, type) {
             if (starFilter === 4) {
                 nav = pool.filter(c => c.isFusion).sort(sortFn);
             } else {
-                nav = pool.filter(c => !c.isFusion).sort(sortFn);
+                // Match the grid: only characters that actually have this star
+                nav = pool.filter(c => !c.isFusion
+                    && (starFilter === 1 || c.evolutions?.some(e => e.star === starFilter))).sort(sortFn);
             }
         } else {
             // fallback: all
@@ -1550,7 +1591,12 @@ function addInteractiveEffects() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function initApp() {
-    setupImageObserver();
+    const gridEl = document.getElementById('character-grid');
+    gridEl.innerHTML = `
+        <div class="grid-status">
+            <div class="m3-spinner"></div>
+            <p class="font-semibold">Loading characters…</p>
+        </div>`;
     try {
         const [charsSnap, dismissedSnap, auSnap] = await Promise.all([
             db.collection('characters').get(),
@@ -1638,7 +1684,19 @@ async function initApp() {
         auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
 
         document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
-        dom.searchModal.input.addEventListener('input', renderSearchResults);
+        let searchDebounce;
+        dom.searchModal.input.addEventListener('input', () => {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(renderSearchResults, 150);
+        });
+        dom.fusionModal.img.addEventListener('click', function () { enlargeImage(this.src); });
+        window.addEventListener('keydown', e => {
+            if (e.key !== 'Escape') return;
+            if (!dom.enlargedOverlay.classList.contains('hidden')) { closeEnlargedImage(); return; }
+            if (!dom.charModal.el.classList.contains('hidden'))   { closeCharacterModal(); return; }
+            if (!dom.fusionModal.el.classList.contains('hidden')) { closeFusionModal(); return; }
+            if (!dom.searchModal.el.classList.contains('hidden')) { closeSearchModal(); }
+        });
         window.addEventListener('click', e => {
             if (!dom.filterMenu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
                 dom.filterMenu.classList.add('hidden');
@@ -1647,9 +1705,10 @@ async function initApp() {
                 auMenu.classList.add('hidden');
             }
         });
-        dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); renderCharacters(); }});
-        dom.zoomOutBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); renderCharacters(); }});
-        dom.fitScreenBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); renderCharacters(); });
+        // Zoom/fit only change grid columns — no need to rebuild every card
+        dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); applyGridColumns(); }});
+        dom.zoomOutBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); applyGridColumns(); }});
+        dom.fitScreenBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); applyGridColumns(); });
         document.getElementById('au-banner-exit').addEventListener('click', () => { state.activeAuId = null; _applyAuMode(); });
 
         buildAuDropdown();
@@ -1659,7 +1718,15 @@ async function initApp() {
         renderCharacters();
     } catch (err) {
         console.error("App init error:", err);
-        alert("Failed to load. Please try again later.");
+        gridEl.innerHTML = `
+            <div class="grid-status">
+                <span class="material-symbols-outlined" style="color:#ff8a80;">cloud_off</span>
+                <p class="font-semibold">Failed to load characters.</p>
+                <p class="text-sm" style="opacity:.75;">Check your connection and try again.</p>
+                <button class="chip" onclick="location.reload()" style="margin-top:4px;">
+                    <span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px;">refresh</span> Retry
+                </button>
+            </div>`;
     }
 }
 
