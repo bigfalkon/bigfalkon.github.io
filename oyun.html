@@ -207,20 +207,12 @@
                             <span class="material-symbols-outlined chip-icon">apps</span>All
                         </label>
                         <label class="mode-chip">
-                            <input type="radio" name="mode" value="stars_1">
-                            <span class="material-symbols-outlined chip-icon text-orange-400">filter_1</span>1★ Only
-                        </label>
-                        <label class="mode-chip">
-                            <input type="radio" name="mode" value="stars_2">
-                            <span class="material-symbols-outlined chip-icon text-slate-400">filter_2</span>2★ Only
-                        </label>
-                        <label class="mode-chip">
-                            <input type="radio" name="mode" value="stars_3">
-                            <span class="material-symbols-outlined chip-icon text-amber-400">filter_3</span>3★ Only
+                            <input type="radio" name="mode" value="characters">
+                            <span class="material-symbols-outlined chip-icon text-amber-400">person</span>Characters
                         </label>
                         <label class="mode-chip">
                             <input type="radio" name="mode" value="fusions">
-                            <span class="material-symbols-outlined chip-icon text-fuchsia-400">filter_4</span>Fusions
+                            <span class="material-symbols-outlined chip-icon text-fuchsia-400">merge_type</span>Fusions
                         </label>
                         <label class="mode-chip" style="grid-column:span 2">
                             <input type="radio" name="mode" value="absolute_war">
@@ -525,73 +517,42 @@ function prepareContestants(settings) {
     // Helper: pick the correct image for a fusion (previewUrl = static image, imageUrl = GIF fallback)
     const fusionImg = (char) => char.previewUrl || char.imageUrl || '';
 
+    // Helper: build a contestant entry (fusions get a "Fusion" label)
+    const toContestant = (char) => ({
+        id: char.id,
+        name: char.name,
+        label: char.isFusion ? 'Fusion' : null,
+        imageUrl: char.isFusion ? fusionImg(char) : (char.imageUrl || ''),
+    });
+
     if (mode.startsWith('au_')) {
         // AU mode: only chars/fusions that have an entry in this AU
         const auId = mode.slice(3);
         const auDef = alternativeUniverses.find(a => a.id === auId);
         sourceList.forEach(char => {
             const entry = char.auData?.[auId];
-            if (!entry) return;
-            if (char.isFusion) {
-                if (entry.fusionImageUrl) {
-                    pool.push({
-                        id: `${char.id}_au_${auId}`,
-                        name: char.name,
-                        label: '4★',
-                        imageUrl: entry.fusionImageUrl,
-                        auName: auDef?.name,
-                        auColor: auDef?.color,
-                    });
-                }
-            } else {
-                if (entry.star3ImageUrl) {
-                    pool.push({
-                        id: `${char.id}_au_${auId}`,
-                        name: char.name,
-                        label: '3★',
-                        imageUrl: entry.star3ImageUrl,
-                        auName: auDef?.name,
-                        auColor: auDef?.color,
-                    });
-                }
-            }
+            if (!entry?.imageUrl) return;
+            pool.push({
+                id: `${char.id}_au_${auId}`,
+                name: char.name,
+                label: char.isFusion ? 'Fusion' : null,
+                imageUrl: entry.imageUrl,
+                auName: auDef?.name,
+                auColor: auDef?.color,
+            });
         });
 
     } else if (mode === 'fusions') {
-        sourceList.filter(c => c.isFusion).forEach(char => {
-            pool.push({ id: char.id, name: char.name, label: '4★', imageUrl: fusionImg(char) });
-        });
+        pool = sourceList.filter(c => c.isFusion).map(toContestant);
 
-    } else if (mode === 'stars_1' || mode === 'stars_2' || mode === 'stars_3') {
-        const star = parseInt(mode.split('_')[1]);
-        sourceList.filter(c => !c.isFusion).forEach(char => {
-            const imgUrl = star === 1 ? char.imageUrl : char.evolutions?.find(e => e.star === star)?.imageUrl;
-            if (imgUrl) pool.push({ id: `${char.id}_${star}`, name: char.name, label: `${star}★`, imageUrl: imgUrl });
-        });
+    } else if (mode === 'characters') {
+        pool = sourceList.filter(c => !c.isFusion && c.imageUrl).map(toContestant);
 
     } else if (mode === 'all') {
-        sourceList.forEach(char => {
-            if (char.isFusion) {
-                pool.push({ id: char.id, name: char.name, label: '4★', imageUrl: fusionImg(char) });
-            } else {
-                [1, 2, 3].forEach(star => {
-                    const imgUrl = star === 1 ? char.imageUrl : char.evolutions?.find(e => e.star === star)?.imageUrl;
-                    if (imgUrl) pool.push({ id: `${char.id}_${star}`, name: char.name, label: `${star}★`, imageUrl: imgUrl });
-                });
-            }
-        });
+        pool = sourceList.filter(c => c.isFusion || c.imageUrl).map(toContestant);
 
     } else if (mode === 'random') {
-        sourceList.forEach(char => {
-            if (char.isFusion) {
-                pool.push({ id: char.id, name: char.name, label: '4★', imageUrl: fusionImg(char) });
-            } else {
-                [1, 2, 3].forEach(star => {
-                    const imgUrl = star === 1 ? char.imageUrl : char.evolutions?.find(e => e.star === star)?.imageUrl;
-                    if (imgUrl) pool.push({ id: `${char.id}_${star}`, name: char.name, label: `${star}★`, imageUrl: imgUrl });
-                });
-            }
-        });
+        pool = sourceList.filter(c => c.isFusion || c.imageUrl).map(toContestant);
         pool.sort(() => Math.random() - 0.5);
         pool = pool.slice(0, settings.count || 16);
     }
@@ -621,7 +582,7 @@ function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
 function startAbsoluteWarStage() {
     const stage = gameState.absoluteWar.stage;
     let pool, stageName;
-    const stageMap = { 1: ['stars_1','1★ Battle'], 2: ['stars_2','2★ Battle'], 3: ['stars_3','3★ Battle'], 4: ['fusions','Fusions Battle'] };
+    const stageMap = { 1: ['characters','Characters Battle'], 2: ['fusions','Fusions Battle'] };
     if (stageMap[stage]) {
         const [modeKey, name] = stageMap[stage];
         stageName = name;
@@ -631,7 +592,7 @@ function startAbsoluteWarStage() {
         pool = [...gameState.absoluteWar.allWinners];
     }
     if (pool.length < 2) {
-        if (stage < 5) { gameState.absoluteWar.stage++; startAbsoluteWarStage(); return; }
+        if (stage < 3) { gameState.absoluteWar.stage++; startAbsoluteWarStage(); return; }
         alert('No contestants for Absolute War!'); showScreen('setup'); return;
     }
     gameState.currentStageName = stageName;
@@ -727,7 +688,7 @@ function advanceGame() {
 
     if (next.length === 1) {
         // Tournament winner
-        if (gameState.settings.mode === 'absolute_war' && gameState.absoluteWar.stage < 5) {
+        if (gameState.settings.mode === 'absolute_war' && gameState.absoluteWar.stage < 3) {
             gameState.absoluteWar.allWinners.push(next[0]);
             gameState.absoluteWar.stage++;
             startAbsoluteWarStage();
