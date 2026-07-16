@@ -1212,8 +1212,9 @@ function openCharacterModal(charId, isDismissed = false) {
     const S = 260 + state.imageSizeIndex * 30;   // XS 260 … M 320 … XL 380 (cap keeps 3 on one row)
     m.evolutions.style.cssText = 'display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:16px';
     m.evolutions.innerHTML = '';
-    // Square box: blurred cover fill behind, sharp contained image in front (click opens full/uncropped image)
-    const imgBox = (src, alt) => `<div class="modal-img-box"><img class="modal-img-bg" src="${src}" alt="" aria-hidden="true"><img class="modal-img-fg" src="${src}" alt="${alt}" decoding="async" onclick="enlargeImage(this.src)"></div>`;
+    // Square box: blurred cover fill behind, sharp contained image in front.
+    // enlarge=true adds click-to-enlarge (evolutions/AU); false lets the click fall through to an outer handler (fusion list).
+    const imgBox = (src, alt, enlarge = true) => `<div class="modal-img-box"><img class="modal-img-bg" src="${src}" alt="" aria-hidden="true"><img class="modal-img-fg" src="${src}" alt="${alt}" decoding="async"${enlarge ? ' onclick="enlargeImage(this.src)"' : ' style="cursor:inherit;pointer-events:none"'}></div>`;
 
     const isAuOnlyMode = !!state.activeAuId;
     const reachableAusWithEntry = getReachableAus().filter(au => char.auData?.[au.id]?.star3ImageUrl);
@@ -1296,7 +1297,7 @@ function openCharacterModal(charId, isDismissed = false) {
             fc.className = 'rounded-xl p-3 flex flex-col items-center cursor-pointer transition-transform hover:scale-105';
             fc.style.backgroundColor = 'var(--fusion-container)';
             fc.onclick = e => { e.stopPropagation(); closeCharacterModal(); setTimeout(() => openFusionModal(fusion.id), 310); };
-            fc.innerHTML = `<img src="${fusion.previewUrl || fusion.imageUrl}" alt="${fusion.name}" class="w-24 h-auto object-cover rounded-lg mb-2"><p class="text-sm font-semibold text-center font-fantastical" style="color:var(--on-fusion-container);">${fusion.name}</p>`;
+            fc.innerHTML = `<div style="width:100%" class="mb-2">${imgBox(fusion.previewUrl || fusion.imageUrl, fusion.name, false)}</div><p class="text-sm font-semibold text-center font-fantastical" style="color:var(--on-fusion-container);">${fusion.name}</p>`;
             m.fusionList.appendChild(fc);
         });
     }
