@@ -388,10 +388,8 @@
                 </button>
                 <div id="filter-menu" class="hidden absolute top-full left-0 mt-2 w-52 rounded-xl shadow-xl p-2 z-50" style="background-color: var(--surface-high); border: 1px solid var(--outline-var); max-height: 80vh; overflow-y: auto;">
                     <button class="menu-item" data-filter="all"><div><span class="material-symbols-outlined">apps</span><span>All</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                    <button class="menu-item" data-filter="1-star"><div><span class="material-symbols-outlined text-orange-400">filter_1</span><span>1 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                    <button class="menu-item" data-filter="2-star"><div><span class="material-symbols-outlined text-slate-400">filter_2</span><span>2 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                    <button class="menu-item" data-filter="3-star"><div><span class="material-symbols-outlined text-amber-400">filter_3</span><span>3 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
-                    <button class="menu-item" data-filter="fusion"><div><span class="material-symbols-outlined text-fuchsia-400">filter_4</span><span>4 Star</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-filter="character"><div><span class="material-symbols-outlined text-amber-400">person</span><span>Characters</span></div><span class="check-icon material-symbols-outlined">check</span></button>
+                    <button class="menu-item" data-filter="fusion"><div><span class="material-symbols-outlined text-fuchsia-400">merge_type</span><span>Fusions</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     <button class="menu-item" id="dismissed-filter-btn" data-filter="dismissed"><div><span class="material-symbols-outlined">badge</span><span>Retired</span></div><span class="check-icon material-symbols-outlined">check</span></button>
                     <hr class="menu-divider">
                     <p class="px-3 py-1 text-xs font-bold uppercase tracking-wider" style="color: var(--on-surface-var);">Sort</p>
@@ -580,56 +578,25 @@ const sizeProfiles = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const getStarEmojis = (isFusion, isDismissed, starCount, iconName = 'star') => {
-    if (!starCount || starCount < 1) starCount = 1;
+const getCardBadge = (isFusion, isDismissed) => {
     if (isDismissed) {
         return `<div class="flex dismissed-stars"><span class="material-symbols-outlined text-gray-400" style="font-variation-settings:'FILL' 1;">badge</span></div>`;
     }
-    const colors = { 1: 'text-orange-400', 2: 'text-slate-400', 3: 'text-amber-400', 4: 'text-fuchsia-400' };
-    const key = Math.min(starCount, 4);
-    const icon = `<span class="material-symbols-outlined ${colors[key]}" style="font-variation-settings:'FILL' 1;">${iconName}</span>`;
-    return `<div class="flex ${isFusion ? 'fusion-stars' : ''}">${Array(starCount).fill(icon).join('')}</div>`;
-};
-
-const get3StarImageUrl = (charId, useAu = false) => {
-    const char = characters.find(c => c.id === charId && !c.isFusion);
-    if (!char) return '';
-    if (useAu && state.activeAuId) {
-        const auImg = char.auData?.[state.activeAuId]?.star3ImageUrl;
-        if (auImg) return auImg;
+    if (isFusion) {
+        return `<div class="flex fusion-stars items-center gap-1"><span class="material-symbols-outlined text-fuchsia-400" style="font-size:16px;">merge_type</span><span class="text-sm font-semibold" style="color:var(--fusion);">Fusion</span></div>`;
     }
-    return char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl || '';
-};
-
-const getCharacterImageUrlByStar = (charId, star, useAu = false) => {
-    const char = characters.find(c => c.id === charId && !c.isFusion)
-               || dismissedCharacters.find(c => c.id === charId && !c.isFusion);
-    if (!char) return '';
-    if (useAu && state.activeAuId && star === 3) {
-        const auImg = char.auData?.[state.activeAuId]?.star3ImageUrl;
-        if (auImg) return auImg;
-    }
-    if (star === 1) return char.imageUrl || '';
-    return char.evolutions?.find(e => e.star === star)?.imageUrl || '';
+    return '';
 };
 
 /** Returns the AU image if active AU has one, else original */
 const resolveCardImage = (char) => {
     if (!state.activeAuId) return char.displayImageUrl || char.imageUrl || '';
     const au = char.auData?.[state.activeAuId];
-    if (!au) return char.displayImageUrl || char.imageUrl || '';
-    if (char.isFusion) return au.fusionImageUrl || char.displayImageUrl || char.imageUrl || '';
-    if (char.displayStar === 3) return au.star3ImageUrl || char.displayImageUrl || '';
-    return char.displayImageUrl || char.imageUrl || '';
+    return au?.imageUrl || char.displayImageUrl || char.imageUrl || '';
 };
 
 /** Check if a character/fusion has any entry in a given AU */
-const hasAuEntry = (char, auId) => {
-    if (!char.auData) return false;
-    const au = char.auData[auId];
-    if (!au) return false;
-    return !!(char.isFusion ? au.fusionImageUrl : au.star3ImageUrl);
-};
+const hasAuEntry = (char, auId) => !!char.auData?.[auId]?.imageUrl;
 
 /** Check if an AU is accessible (not locked, or user has unlocked it) */
 const isAuReachable = (au) => {
@@ -679,41 +646,25 @@ function _doRender() {
     let items = [];
     const activeChars = state.galleryMode === 'dismissed' ? visibleDismissed : characters;
 
+    const toItem = (char) => char.isFusion
+        ? { ...char, displayImageUrl: char.previewUrl }
+        : { ...char, displayImageUrl: char.imageUrl };
+
     if (state.galleryMode === 'fusion') {
-        items = activeChars.filter(c => c.isFusion)
-            .map(c => ({ ...c, displayStar: 4, displayImageUrl: c.previewUrl }))
-            .sort(sortFn);
+        items = activeChars.filter(c => c.isFusion).sort(sortFn).map(toItem);
+    } else if (state.galleryMode === 'character') {
+        items = activeChars.filter(c => !c.isFusion).sort(sortFn).map(toItem);
     } else if (state.galleryMode === 'all' || state.galleryMode === 'dismissed') {
-        activeChars.filter(c => !c.isFusion).sort(sortFn).forEach(char => {
-            items.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
-            char.evolutions?.forEach(evo => items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
-        });
-        activeChars.filter(c => c.isFusion).sort(sortFn).forEach(char => {
-            items.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl });
-        });
+        items = [
+            ...activeChars.filter(c => !c.isFusion).sort(sortFn).map(toItem),
+            ...activeChars.filter(c => c.isFusion).sort(sortFn).map(toItem),
+        ];
     } else if (state.galleryMode === 'reachable-au') {
-        // Show all items (all stars) that have at least one reachable AU entry
-        characters.filter(c => !c.isFusion).sort(sortFn).forEach(char => {
-            items.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
-            char.evolutions?.forEach(evo => items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
-        });
-        characters.filter(c => c.isFusion).sort(sortFn).forEach(char => {
-            items.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl });
-        });
-        // Keep only entries where the base character has a reachable AU
-        items = items.filter(item => hasReachableAuEntry(item));
-    } else {
-        const starFilter = parseInt(state.galleryMode);
-        if (!isNaN(starFilter)) {
-            activeChars.filter(c => !c.isFusion).sort(sortFn).forEach(char => {
-                if (starFilter === 1) {
-                    items.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
-                } else {
-                    const evo = char.evolutions?.find(e => e.star === starFilter);
-                    if (evo) items.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl });
-                }
-            });
-        }
+        // Show all items that have at least one reachable AU entry
+        items = [
+            ...characters.filter(c => !c.isFusion).sort(sortFn).map(toItem),
+            ...characters.filter(c => c.isFusion).sort(sortFn).map(toItem),
+        ].filter(item => hasReachableAuEntry(item));
     }
 
     // Race filter
@@ -721,24 +672,12 @@ function _doRender() {
         items = items.filter(item => item.irk === state.raceFilter);
     }
 
-    // AU Only mode: filter to entries with AU data, show only their AU images (3★ for chars, fusion for fusions)
+    // AU Only mode: filter to entries with AU data, show only their AU images
     if (state.activeAuId) {
-        items = items.filter(item => hasAuEntry(item, state.activeAuId));
-        const auOnlyItems = [];
-        const seen = new Set();
-        items.forEach(item => {
-            if (item.isFusion) {
-                if (!seen.has(item.id)) {
-                    seen.add(item.id);
-                    const auImg = item.auData?.[state.activeAuId]?.fusionImageUrl;
-                    auOnlyItems.push({ ...item, displayStar: 4, displayImageUrl: auImg || item.previewUrl || item.imageUrl });
-                }
-            } else if (item.displayStar === 3) {
-                const auImg = item.auData?.[state.activeAuId]?.star3ImageUrl;
-                auOnlyItems.push({ ...item, displayImageUrl: auImg || item.displayImageUrl });
-            }
+        items = items.filter(item => hasAuEntry(item, state.activeAuId)).map(item => {
+            const auImg = item.auData?.[state.activeAuId]?.imageUrl;
+            return { ...item, displayImageUrl: auImg || item.displayImageUrl };
         });
-        items = auOnlyItems;
     }
 
     if (!items.length) {
@@ -782,9 +721,7 @@ function _buildCard(char, index) {
     else                  card.onclick = () => openCharacterModal(char.id, false);
 
     const nameClass = (isFusion || isDismissed) ? 'font-fantastical' : '';
-    const stars = isDismissed
-        ? getStarEmojis(false, true, 1, 'badge')
-        : getStarEmojis(isFusion, false, char.displayStar || char.star);
+    const badge = getCardBadge(isFusion, isDismissed);
 
     // AU badge
     let auBadgeHtml = '';
@@ -808,34 +745,22 @@ function _buildCard(char, index) {
     // instead of the original character's crop.
     const activeAuEntry = state.activeAuId ? char.auData?.[state.activeAuId] : null;
     let displayImagePosition;
-    if (isFusion) {
-        displayImagePosition = (activeAuEntry?.fusionImageUrl)
-            ? activeAuEntry.fusionImagePosition
-            : char.previewPosition;
-    } else if (char.displayStar === 3 && activeAuEntry?.star3ImageUrl) {
-        displayImagePosition = activeAuEntry.star3ImagePosition;
-    } else if (char.displayStar === 1 || !char.displayStar) {
-        displayImagePosition = char.imagePosition;
+    if (activeAuEntry?.imageUrl) {
+        displayImagePosition = activeAuEntry.imagePosition;
+    } else if (isFusion) {
+        displayImagePosition = char.previewPosition;
     } else {
-        const evo = char.evolutions?.find(e => e.star === char.displayStar);
-        displayImagePosition = evo?.imagePosition;
+        displayImagePosition = char.imagePosition;
     }
     const focusStyle = displayImagePosition ? ` style="object-position:${displayImagePosition}"` : '';
-    let imageHtml;
-    if (isFusion && char.previewUrl) {
-        const auFusionImg = activeAuEntry?.fusionImageUrl || null;
-        const previewSrc = auFusionImg || char.previewUrl;
-        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
-    } else {
-        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
-    }
+    const imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
 
     card.innerHTML = `
         <div class="character-card-image-wrapper">${imageHtml}</div>
         ${auBadgeHtml}
         <div class="card-info">
             <h3 class="character-name truncate ${nameClass}">${char.name}</h3>
-            <div class="star-row">${stars}</div>
+            ${badge ? `<div class="star-row">${badge}</div>` : ''}
         </div>
     `;
     return card;
@@ -1197,13 +1122,13 @@ function openCharacterModal(charId, isDismissed = false) {
     m.evolutions.innerHTML = '';
 
     const isAuOnlyMode = !!state.activeAuId;
-    const reachableAusWithEntry = getReachableAus().filter(au => char.auData?.[au.id]?.star3ImageUrl);
+    const reachableAusWithEntry = getReachableAus().filter(au => char.auData?.[au.id]?.imageUrl);
 
     if (isAuOnlyMode) {
-        // AU Only mode: show AU image + 3★ original side by side
+        // AU Only mode: show AU image + original side by side
         const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
         const auEntry = char.auData?.[state.activeAuId];
-        const star3Img = char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl;
+        const origImg = char.imageUrl;
         const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
         const color = auDef?.color || '#64dcb4';
 
@@ -1220,49 +1145,49 @@ function openCharacterModal(charId, isDismissed = false) {
             return div;
         };
 
-        if (auEntry?.star3ImageUrl) {
-            m.evolutions.appendChild(makeCard(auEntry.star3ImageUrl,
+        if (auEntry?.imageUrl) {
+            m.evolutions.appendChild(makeCard(auEntry.imageUrl,
                 `<span class="material-symbols-outlined" style="font-size:15px;">${auDef?.icon||'auto_fix_high'}</span>${auDef?.name||'AU'} Version`,
                 color));
         }
-        m.evolutions.appendChild(makeCard(star3Img,
-            `<span class="material-symbols-outlined" style="font-size:15px;">star</span>3★ Original`, null));
+        m.evolutions.appendChild(makeCard(origImg,
+            `<span class="material-symbols-outlined" style="font-size:15px;">star</span>Original`, null));
 
         document.getElementById('char-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
 
     } else {
-        // Normal mode: show all evolutions
-        const allEvos = [{ star: 1, imageUrl: char.imageUrl }, ...(char.evolutions || [])];
-        allEvos.forEach(evo => {
-            const div = document.createElement('div');
-            div.className = 'flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--surface-high)]';
-            div.style.backgroundColor = 'var(--surface)';
-            const wrap = document.createElement('div');
-            wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
-            wrap.innerHTML = `<img src="${evo.imageUrl || char.imageUrl}" alt="${char.name} ${evo.star}★" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+        // Normal mode: show the character's single image
+        const div = document.createElement('div');
+        div.className = 'flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--surface-high)]';
+        div.style.backgroundColor = 'var(--surface)';
+        const wrap = document.createElement('div');
+        wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
+        wrap.innerHTML = `<img src="${char.imageUrl}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+        div.appendChild(wrap);
+        if (isDismissed) {
             const p = document.createElement('p');
             p.className = 'text-lg font-medium';
-            p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
-            div.appendChild(wrap); div.appendChild(p);
-            m.evolutions.appendChild(div);
-        });
+            p.innerHTML = getCardBadge(false, true);
+            div.appendChild(p);
+        }
+        m.evolutions.appendChild(div);
 
         // AU cards (hidden by default, toggled via header buttons)
         reachableAusWithEntry.forEach(au => {
             const auEntry = char.auData[au.id];
-            const div = document.createElement('div');
-            div.className = 'flex flex-col items-center p-3 rounded-2xl au-evo-card modal-au-card';
-            div.dataset.auId = au.id;
-            div.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
-            const wrap = document.createElement('div');
-            wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
-            wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            const auDiv = document.createElement('div');
+            auDiv.className = 'flex flex-col items-center p-3 rounded-2xl au-evo-card modal-au-card';
+            auDiv.dataset.auId = au.id;
+            auDiv.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
+            const auWrap = document.createElement('div');
+            auWrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
+            auWrap.innerHTML = `<img src="${auEntry.imageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
             const p = document.createElement('p');
             p.className = 'text-sm font-bold flex items-center gap-1';
             p.style.color = au.color || 'var(--au)';
             p.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}`;
-            div.appendChild(wrap); div.appendChild(p);
-            m.evolutions.appendChild(div);
+            auDiv.appendChild(auWrap); auDiv.appendChild(p);
+            m.evolutions.appendChild(auDiv);
         });
 
         _buildModalAuBtns('char-modal-header-btns', reachableAusWithEntry, '.modal-au-card');
@@ -1307,19 +1232,19 @@ function openFusionModal(fusionId) {
     document.querySelectorAll('.fusion-au-extra-card').forEach(el => el.remove());
 
     const isAuOnlyMode = !!state.activeAuId;
-    const reachableAusWithEntry = getReachableAus().filter(au => fusion.auData?.[au.id]?.fusionImageUrl);
+    const reachableAusWithEntry = getReachableAus().filter(au => fusion.auData?.[au.id]?.imageUrl);
 
     if (isAuOnlyMode) {
         // AU Only mode: AU image main + original as extra card
         const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
         const auEntry = fusion.auData?.[state.activeAuId];
-        const auImg  = auEntry?.fusionImageUrl;
+        const auImg  = auEntry?.imageUrl;
         const color  = auDef?.color || '#64dcb4';
 
         m.img.src = auImg || fusion.previewUrl || fusion.imageUrl || '';
         m.star.innerHTML = auDef
             ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${color}"><span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version</span>`
-            : getStarEmojis(true, false, 4);
+            : getCardBadge(true, false);
 
         // Original as extra card
         const origCard = document.createElement('div');
@@ -1339,24 +1264,19 @@ function openFusionModal(fusionId) {
     } else {
         // Normal mode
         m.img.src = fusion.previewUrl || fusion.imageUrl || '';
-        m.star.innerHTML = getStarEmojis(true, false, 4);
+        m.star.innerHTML = getCardBadge(true, false);
         m.left.container.style.display = '';
         m.right.container.style.display = '';
 
-        const getOriginal3Star = (charId) => {
-            const c = characters.find(x => x.id === charId && !x.isFusion)
-                   || dismissedCharacters.find(x => x.id === charId && !x.isFusion);
-            return c ? (c.evolutions?.find(e => e.star === 3)?.imageUrl || c.imageUrl || '') : '';
-        };
         const [p1, p2] = (fusion.fusionPartners || []).map(id =>
             characters.find(c => c.id === id) || dismissedCharacters.find(c => c.id === id));
         const setPartner = (side, pChar, irkElId) => {
             if (!pChar) return;
-            side.img.src = getOriginal3Star(pChar.id);
+            side.img.src = pChar.imageUrl || '';
             side.container.style.width = `${parseInt(w) * 0.75}px`;
             side.name.textContent = pChar.name;
             side.container.dataset.characterId = pChar.id;
-            side.star.innerHTML = getStarEmojis(false, false, 3);
+            side.star.innerHTML = '';
             _setIrk(irkElId, pChar.irk);
         };
         setPartner(m.left, p1, 'modal-fusion-left-irk');
@@ -1372,7 +1292,7 @@ function openFusionModal(fusionId) {
                 <p class="text-sm font-bold mb-2 flex items-center gap-1" style="color:${au.color||'var(--au)'}">
                     <span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}
                 </p>
-                <img src="${auEntry.fusionImageUrl}" alt="${fusion.name} ${au.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+                <img src="${auEntry.imageUrl}" alt="${fusion.name} ${au.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
             `;
             m.imgWrap.insertAdjacentElement('afterend', auCard);
         });
@@ -1408,12 +1328,7 @@ function renderSearchResults() {
     const results = [];
     pool.forEach(char => {
         if (!char.name.toLowerCase().includes(term) && !char.id.toLowerCase().includes(term)) return;
-        if (char.isFusion) {
-            results.push({ ...char, displayStar: 4, displayImageUrl: char.previewUrl || char.imageUrl });
-        } else {
-            results.push({ ...char, displayStar: 1, displayImageUrl: char.imageUrl });
-            char.evolutions?.forEach(evo => results.push({ ...char, displayStar: evo.star, displayImageUrl: evo.imageUrl }));
-        }
+        results.push({ ...char, displayImageUrl: char.isFusion ? (char.previewUrl || char.imageUrl) : char.imageUrl });
     });
 
     if (!results.length) { ph.textContent = `No results for "${dom.searchModal.input.value}".`; ph.classList.remove('hidden'); return; }
@@ -1435,7 +1350,7 @@ function _buildSearchCard(item) {
     card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0" loading="lazy">
         <div class="flex flex-col gap-1">
             <h4 class="text-lg font-bold ${nc}">${item.name}</h4>
-            <div>${getStarEmojis(item.isFusion, item.isDismissed, item.displayStar)}</div>
+            ${getCardBadge(item.isFusion, item.isDismissed) ? `<div>${getCardBadge(item.isFusion, item.isDismissed)}</div>` : ''}
             <p class="text-xs font-mono" style="color:var(--on-surface-var);">ID: ${item.id}</p>
         </div>`;
     return card;
@@ -1475,30 +1390,19 @@ function updateModalNav(id, type) {
 
     if (mode === 'fusion') {
         nav = pool.filter(c => c.isFusion).sort(sortFn);
-    } else if (mode === 'all' || mode === 'dismissed') {
-        nav = [
-            ...pool.filter(c => !c.isFusion).sort(sortFn),
-            ...pool.filter(c => c.isFusion).sort(sortFn),
-        ];
+    } else if (mode === 'character') {
+        nav = pool.filter(c => !c.isFusion).sort(sortFn);
     } else if (mode === 'reachable-au') {
         nav = [
             ...pool.filter(c => !c.isFusion && hasReachableAuEntry(c)).sort(sortFn),
             ...pool.filter(c => c.isFusion && hasReachableAuEntry(c)).sort(sortFn),
         ];
     } else {
-        const starFilter = parseInt(mode);
-        if (!isNaN(starFilter)) {
-            if (starFilter === 4) {
-                nav = pool.filter(c => c.isFusion).sort(sortFn);
-            } else {
-                // Match the grid: only characters that actually have this star
-                nav = pool.filter(c => !c.isFusion
-                    && (starFilter === 1 || c.evolutions?.some(e => e.star === starFilter))).sort(sortFn);
-            }
-        } else {
-            // fallback: all
-            nav = [...pool.filter(c => !c.isFusion).sort(sortFn), ...pool.filter(c => c.isFusion).sort(sortFn)];
-        }
+        // 'all', 'dismissed' and fallback
+        nav = [
+            ...pool.filter(c => !c.isFusion).sort(sortFn),
+            ...pool.filter(c => c.isFusion).sort(sortFn),
+        ];
     }
 
     // Filter by active AU
