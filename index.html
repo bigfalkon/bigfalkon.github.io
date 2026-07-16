@@ -284,6 +284,12 @@
         .modal-au-btn.active-au { background: var(--au); color: #0a2e22; box-shadow: 0 0 0 2px var(--au); }
         .modal-au-btn .material-symbols-outlined { font-size: 18px; }
 
+        /* Modal image box: uniform square, blurred cover fill behind, sharp contained image in front */
+        .modal-img-box { position: relative; width: 100%; aspect-ratio: 1/1; overflow: hidden; border-radius: 12px; background: #17161c; margin-bottom: 8px; }
+        .modal-img-bg  { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+                         filter: blur(16px) saturate(1.15); transform: scale(1.15); opacity: .5; pointer-events: none; }
+        .modal-img-fg  { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; display: block; cursor: zoom-in; }
+
         /* Grid status states (loading / error / empty) */
         .grid-status {
             grid-column: 1 / -1;
@@ -480,17 +486,26 @@
         <div class="m3-dialog-content px-4 py-6 flex-grow">
             <div class="flex flex-col md:flex-row items-center justify-center gap-6">
                 <div id="fusion-partner-left" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                    <img id="modal-fusion-left-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <div class="modal-img-box fusion-partner-card">
+                        <img id="modal-fusion-left-bg" class="modal-img-bg" src="" alt="" aria-hidden="true">
+                        <img id="modal-fusion-left-img" class="modal-img-fg transition-transform duration-300 group-hover:scale-105" src="" alt="" style="cursor:pointer">
+                    </div>
                     <p id="modal-fusion-left-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-left-star" class="text-lg font-medium"></p>
                     <p id="modal-fusion-left-irk" class="hidden" style="margin-top:4px;"></p>
                 </div>
                 <div id="fusion-main-img-wrap" class="flex flex-col items-center text-center">
-                    <img id="modal-fusion-img" src="" alt="" class="w-full h-auto object-contain rounded-2xl cursor-zoom-in shadow-2xl">
+                    <div class="modal-img-box shadow-2xl">
+                        <img id="modal-fusion-bg" class="modal-img-bg" src="" alt="" aria-hidden="true">
+                        <img id="modal-fusion-img" class="modal-img-fg" src="" alt="" onclick="enlargeImage(this.src)">
+                    </div>
                     <p id="modal-fusion-star" class="text-2xl font-semibold mt-2"></p>
                 </div>
                 <div id="fusion-partner-right" class="flex flex-col items-center text-center cursor-pointer group" data-character-id="" onclick="closeFusionModal(); openCharacterModal(this.dataset.characterId);">
-                    <img id="modal-fusion-right-img" src="" alt="" class="w-full h-auto object-contain rounded-xl fusion-partner-card transition-transform duration-300 group-hover:scale-105">
+                    <div class="modal-img-box fusion-partner-card">
+                        <img id="modal-fusion-right-bg" class="modal-img-bg" src="" alt="" aria-hidden="true">
+                        <img id="modal-fusion-right-img" class="modal-img-fg transition-transform duration-300 group-hover:scale-105" src="" alt="" style="cursor:pointer">
+                    </div>
                     <p id="modal-fusion-right-name" class="mt-2 text-lg font-semibold"></p>
                     <p id="modal-fusion-right-star" class="text-lg font-medium"></p>
                     <p id="modal-fusion-right-irk" class="hidden" style="margin-top:4px;"></p>
@@ -825,9 +840,9 @@ function _buildCard(char, index) {
     if (isFusion && char.previewUrl) {
         const auFusionImg = activeAuEntry?.fusionImageUrl || null;
         const previewSrc = auFusionImg || char.previewUrl;
-        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
+        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy" decoding="async"${focusStyle}>`;
     } else {
-        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy"${focusStyle}>`;
+        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy" decoding="async"${focusStyle}>`;
     }
 
     card.innerHTML = `
@@ -1193,12 +1208,12 @@ function openCharacterModal(charId, isDismissed = false) {
             irkEl.classList.add('hidden');
         }
     }
-    const maxW = Math.round(parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth) * 1.5);   // zoom-linked target/cap (M 300→450)
-    // Columns floor at maxW so each image reaches its full target width (and zoom scales it directly);
-    // on narrow screens min(...,100%) collapses to a single full-width column.
-    m.evolutions.style.gridTemplateColumns = `repeat(auto-fit, minmax(min(${maxW}px, 100%), 1fr))`;
-    m.evolutions.style.justifyContent = 'center';
+    // Uniform square boxes (S = zoom-linked side, capped so 3 fit one desktop row); flex-wrap centered
+    const S = 260 + state.imageSizeIndex * 30;   // XS 260 … M 320 … XL 380 (cap keeps 3 on one row)
+    m.evolutions.style.cssText = 'display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:16px';
     m.evolutions.innerHTML = '';
+    // Square box: blurred cover fill behind, sharp contained image in front (click opens full/uncropped image)
+    const imgBox = (src, alt) => `<div class="modal-img-box"><img class="modal-img-bg" src="${src}" alt="" aria-hidden="true"><img class="modal-img-fg" src="${src}" alt="${alt}" decoding="async" onclick="enlargeImage(this.src)"></div>`;
 
     const isAuOnlyMode = !!state.activeAuId;
     const reachableAusWithEntry = getReachableAus().filter(au => char.auData?.[au.id]?.star3ImageUrl);
@@ -1217,7 +1232,7 @@ function openCharacterModal(charId, isDismissed = false) {
                 ? `border-color:${cardColor}88; background:linear-gradient(135deg,${cardColor}18 0%,rgba(32,31,37,0.95) 100%);`
                 : 'background-color:var(--surface);';
             div.innerHTML = `
-                <div style="width:100%;max-width:${maxW}px"><img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div>
+                <div style="width:${S}px;max-width:min(100%,${S}px)">${imgBox(imgSrc, char.name)}</div>
                 <p class="text-sm font-bold flex items-center gap-1" style="color:${cardColor||'var(--on-surface-var)'};">${labelHtml}</p>
             `;
             return div;
@@ -1241,8 +1256,8 @@ function openCharacterModal(charId, isDismissed = false) {
             div.className = 'flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--surface-high)]';
             div.style.backgroundColor = 'var(--surface)';
             const wrap = document.createElement('div');
-            wrap.style.cssText = `width:100%;max-width:${maxW}px`;
-            wrap.innerHTML = `<img src="${evo.imageUrl || char.imageUrl}" alt="${char.name} ${evo.star}★" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            wrap.style.cssText = `width:${S}px;max-width:min(100%,${S}px)`;
+            wrap.innerHTML = imgBox(evo.imageUrl || char.imageUrl, `${char.name} ${evo.star}★`);
             const p = document.createElement('p');
             p.className = 'text-lg font-medium';
             p.innerHTML = getStarEmojis(false, isDismissed, evo.star);
@@ -1258,8 +1273,8 @@ function openCharacterModal(charId, isDismissed = false) {
             div.dataset.auId = au.id;
             div.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
             const wrap = document.createElement('div');
-            wrap.style.cssText = `width:100%;max-width:${maxW}px`;
-            wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
+            wrap.style.cssText = `width:${S}px;max-width:min(100%,${S}px)`;
+            wrap.innerHTML = imgBox(auEntry.star3ImageUrl, `${char.name} ${au.name}`);
             const p = document.createElement('p');
             p.className = 'text-sm font-bold flex items-center gap-1';
             p.style.color = au.color || 'var(--au)';
@@ -1297,8 +1312,10 @@ function openFusionModal(fusionId) {
                 || dismissedCharacters.find(c => c.id === fusionId && c.isFusion);
     if (!fusion) return;
     const m = dom.fusionModal;
-    const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
-    const maxW = Math.round(parseInt(w) * 1.5);   // zoom-linked upper cap (M 300→450)
+    const S = 260 + state.imageSizeIndex * 30;          // main square side (XS 260 … M 320 … XL 380)
+    const Sp = Math.round(S * 0.85);                    // partner square side
+    // Square box: blurred cover fill behind, sharp contained image in front
+    const imgBox = (src, alt, onclick) => `<div class="modal-img-box"><img class="modal-img-bg" src="${src}" alt="" aria-hidden="true"><img class="modal-img-fg" src="${src}" alt="${alt}" decoding="async"${onclick ? ` onclick="${onclick}"` : ''}></div>`;
 
     m.name.textContent = fusion.name;
     const _irkChip = (irk) => irk
@@ -1306,7 +1323,7 @@ function openFusionModal(fusionId) {
         : '';
     const _setIrk = (elId, irk) => { const el = document.getElementById(elId); if (!el) return; if (irk) { el.innerHTML = _irkChip(irk); el.classList.remove('hidden'); } else { el.innerHTML = ''; el.classList.add('hidden'); } };
     _setIrk('modal-fusion-irk', fusion.irk);
-    m.imgWrap.style.width = `min(${maxW}px, 100%)`;
+    m.imgWrap.style.width = `min(${S}px, 100%)`;
     // ── Clean old AU cards ──
     document.querySelectorAll('.fusion-au-extra-card').forEach(el => el.remove());
 
@@ -1320,7 +1337,8 @@ function openFusionModal(fusionId) {
         const auImg  = auEntry?.fusionImageUrl;
         const color  = auDef?.color || '#64dcb4';
 
-        m.img.src = auImg || fusion.previewUrl || fusion.imageUrl || '';
+        const mainSrc = auImg || fusion.previewUrl || fusion.imageUrl || '';
+        m.img.src = mainSrc; m.bg.src = mainSrc;
         m.star.innerHTML = auDef
             ? `<span class="text-xs font-bold flex items-center gap-1" style="color:${color}"><span class="material-symbols-outlined" style="font-size:14px;">${auDef.icon||'auto_fix_high'}</span>${auDef.name} Version</span>`
             : getStarEmojis(true, false, 4);
@@ -1328,12 +1346,12 @@ function openFusionModal(fusionId) {
         // Original as extra card
         const origCard = document.createElement('div');
         origCard.className = 'fusion-au-extra-card flex flex-col items-center text-center rounded-2xl p-4';
-        origCard.style.cssText = `width:min(${maxW}px,100%); border:1px solid var(--outline-var); display:block;`;
+        origCard.style.cssText = `width:min(${S}px,100%); border:1px solid var(--outline-var); display:block;`;
         origCard.innerHTML = `
             <p class="text-xs font-bold mb-2 flex items-center gap-1 justify-center" style="color:var(--on-surface-var);">
                 <span class="material-symbols-outlined" style="font-size:14px;">star</span>Original
             </p>
-            <img src="${fusion.previewUrl || fusion.imageUrl||''}" alt="${fusion.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+            ${imgBox(fusion.previewUrl || fusion.imageUrl||'', fusion.name, 'enlargeImage(this.src)')}
         `;
         m.imgWrap.insertAdjacentElement('afterend', origCard);
 
@@ -1342,7 +1360,8 @@ function openFusionModal(fusionId) {
         document.getElementById('fusion-modal-header-btns').querySelectorAll('.modal-au-btn').forEach(b => b.remove());
     } else {
         // Normal mode
-        m.img.src = fusion.previewUrl || fusion.imageUrl || '';
+        const mainSrc = fusion.previewUrl || fusion.imageUrl || '';
+        m.img.src = mainSrc; m.bg.src = mainSrc;
         m.star.innerHTML = getStarEmojis(true, false, 4);
         m.left.container.style.display = '';
         m.right.container.style.display = '';
@@ -1356,8 +1375,9 @@ function openFusionModal(fusionId) {
             characters.find(c => c.id === id) || dismissedCharacters.find(c => c.id === id));
         const setPartner = (side, pChar, irkElId) => {
             if (!pChar) return;
-            side.img.src = getOriginal3Star(pChar.id);
-            side.container.style.width = `min(${Math.round(maxW * 0.7)}px, 100%)`;
+            const src = getOriginal3Star(pChar.id);
+            side.img.src = src; side.bg.src = src;
+            side.container.style.width = `min(${Sp}px, 100%)`;
             side.name.textContent = pChar.name;
             side.container.dataset.characterId = pChar.id;
             side.star.innerHTML = getStarEmojis(false, false, 3);
@@ -1371,12 +1391,12 @@ function openFusionModal(fusionId) {
             const auCard = document.createElement('div');
             auCard.className = 'fusion-au-extra-card flex flex-col items-center text-center au-fusion-card rounded-2xl p-4';
             auCard.dataset.auId = au.id;
-            auCard.style.cssText = `width:min(${maxW}px,100%); border-color:${au.color||'#64dcb4'}88; display:none;`;
+            auCard.style.cssText = `width:min(${S}px,100%); border-color:${au.color||'#64dcb4'}88; display:none;`;
             auCard.innerHTML = `
                 <p class="text-sm font-bold mb-2 flex items-center gap-1" style="color:${au.color||'var(--au)'}">
                     <span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}
                 </p>
-                <img src="${auEntry.fusionImageUrl}" alt="${fusion.name} ${au.name}" class="w-full h-auto object-contain rounded-xl cursor-zoom-in" onclick="enlargeImage(this.src)">
+                ${imgBox(auEntry.fusionImageUrl, `${fusion.name} ${au.name}`, 'enlargeImage(this.src)')}
             `;
             m.imgWrap.insertAdjacentElement('afterend', auCard);
         });
@@ -1564,6 +1584,136 @@ function addInteractiveEffects() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
+let _domReady = false;
+function setupDomAndListeners() {
+    if (_domReady) return;
+    _domReady = true;
+
+    Object.assign(dom, {
+        characterGrid: document.getElementById('character-grid'),
+        charModal: {
+            el: document.getElementById('character-modal'),
+            content: document.getElementById('character-modal-content'),
+            name: document.getElementById('modal-char-name'),
+            evolutions: document.getElementById('modal-evolutions'),
+            fusionsContainer: document.getElementById('modal-fusions'),
+            fusionList: document.getElementById('fusion-list'),
+            prevBtn: document.getElementById('prev-char-btn'),
+            nextBtn: document.getElementById('next-char-btn'),
+            prevName: document.getElementById('prev-char-name'),
+            nextName: document.getElementById('next-char-name'),
+        },
+        fusionModal: {
+            el: document.getElementById('fusion-modal'),
+            content: document.getElementById('fusion-modal-content'),
+            name: document.getElementById('modal-fusion-name'),
+            img: document.getElementById('modal-fusion-img'),
+            bg:  document.getElementById('modal-fusion-bg'),
+            imgWrap: document.getElementById('fusion-main-img-wrap'),
+            star: document.getElementById('modal-fusion-star'),
+            left: {
+                img: document.getElementById('modal-fusion-left-img'),
+                bg:  document.getElementById('modal-fusion-left-bg'),
+                name: document.getElementById('modal-fusion-left-name'),
+                star: document.getElementById('modal-fusion-left-star'),
+                container: document.getElementById('fusion-partner-left'),
+            },
+            right: {
+                img: document.getElementById('modal-fusion-right-img'),
+                bg:  document.getElementById('modal-fusion-right-bg'),
+                name: document.getElementById('modal-fusion-right-name'),
+                star: document.getElementById('modal-fusion-right-star'),
+                container: document.getElementById('fusion-partner-right'),
+            },
+            prevBtn: document.getElementById('prev-fusion-btn'),
+            nextBtn: document.getElementById('next-fusion-btn'),
+            prevName: document.getElementById('prev-fusion-name'),
+            nextName: document.getElementById('next-fusion-name'),
+        },
+        searchModal: {
+            el: document.getElementById('search-modal'),
+            content: document.getElementById('search-modal-content'),
+            input: document.getElementById('search-input'),
+            grid: document.getElementById('search-results-grid'),
+            placeholder: document.getElementById('search-placeholder'),
+        },
+        enlargedOverlay: document.getElementById('enlarged-overlay'),
+        enlargedImg: document.getElementById('enlarged-img'),
+        zoomOutBtn: document.getElementById('zoom-out-btn'),
+        zoomInBtn: document.getElementById('zoom-in-btn'),
+        sizeLabel: document.getElementById('size-label'),
+        fitScreenBtn: document.getElementById('fitToScreenBtn'),
+        filterToggleBtn: document.getElementById('filter-toggle-btn'),
+        filterIcon: document.getElementById('filter-label-icon'),
+        filterText: document.getElementById('filter-label-text'),
+        filterMenu: document.getElementById('filter-menu'),
+    });
+
+    // Event listeners
+    dom.filterToggleBtn.addEventListener('click', e => { e.stopPropagation(); dom.filterMenu.classList.toggle('hidden'); document.getElementById('au-menu').classList.add('hidden'); });
+    dom.filterMenu.addEventListener('click', e => {
+        const btn = e.target.closest('.menu-item');
+        if (!btn || btn.classList.contains('race-menu-item')) return;
+        if (btn.dataset.filter) {
+            state.galleryMode = btn.dataset.filter;
+            if (btn.dataset.filter === 'all') state.raceFilter = null;
+        }
+        if (btn.dataset.sort)   state.sortBy = btn.dataset.sort;
+        dom.filterMenu.classList.add('hidden');
+        updateUI(); renderCharacters();
+    });
+
+    // AU dropdown
+    const auToggleBtn = document.getElementById('au-toggle-btn');
+    const auMenu = document.getElementById('au-menu');
+    auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
+
+    document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
+    let searchDebounce;
+    dom.searchModal.input.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(renderSearchResults, 150);
+    });
+    window.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        if (!dom.enlargedOverlay.classList.contains('hidden')) { closeEnlargedImage(); return; }
+        if (!dom.charModal.el.classList.contains('hidden'))   { closeCharacterModal(); return; }
+        if (!dom.fusionModal.el.classList.contains('hidden')) { closeFusionModal(); return; }
+        if (!dom.searchModal.el.classList.contains('hidden')) { closeSearchModal(); }
+    });
+    window.addEventListener('click', e => {
+        if (!dom.filterMenu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
+            dom.filterMenu.classList.add('hidden');
+        }
+        if (!auMenu.classList.contains('hidden') && !e.target.closest('#au-container')) {
+            auMenu.classList.add('hidden');
+        }
+    });
+    // Zoom/fit only change grid columns — no need to rebuild every card
+    dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); applyGridColumns(); }});
+    dom.zoomOutBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); applyGridColumns(); }});
+    dom.fitScreenBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); applyGridColumns(); });
+    document.getElementById('au-banner-exit').addEventListener('click', () => { state.activeAuId = null; _applyAuMode(); });
+
+    setupSecretUnlock();
+}
+
+function applySnapshots([charsSnap, dismissedSnap, auSnap], firstPaint) {
+    characters          = charsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    dismissedCharacters = dismissedSnap.docs.map(d => ({ id: d.id, ...d.data(), isDismissed: true }));
+    alternativeUniverses= auSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    setupDomAndListeners();
+    buildAuDropdown();
+    buildRaceDropdown();
+    updateUI();
+    if (firstPaint) _doRender();   // skip the 180ms fade delay on the very first paint
+    else renderCharacters();
+}
+
+// Lightweight change signature (id + all fields) to avoid a needless re-render/flash
+const snapsSig = (snaps) => JSON.stringify(snaps.map(s => s.docs.map(d => [d.id, d.data()])));
+
 async function initApp() {
     const gridEl = document.getElementById('character-grid');
     gridEl.innerHTML = `
@@ -1571,136 +1721,46 @@ async function initApp() {
             <div class="m3-spinner"></div>
             <p class="font-semibold">Loading characters…</p>
         </div>`;
+
+    // Cache character data locally so repeat visits paint instantly (images are already SW-cached)
+    try { await db.enablePersistence({ synchronizeTabs: true }); } catch (_) {}
+
+    const getAll = (opts) => Promise.all([
+        db.collection('characters').get(opts),
+        db.collection('dismissed').get(opts),
+        db.collection('alternativeUniverses').get(opts),
+    ]);
+
+    let painted = false, cacheSig = null;
+
+    // 1) Cache-first: instant paint on repeat visits
     try {
-        const [charsSnap, dismissedSnap, auSnap] = await Promise.all([
-            db.collection('characters').get(),
-            db.collection('dismissed').get(),
-            db.collection('alternativeUniverses').get(),
-        ]);
-        characters          = charsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        dismissedCharacters = dismissedSnap.docs.map(d => ({ id: d.id, ...d.data(), isDismissed: true }));
-        alternativeUniverses= auSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const snaps = await getAll({ source: 'cache' });
+        if (snaps.some(s => s.size > 0)) {
+            cacheSig = snapsSig(snaps);
+            applySnapshots(snaps, true);
+            painted = true;
+        }
+    } catch (_) { /* cold cache — fall through to server */ }
 
-        Object.assign(dom, {
-            characterGrid: document.getElementById('character-grid'),
-            charModal: {
-                el: document.getElementById('character-modal'),
-                content: document.getElementById('character-modal-content'),
-                name: document.getElementById('modal-char-name'),
-                evolutions: document.getElementById('modal-evolutions'),
-                fusionsContainer: document.getElementById('modal-fusions'),
-                fusionList: document.getElementById('fusion-list'),
-                prevBtn: document.getElementById('prev-char-btn'),
-                nextBtn: document.getElementById('next-char-btn'),
-                prevName: document.getElementById('prev-char-name'),
-                nextName: document.getElementById('next-char-name'),
-            },
-            fusionModal: {
-                el: document.getElementById('fusion-modal'),
-                content: document.getElementById('fusion-modal-content'),
-                name: document.getElementById('modal-fusion-name'),
-                img: document.getElementById('modal-fusion-img'),
-                imgWrap: document.getElementById('fusion-main-img-wrap'),
-                star: document.getElementById('modal-fusion-star'),
-                left: {
-                    img: document.getElementById('modal-fusion-left-img'),
-                    name: document.getElementById('modal-fusion-left-name'),
-                    star: document.getElementById('modal-fusion-left-star'),
-                    container: document.getElementById('fusion-partner-left'),
-                },
-                right: {
-                    img: document.getElementById('modal-fusion-right-img'),
-                    name: document.getElementById('modal-fusion-right-name'),
-                    star: document.getElementById('modal-fusion-right-star'),
-                    container: document.getElementById('fusion-partner-right'),
-                },
-                prevBtn: document.getElementById('prev-fusion-btn'),
-                nextBtn: document.getElementById('next-fusion-btn'),
-                prevName: document.getElementById('prev-fusion-name'),
-                nextName: document.getElementById('next-fusion-name'),
-            },
-            searchModal: {
-                el: document.getElementById('search-modal'),
-                content: document.getElementById('search-modal-content'),
-                input: document.getElementById('search-input'),
-                grid: document.getElementById('search-results-grid'),
-                placeholder: document.getElementById('search-placeholder'),
-            },
-            enlargedOverlay: document.getElementById('enlarged-overlay'),
-            enlargedImg: document.getElementById('enlarged-img'),
-            zoomOutBtn: document.getElementById('zoom-out-btn'),
-            zoomInBtn: document.getElementById('zoom-in-btn'),
-            sizeLabel: document.getElementById('size-label'),
-            fitScreenBtn: document.getElementById('fitToScreenBtn'),
-            filterToggleBtn: document.getElementById('filter-toggle-btn'),
-            filterIcon: document.getElementById('filter-label-icon'),
-            filterText: document.getElementById('filter-label-text'),
-            filterMenu: document.getElementById('filter-menu'),
-        });
-
-        // Event listeners
-        dom.filterToggleBtn.addEventListener('click', e => { e.stopPropagation(); dom.filterMenu.classList.toggle('hidden'); document.getElementById('au-menu').classList.add('hidden'); });
-        dom.filterMenu.addEventListener('click', e => {
-            const btn = e.target.closest('.menu-item');
-            if (!btn || btn.classList.contains('race-menu-item')) return;
-            if (btn.dataset.filter) {
-                state.galleryMode = btn.dataset.filter;
-                if (btn.dataset.filter === 'all') state.raceFilter = null;
-            }
-            if (btn.dataset.sort)   state.sortBy = btn.dataset.sort;
-            dom.filterMenu.classList.add('hidden');
-            updateUI(); renderCharacters();
-        });
-
-        // AU dropdown
-        const auToggleBtn = document.getElementById('au-toggle-btn');
-        const auMenu = document.getElementById('au-menu');
-        auToggleBtn.addEventListener('click', e => { e.stopPropagation(); auMenu.classList.toggle('hidden'); dom.filterMenu.classList.add('hidden'); });
-
-        document.getElementById('open-search-btn').addEventListener('click', openSearchModal);
-        let searchDebounce;
-        dom.searchModal.input.addEventListener('input', () => {
-            clearTimeout(searchDebounce);
-            searchDebounce = setTimeout(renderSearchResults, 150);
-        });
-        dom.fusionModal.img.addEventListener('click', function () { enlargeImage(this.src); });
-        window.addEventListener('keydown', e => {
-            if (e.key !== 'Escape') return;
-            if (!dom.enlargedOverlay.classList.contains('hidden')) { closeEnlargedImage(); return; }
-            if (!dom.charModal.el.classList.contains('hidden'))   { closeCharacterModal(); return; }
-            if (!dom.fusionModal.el.classList.contains('hidden')) { closeFusionModal(); return; }
-            if (!dom.searchModal.el.classList.contains('hidden')) { closeSearchModal(); }
-        });
-        window.addEventListener('click', e => {
-            if (!dom.filterMenu.classList.contains('hidden') && !e.target.closest('#filter-container')) {
-                dom.filterMenu.classList.add('hidden');
-            }
-            if (!auMenu.classList.contains('hidden') && !e.target.closest('#au-container')) {
-                auMenu.classList.add('hidden');
-            }
-        });
-        // Zoom/fit only change grid columns — no need to rebuild every card
-        dom.zoomInBtn.addEventListener('click', () => { if (state.imageSizeIndex < sizeProfiles.length - 1) { state.imageSizeIndex++; updateUI(); applyGridColumns(); }});
-        dom.zoomOutBtn.addEventListener('click', () => { if (state.imageSizeIndex > 0) { state.imageSizeIndex--; updateUI(); applyGridColumns(); }});
-        dom.fitScreenBtn.addEventListener('click', () => { state.isFitToScreenMode = !state.isFitToScreenMode; updateUI(); applyGridColumns(); });
-        document.getElementById('au-banner-exit').addEventListener('click', () => { state.activeAuId = null; _applyAuMode(); });
-
-        buildAuDropdown();
-        buildRaceDropdown();
-        setupSecretUnlock();
-        updateUI();
-        renderCharacters();
+    // 2) Revalidate from server; re-render only if the data actually changed
+    try {
+        const snaps = await getAll(painted ? { source: 'server' } : undefined);
+        if (!painted || snapsSig(snaps) !== cacheSig) applySnapshots(snaps, !painted);
     } catch (err) {
         console.error("App init error:", err);
-        gridEl.innerHTML = `
-            <div class="grid-status">
-                <span class="material-symbols-outlined" style="color:#ff8a80;">cloud_off</span>
-                <p class="font-semibold">Failed to load characters.</p>
-                <p class="text-sm" style="opacity:.75;">Check your connection and try again.</p>
-                <button class="chip" onclick="location.reload()" style="margin-top:4px;">
-                    <span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px;">refresh</span> Retry
-                </button>
-            </div>`;
+        if (!painted) {
+            gridEl.innerHTML = `
+                <div class="grid-status">
+                    <span class="material-symbols-outlined" style="color:#ff8a80;">cloud_off</span>
+                    <p class="font-semibold">Failed to load characters.</p>
+                    <p class="text-sm" style="opacity:.75;">Check your connection and try again.</p>
+                    <button class="chip" onclick="location.reload()" style="margin-top:4px;">
+                        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px;">refresh</span> Retry
+                    </button>
+                </div>`;
+        }
+        // If already painted from cache, keep showing cached data (likely just offline).
     }
 }
 
