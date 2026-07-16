@@ -1193,7 +1193,11 @@ function openCharacterModal(charId, isDismissed = false) {
             irkEl.classList.add('hidden');
         }
     }
-    m.evolutions.style.gridTemplateColumns = `repeat(auto-fit, ${sizeProfiles[state.imageSizeIndex].minCardWidth})`;
+    const maxW = Math.round(parseInt(sizeProfiles[state.imageSizeIndex].minCardWidth) * 1.5);   // zoom-linked target/cap (M 300→450)
+    // Columns floor at maxW so each image reaches its full target width (and zoom scales it directly);
+    // on narrow screens min(...,100%) collapses to a single full-width column.
+    m.evolutions.style.gridTemplateColumns = `repeat(auto-fit, minmax(min(${maxW}px, 100%), 1fr))`;
+    m.evolutions.style.justifyContent = 'center';
     m.evolutions.innerHTML = '';
 
     const isAuOnlyMode = !!state.activeAuId;
@@ -1204,7 +1208,6 @@ function openCharacterModal(charId, isDismissed = false) {
         const auDef  = alternativeUniverses.find(a => a.id === state.activeAuId);
         const auEntry = char.auData?.[state.activeAuId];
         const star3Img = char.evolutions?.find(e => e.star === 3)?.imageUrl || char.imageUrl;
-        const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
         const color = auDef?.color || '#64dcb4';
 
         const makeCard = (imgSrc, labelHtml, cardColor) => {
@@ -1214,7 +1217,7 @@ function openCharacterModal(charId, isDismissed = false) {
                 ? `border-color:${cardColor}88; background:linear-gradient(135deg,${cardColor}18 0%,rgba(32,31,37,0.95) 100%);`
                 : 'background-color:var(--surface);';
             div.innerHTML = `
-                <div style="width:${w}"><img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div>
+                <div style="width:100%;max-width:${maxW}px"><img src="${imgSrc}" alt="${char.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)"></div>
                 <p class="text-sm font-bold flex items-center gap-1" style="color:${cardColor||'var(--on-surface-var)'};">${labelHtml}</p>
             `;
             return div;
@@ -1238,7 +1241,7 @@ function openCharacterModal(charId, isDismissed = false) {
             div.className = 'flex flex-col items-center p-3 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--surface-high)]';
             div.style.backgroundColor = 'var(--surface)';
             const wrap = document.createElement('div');
-            wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
+            wrap.style.cssText = `width:100%;max-width:${maxW}px`;
             wrap.innerHTML = `<img src="${evo.imageUrl || char.imageUrl}" alt="${char.name} ${evo.star}★" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
             const p = document.createElement('p');
             p.className = 'text-lg font-medium';
@@ -1255,7 +1258,7 @@ function openCharacterModal(charId, isDismissed = false) {
             div.dataset.auId = au.id;
             div.style.cssText = `border-color:${au.color||'#64dcb4'}88; display:none;`;
             const wrap = document.createElement('div');
-            wrap.style.width = sizeProfiles[state.imageSizeIndex].minCardWidth;
+            wrap.style.cssText = `width:100%;max-width:${maxW}px`;
             wrap.innerHTML = `<img src="${auEntry.star3ImageUrl}" alt="${char.name} ${au.name}" class="w-full h-auto object-contain rounded-xl mb-2 cursor-zoom-in" onclick="enlargeImage(this.src)">`;
             const p = document.createElement('p');
             p.className = 'text-sm font-bold flex items-center gap-1';
@@ -1295,6 +1298,7 @@ function openFusionModal(fusionId) {
     if (!fusion) return;
     const m = dom.fusionModal;
     const w = sizeProfiles[state.imageSizeIndex].minCardWidth;
+    const maxW = Math.round(parseInt(w) * 1.5);   // zoom-linked upper cap (M 300→450)
 
     m.name.textContent = fusion.name;
     const _irkChip = (irk) => irk
@@ -1302,7 +1306,7 @@ function openFusionModal(fusionId) {
         : '';
     const _setIrk = (elId, irk) => { const el = document.getElementById(elId); if (!el) return; if (irk) { el.innerHTML = _irkChip(irk); el.classList.remove('hidden'); } else { el.innerHTML = ''; el.classList.add('hidden'); } };
     _setIrk('modal-fusion-irk', fusion.irk);
-    m.imgWrap.style.width = w;
+    m.imgWrap.style.width = `min(${maxW}px, 100%)`;
     // ── Clean old AU cards ──
     document.querySelectorAll('.fusion-au-extra-card').forEach(el => el.remove());
 
@@ -1324,7 +1328,7 @@ function openFusionModal(fusionId) {
         // Original as extra card
         const origCard = document.createElement('div');
         origCard.className = 'fusion-au-extra-card flex flex-col items-center text-center rounded-2xl p-4';
-        origCard.style.cssText = `width:${w}; border:1px solid var(--outline-var); display:block;`;
+        origCard.style.cssText = `width:min(${maxW}px,100%); border:1px solid var(--outline-var); display:block;`;
         origCard.innerHTML = `
             <p class="text-xs font-bold mb-2 flex items-center gap-1 justify-center" style="color:var(--on-surface-var);">
                 <span class="material-symbols-outlined" style="font-size:14px;">star</span>Original
@@ -1353,7 +1357,7 @@ function openFusionModal(fusionId) {
         const setPartner = (side, pChar, irkElId) => {
             if (!pChar) return;
             side.img.src = getOriginal3Star(pChar.id);
-            side.container.style.width = `${parseInt(w) * 0.75}px`;
+            side.container.style.width = `min(${Math.round(maxW * 0.7)}px, 100%)`;
             side.name.textContent = pChar.name;
             side.container.dataset.characterId = pChar.id;
             side.star.innerHTML = getStarEmojis(false, false, 3);
@@ -1367,7 +1371,7 @@ function openFusionModal(fusionId) {
             const auCard = document.createElement('div');
             auCard.className = 'fusion-au-extra-card flex flex-col items-center text-center au-fusion-card rounded-2xl p-4';
             auCard.dataset.auId = au.id;
-            auCard.style.cssText = `width:${w}; border-color:${au.color||'#64dcb4'}88; display:none;`;
+            auCard.style.cssText = `width:min(${maxW}px,100%); border-color:${au.color||'#64dcb4'}88; display:none;`;
             auCard.innerHTML = `
                 <p class="text-sm font-bold mb-2 flex items-center gap-1" style="color:${au.color||'var(--au)'}">
                     <span class="material-symbols-outlined" style="font-size:15px;">${au.icon||'auto_fix_high'}</span>${au.name}
