@@ -96,7 +96,7 @@
         <div class="card mb-4" style="background:var(--surface-h)">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="text-sm">
-              <div><b>Smart cache:</b> previously downloaded images are kept in this browser, so future backups only re-download <u>new or changed images</u>.</div>
+              <div><b>Smart cache:</b> previously downloaded images are kept in this browser and shared with the site's image cache (the "Cache Images" button on index2), so future backups only re-download <u>new or changed images</u>.</div>
               <div class="text-xs text-gray-400 mt-1" id="cache-stats">Cache: loading…</div>
               <div class="text-xs text-gray-400" id="last-backup-label">Last backup: none yet</div>
             </div>
@@ -257,6 +257,81 @@
     return results;
   }
 
+  // ───────────────────────────── Shared image cache & CORS-safe fetching ─────────────────────────────
+  // Image hosts (imgbb, vgy…) don't send CORS headers, so a plain fetch() from
+  // this page fails with "Failed to fetch". The strategy below is shared with
+  // service-worker.js / index2.html's "Cache Images" button:
+  //   1) this tool's own IndexedDB cache
+  //   2) the site-wide service worker image cache (populated by index/index2)
+  //   3) direct CORS fetch
+  //   4) wsrv.nl CORS proxy
+  // Downloads are written back to BOTH caches, so index/index2 and this tool
+  // never download the same image twice between them.
+  const SHARED_IMAGE_CACHE = 'karakter-images-v2'; // must match service-worker.js
+  const CORS_PROXY = url => 'https://wsrv.nl/?url=' + encodeURIComponent(url);
+
+  // Same normalization as service-worker.js, so cache keys line up
+  function cleanImageUrl(rawUrl){
+    return String(rawUrl)
+      .replace(/[?&]_t=\d+/g, '')
+      .replace(/\?&/, '?')
+      .replace(/\?$/, '');
+  }
+
+  async function openSharedCache(){
+    try { return await caches.open(SHARED_IMAGE_CACHE); }
+    catch(e) { return null; } // caches API unavailable (e.g. file://)
+  }
+
+  // Resolve an image URL to a blob using the layered strategy above.
+  // Returns { blob, source } or throws.
+  async function fetchImageBlob(url, sharedCache){
+    // 1) Own IndexedDB cache
+    const cached = await idbGet('images', url).catch(() => null);
+    if (cached && cached.blob && cached.blob.size) {
+      return { blob: cached.blob, source: 'cache' };
+    }
+
+    // 2) Shared service-worker cache (readable entries only — opaque no-cors
+    //    responses have an unreadable body and are display-only)
+    if (sharedCache) {
+      try {
+        const res = await sharedCache.match(url);
+        if (res && res.type !== 'opaque') {
+          const blob = await res.clone().blob();
+          if (blob.size) {
+            await idbPut('images', { url, blob, cachedAt: Date.now() }).catch(() => {});
+            return { blob, source: 'shared' };
+          }
+        }
+      } catch(e) { /* fall through to network */ }
+    }
+
+    // 3) Direct CORS fetch, 4) CORS proxy fallback
+    let blob = null;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      blob = await res.blob();
+    } catch(e) {
+      const res = await fetch(CORS_PROXY(url));
+      if (!res.ok) throw new Error('proxy HTTP ' + res.status);
+      blob = await res.blob();
+    }
+    if (!blob || !blob.size) throw new Error('empty response');
+
+    // Store in both caches so index/index2 and future backups reuse it
+    await idbPut('images', { url, blob, cachedAt: Date.now() }).catch(() => {});
+    if (sharedCache) {
+      try {
+        await sharedCache.put(url, new Response(blob, {
+          headers: { 'Content-Type': blob.type || 'image/jpeg' }
+        }));
+      } catch(e) { /* quota / unsupported — non-fatal */ }
+    }
+    return { blob, source: 'network' };
+  }
+
   // ───────────────────────────── Local cache (IndexedDB) ─────────────────────────────
   // Stores previously-downloaded image blobs (keyed by URL) and the last known
   // JSON snapshot of each collection, so repeat backups only fetch what's new.
@@ -317,7 +392,15 @@
       const images = await idbGetAll('images');
       const bytes = images.reduce((sum, r) => sum + (r.blob?.size || 0), 0);
       const mb = (bytes / (1024*1024)).toFixed(1);
-      $('cache-stats').textContent = `Cache: ${images.length} images, ~${mb} MB`;
+      let sharedTxt = '';
+      try {
+        const sharedCache = await openSharedCache();
+        if (sharedCache) {
+          const keys = await sharedCache.keys();
+          sharedTxt = ` · site image cache (index/index2): ${keys.length} entries`;
+        }
+      } catch(e){}
+      $('cache-stats').textContent = `Cache: ${images.length} images, ~${mb} MB${sharedTxt}`;
     } catch(e) {
       $('cache-stats').textContent = 'Cache: could not read';
     }
@@ -570,6 +653,7 @@
       const imageMap = new Map(); // url -> { savedAs, owners: [] }
       function addImg(url, coll, id, field){
         if (!url || typeof url !== 'string') return;
+        url = cleanImageUrl(url); // same key as the service-worker cache; dedupes ?_t= busters
         if (!imageMap.has(url)) imageMap.set(url, { owners: [] });
         imageMap.get(url).owners.push({ coll, id, field });
       }
@@ -591,8 +675,9 @@
 
       const zip = new JSZip();
       const imagesFolder = zip.folder('images');
-      let done = 0, failed = 0, fromCache = 0, freshlyDownloaded = 0;
+      let done = 0, failed = 0, fromCache = 0, fromShared = 0, freshlyDownloaded = 0;
       const usedNames = new Set();
+      const sharedCache = await openSharedCache();
 
       await pool(urls, 6, async (url) => {
         const info = imageMap.get(url);
@@ -606,22 +691,12 @@
         info.savedAs = filename;
 
         try {
-          // 1) Try local cache first — skip the network entirely on a hit
-          const cached = await idbGet('images', url);
-          if (cached && cached.blob) {
-            imagesFolder.file(filename, cached.blob);
-            info.status = 'ok';
-            fromCache++;
-          } else {
-            // 2) Cache miss — fetch from network and store for next time
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const blob = await res.blob();
-            imagesFolder.file(filename, blob);
-            await idbPut('images', { url, blob, savedAs: filename, cachedAt: Date.now() });
-            info.status = 'ok';
-            freshlyDownloaded++;
-          }
+          const { blob, source } = await fetchImageBlob(url, sharedCache);
+          imagesFolder.file(filename, blob);
+          info.status = 'ok';
+          if (source === 'cache') fromCache++;
+          else if (source === 'shared') fromShared++;
+          else freshlyDownloaded++;
         } catch(e) {
           info.status = 'failed';
           info.error = e.message;
@@ -632,7 +707,7 @@
         setProgress('export', 5 + (done/urls.length)*80, `Processing images (${done}/${urls.length})`);
       });
 
-      log('export', `Image summary: ${fromCache} used from cache (not downloaded), ${freshlyDownloaded} freshly downloaded, ${failed} failed.`);
+      log('export', `Image summary: ${fromCache} from this tool's cache, ${fromShared} reused from the site image cache (index/index2), ${freshlyDownloaded} freshly downloaded, ${failed} failed.`);
 
       // Build manifest
       const manifest = urls.map(url => {
@@ -681,7 +756,7 @@
         idbPut('snapshots', { coll: 'promptLibrary', data: promptLibrary, updatedAt: Date.now() }),
       ]);
 
-      const summary = `${fromCache} from cache, ${freshlyDownloaded} newly downloaded, ${failed} failed`;
+      const summary = `${fromCache + fromShared} from cache, ${freshlyDownloaded} newly downloaded, ${failed} failed`;
       localStorage.setItem('kg-last-backup', JSON.stringify({ at: new Date().toISOString(), summary }));
       await refreshCacheStats();
 
