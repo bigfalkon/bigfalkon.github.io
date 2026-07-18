@@ -99,10 +99,29 @@ self.addEventListener('message', event => {
     }
 });
 
+// ─── Image fetching (shared strategy with character-backup-tool.html) ───────
+// Image hosts (imgbb, vgy…) don't send CORS headers, so a plain fetch() fails.
+// Try, in order:
+//   1) direct CORS fetch  → readable body (best: the backup tool can zip it)
+//   2) wsrv.nl CORS proxy → readable body
+//   3) no-cors fetch      → opaque response (display-only, body unreadable)
+// Readable responses stored here are reused by the backup tool, so images
+// cached from index/index2 don't need to be downloaded again for backups.
+const CORS_PROXY = url => 'https://wsrv.nl/?url=' + encodeURIComponent(url);
+
+async function fetchImageResponse(url) {
+    try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (res.ok) return res;
+    } catch (_) {}
+    try {
+        const res = await fetch(CORS_PROXY(url), { mode: 'cors' });
+        if (res.ok) return res;
+    } catch (_) {}
+    return fetch(url, { mode: 'no-cors' });
+}
+
 // ─── Precache images ────────────────────────────────────────────────────────
-// Opaque responses (no-cors cross-origin) cannot have their body read,
-// so blob.size is always 0. Store them directly — this is fine for caching
-// purposes and what browsers have always done with opaque responses.
 async function precacheImages(urls) {
     if (!urls || !urls.length) return;
     const cache = await caches.open(IMAGE_CACHE_NAME);
@@ -137,8 +156,7 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                // no-cors → opaque response; store directly, do NOT try to read blob
-                const res = await fetch(url, { mode: 'no-cors' });
+                const res = await fetchImageResponse(url);
                 await cache.put(url, res);
                 done++;
             } catch (e) {
