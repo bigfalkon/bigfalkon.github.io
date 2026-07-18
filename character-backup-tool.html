@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Character Gallery — Backup / Restore Tool</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --primary:#bdb3ff; --on-primary:#2d235c; --bg:#131318; --on-bg:#e5e1e6;
+    --surface:#1a191f; --surface-c:#201f25; --surface-h:#2a2830;
+    --outline:#48454e; --success:#66bb6a; --danger:#ef5350; --warning:#ffb74d; --au:#64dcb4;
+  }
+  body{font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--on-bg);}
+  .card{background:var(--surface-c);border:1px solid var(--outline);border-radius:16px;padding:1.5rem;}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:99px;font-weight:700;border:1px solid transparent;cursor:pointer;transition:.15s;}
+  .btn:hover{opacity:.9;transform:translateY(-1px);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  .btn-primary{background:var(--primary);color:var(--on-primary);}
+  .btn-success{background:var(--success);color:#08210f;}
+  .btn-danger{background:var(--danger);color:#fff;}
+  .btn-sec{background:var(--surface-h);color:var(--on-bg);border-color:var(--outline);}
+  .input{background:var(--surface-h);border:1px solid var(--outline);color:var(--on-bg);border-radius:8px;padding:10px 12px;width:100%;}
+  .input:focus{outline:none;border-color:var(--primary);}
+  .input::placeholder{color:#6b6873;}
+  .tab-btn{padding:10px 18px;border-radius:10px 10px 0 0;font-weight:700;color:#9c98a5;cursor:pointer;border:1px solid transparent;border-bottom:none;}
+  .tab-btn.active{background:var(--surface-c);color:var(--primary);border-color:var(--outline);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .log{background:#0c0c10;border:1px solid var(--outline);border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:.8rem;height:220px;overflow-y:auto;white-space:pre-wrap;}
+  .progress-track{background:var(--surface-h);border-radius:99px;height:10px;overflow:hidden;}
+  .progress-fill{background:var(--primary);height:100%;width:0%;transition:width .2s;}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface-h);border:1px solid var(--outline);border-radius:99px;padding:4px 12px;font-size:.8rem;}
+  a.link{color:var(--primary);text-decoration:underline;}
+</style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-4xl mx-auto p-4 md:p-8">
+
+  <h1 class="text-2xl md:text-3xl font-extrabold mb-1" style="color:var(--primary)">Character Gallery — Backup Tool</h1>
+  <p class="text-sm text-gray-400 mb-6">Downloads all character/dismissed/AU/prompt data and every image from Firestore into a single .zip file on your PC. The same zip file can also be restored back in the opposite direction.</p>
+
+  <!-- CONFIG -->
+  <div class="card mb-6">
+    <h2 class="font-bold mb-3 flex items-center gap-2"><span>⚙️</span> Firebase Connection</h2>
+    <p class="text-xs text-gray-400 mb-3" id="cfg-source-note">No settings loaded yet. Fill in the fields below, or click "Detect from index2.html" if this tool lives next to your app.</p>
+    <div class="grid md:grid-cols-2 gap-3 text-sm">
+      <div><label class="text-gray-400 text-xs">apiKey</label><input id="cfg-apiKey" class="input" placeholder="AIzaSy…"></div>
+      <div><label class="text-gray-400 text-xs">authDomain</label><input id="cfg-authDomain" class="input" placeholder="your-project.firebaseapp.com"></div>
+      <div><label class="text-gray-400 text-xs">projectId</label><input id="cfg-projectId" class="input" placeholder="your-project-id"></div>
+      <div><label class="text-gray-400 text-xs">storageBucket</label><input id="cfg-storageBucket" class="input" placeholder="your-project.firebasestorage.app"></div>
+      <div><label class="text-gray-400 text-xs">messagingSenderId</label><input id="cfg-messagingSenderId" class="input" placeholder="1234567890"></div>
+      <div><label class="text-gray-400 text-xs">appId</label><input id="cfg-appId" class="input" placeholder="1:1234567890:web:abcdef"></div>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 mt-4">
+      <button id="connect-btn" class="btn btn-sec"><span>🔌</span> Connect</button>
+      <button id="detect-btn" class="btn btn-sec"><span>🔍</span> Detect from index2.html</button>
+      <button id="forget-btn" class="btn btn-sec text-xs">🗑️ Forget saved settings</button>
+      <span id="connect-status" class="text-sm text-gray-400"></span>
+    </div>
+    <p class="text-xs text-gray-500 mt-2">Settings are saved only in this browser's local storage after a successful connection — nothing is sent anywhere else.</p>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="login-card" class="card mb-6 hidden">
+    <h2 class="font-bold mb-3 flex items-center gap-2"><span>🔐</span> Sign In</h2>
+    <p class="text-xs text-gray-400 mb-3">This project's Firestore rules typically require a signed-in user for read/write access. Sign in with the same email/password used in the admin panel.</p>
+    <div class="grid md:grid-cols-2 gap-3">
+      <input id="login-email" type="email" placeholder="Email" class="input" autocomplete="email">
+      <input id="login-pass" type="password" placeholder="Password" class="input" autocomplete="current-password">
+    </div>
+    <button id="login-btn" class="btn btn-primary mt-3"><span>➡️</span> Sign In</button>
+    <span id="login-status" class="ml-3 text-sm text-red-400"></span>
+    <div id="signed-in-box" class="hidden mt-3 flex items-center gap-3">
+      <span class="pill">✅ Signed in: <b id="signed-in-email"></b></span>
+      <button id="logout-btn" class="btn btn-sec">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div id="main-tabs" class="hidden">
+    <div class="flex gap-2">
+      <div class="tab-btn active" data-tab="export">📥 Backup (download to PC)</div>
+      <div class="tab-btn" data-tab="import">📤 Restore (upload from PC)</div>
+    </div>
+    <div class="card rounded-tl-none">
+
+      <!-- EXPORT PANEL -->
+      <div class="tab-panel active" id="panel-export">
+        <p class="text-sm text-gray-400 mb-4">Downloads every collection (characters, dismissed, alternativeUniverses, promptLibrary) and every image URL inside them (1★/2★/3★, fusion preview, all AU images) into a single zip file.</p>
+
+        <div class="card mb-4" style="background:var(--surface-h)">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="text-sm">
+              <div><b>Smart cache:</b> previously downloaded images are kept in this browser, so future backups only re-download <u>new or changed images</u>.</div>
+              <div class="text-xs text-gray-400 mt-1" id="cache-stats">Cache: loading…</div>
+              <div class="text-xs text-gray-400" id="last-backup-label">Last backup: none yet</div>
+            </div>
+            <button id="clear-cache-btn" class="btn btn-sec text-xs">🗑️ Clear Cache</button>
+          </div>
+        </div>
+
+        <label class="flex items-center gap-2 text-sm mb-4">
+          <input type="checkbox" id="export-include-keys"> Also back up API keys (settings/apiKeys — sensitive data, use with care)
+        </label>
+
+        <button id="export-btn" class="btn btn-success" disabled><span>⬇️</span> Back Up Data and Images</button>
+
+        <div class="card mt-4" style="background:var(--surface-h)">
+          <label class="flex items-center gap-2 text-sm font-bold">
+            <input type="checkbox" id="auto-backup-toggle"> Auto-backup (while this tab stays open)
+          </label>
+          <div class="flex items-center gap-2 mt-2 text-sm">
+            <span class="text-gray-400">Interval:</span>
+            <select id="auto-backup-interval" class="input" style="width:auto">
+              <option value="30">30 minutes</option>
+              <option value="60" selected>1 hour</option>
+              <option value="180">3 hours</option>
+              <option value="360">6 hours</option>
+              <option value="1440">24 hours</option>
+            </select>
+          </div>
+          <p class="text-xs text-gray-400 mt-2">Note: browsers don't allow automatic downloads while a tab is closed/in the background. This option only runs while the tab stays open. Your browser may ask you to approve "multiple downloads" the first time.</p>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex justify-between text-xs text-gray-400 mb-1"><span id="export-progress-label">Waiting…</span><span id="export-progress-pct">0%</span></div>
+          <div class="progress-track"><div id="export-progress-fill" class="progress-fill"></div></div>
+        </div>
+        <div id="export-log" class="log mt-3"></div>
+      </div>
+
+      <!-- IMPORT PANEL -->
+      <div class="tab-panel" id="panel-import">
+        <p class="text-sm text-gray-400 mb-4">Select a backup (.zip) file previously created by this tool. The contents are previewed first, then you can write them back to Firestore.</p>
+        <input type="file" id="import-file" accept=".zip" class="input mb-4">
+        <div id="import-summary" class="hidden mb-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm"></div>
+
+        <div id="import-actions" class="hidden">
+          <div class="flex flex-wrap gap-3 mb-4">
+            <button id="restore-firestore-btn" class="btn btn-primary"><span>♻️</span> Restore Data to Firestore</button>
+          </div>
+          <p class="text-xs text-gray-400 mb-4">This writes the JSON data from the zip back to Firestore in <b>merge</b> mode, using the same document IDs. Image URLs keep working unchanged as long as the original host (imgbb/vgy etc.) is still online.</p>
+
+          <details class="card" style="background:var(--surface-h)">
+            <summary class="cursor-pointer font-bold text-sm">Advanced: re-upload images (if the host is down / you want fresh URLs)</summary>
+            <div class="mt-3 text-sm">
+              <p class="text-xs text-gray-400 mb-2">Re-uploads the local image files inside the zip to ImgBB and updates the URL fields in the documents with the new URLs. Only ImgBB is supported.</p>
+              <input id="imgbb-key" placeholder="ImgBB API key" class="input mb-2">
+              <button id="reupload-btn" class="btn btn-sec"><span>🔁</span> Re-upload Images + Update Firestore</button>
+            </div>
+          </details>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex justify-between text-xs text-gray-400 mb-1"><span id="import-progress-label">Waiting…</span><span id="import-progress-pct">0%</span></div>
+          <div class="progress-track"><div id="import-progress-fill" class="progress-fill"></div></div>
+        </div>
+        <div id="import-log" class="log mt-3"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ───────────────────────────── State ─────────────────────────────
+  let db = null, auth = null;
+  let importZip = null, importData = null; // parsed zip contents for restore
+  const CONFIG_STORAGE_KEY = 'kg-firebase-config';
+
+  // ───────────────────────────── Helpers ─────────────────────────────
+  function $(id){ return document.getElementById(id); }
+
+  function log(panel, msg){
+    const el = $(panel === 'export' ? 'export-log' : 'import-log');
+    const time = new Date().toLocaleTimeString('en-US');
+    el.textContent += `[${time}] ${msg}\n`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setProgress(panel, pct, label){
+    $(panel + '-progress-fill').style.width = Math.max(0, Math.min(100, pct)) + '%';
+    $(panel + '-progress-pct').textContent = Math.round(pct) + '%';
+    if (label) $(panel + '-progress-label').textContent = label;
+  }
+
+  function sanitize(str){
+    return String(str).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 80);
+  }
+
+  function extFromUrl(url){
+    try {
+      const clean = url.split('?')[0].split('#')[0];
+      const m = clean.match(/\.([a-zA-Z0-9]{2,5})$/);
+      if (m) return m[1].toLowerCase();
+    } catch(e){}
+    return 'jpg';
+  }
+
+  // Recursively convert Firestore Timestamps -> ISO strings for JSON export
+  function serialize(val){
+    if (val === null || val === undefined) return val;
+    if (typeof val.toDate === 'function') {
+      return { __ts__: true, iso: val.toDate().toISOString() };
+    }
+    if (Array.isArray(val)) return val.map(serialize);
+    if (typeof val === 'object') {
+      const out = {};
+      for (const k in val) out[k] = serialize(val[k]);
+      return out;
+    }
+    return val;
+  }
+
+  // Reverse: ISO-tagged objects -> Firestore Timestamp
+  function deserialize(val){
+    if (val === null || val === undefined) return val;
+    if (Array.isArray(val)) return val.map(deserialize);
+    if (typeof val === 'object') {
+      if (val.__ts__ && val.iso) {
+        return firebase.firestore.Timestamp.fromDate(new Date(val.iso));
+      }
+      const out = {};
+      for (const k in val) out[k] = deserialize(val[k]);
+      return out;
+    }
+    return val;
+  }
+
+  function docsToArr(snap){
+    return snap.docs.map(d => ({ id: d.id, ...serialize(d.data()) }));
+  }
+
+  // Simple concurrency-limited pool
+  async function pool(items, limit, worker){
+    const results = new Array(items.length);
+    let idx = 0;
+    async function run(){
+      while (idx < items.length) {
+        const i = idx++;
+        try { results[i] = await worker(items[i], i); }
+        catch(e) { results[i] = { error: e }; }
+      }
+    }
+    const runners = [];
+    for (let i=0;i<Math.min(limit, items.length);i++) runners.push(run());
+    await Promise.all(runners);
+    return results;
+  }
+
+  // ───────────────────────────── Local cache (IndexedDB) ─────────────────────────────
+  // Stores previously-downloaded image blobs (keyed by URL) and the last known
+  // JSON snapshot of each collection, so repeat backups only fetch what's new.
+  const CACHE_DB_NAME = 'kg-backup-cache';
+  const CACHE_DB_VERSION = 1;
+  let cacheDbPromise = null;
+
+  function openCacheDB(){
+    if (cacheDbPromise) return cacheDbPromise;
+    cacheDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(CACHE_DB_NAME, CACHE_DB_VERSION);
+      req.onupgradeneeded = () => {
+        const dbx = req.result;
+        if (!dbx.objectStoreNames.contains('images')) dbx.createObjectStore('images', { keyPath: 'url' });
+        if (!dbx.objectStoreNames.contains('snapshots')) dbx.createObjectStore('snapshots', { keyPath: 'coll' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return cacheDbPromise;
+  }
+
+  async function idbGet(store, key){
+    const dbx = await openCacheDB();
+    return new Promise((resolve, reject) => {
+      const tx = dbx.transaction(store, 'readonly').objectStore(store).get(key);
+      tx.onsuccess = () => resolve(tx.result);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbPut(store, value){
+    const dbx = await openCacheDB();
+    return new Promise((resolve, reject) => {
+      const tx = dbx.transaction(store, 'readwrite').objectStore(store).put(value);
+      tx.onsuccess = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbGetAll(store){
+    const dbx = await openCacheDB();
+    return new Promise((resolve, reject) => {
+      const tx = dbx.transaction(store, 'readonly').objectStore(store).getAll();
+      tx.onsuccess = () => resolve(tx.result || []);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbClear(store){
+    const dbx = await openCacheDB();
+    return new Promise((resolve, reject) => {
+      const tx = dbx.transaction(store, 'readwrite').objectStore(store).clear();
+      tx.onsuccess = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function refreshCacheStats(){
+    try {
+      const images = await idbGetAll('images');
+      const bytes = images.reduce((sum, r) => sum + (r.blob?.size || 0), 0);
+      const mb = (bytes / (1024*1024)).toFixed(1);
+      $('cache-stats').textContent = `Cache: ${images.length} images, ~${mb} MB`;
+    } catch(e) {
+      $('cache-stats').textContent = 'Cache: could not read';
+    }
+    const last = localStorage.getItem('kg-last-backup');
+    if (last) {
+      try {
+        const info = JSON.parse(last);
+        $('last-backup-label').textContent = `Last backup: ${new Date(info.at).toLocaleString('en-US')} — ${info.summary || ''}`;
+      } catch(e){}
+    }
+  }
+
+  $('clear-cache-btn').addEventListener('click', async () => {
+    if (!confirm('The local image cache will be cleared. All images will be re-downloaded on the next backup. Continue?')) return;
+    await idbClear('images');
+    await refreshCacheStats();
+    log('export', '🗑️ Cache cleared. All images will be re-downloaded on the next backup.');
+  });
+
+  function diffCollection(prevArr, currArr){
+    const prevMap = new Map((prevArr || []).map(d => [d.id, JSON.stringify(d)]));
+    const currMap = new Map(currArr.map(d => [d.id, JSON.stringify(d)]));
+    let added = 0, removed = 0, changed = 0;
+    currMap.forEach((json, id) => {
+      if (!prevMap.has(id)) added++;
+      else if (prevMap.get(id) !== json) changed++;
+    });
+    prevMap.forEach((json, id) => { if (!currMap.has(id)) removed++; });
+    return { added, removed, changed, total: currArr.length };
+  }
+
+  // ───────────────────────────── Config: fill / read form ─────────────────────────────
+  function fillConfigForm(cfg){
+    $('cfg-apiKey').value = cfg.apiKey || '';
+    $('cfg-authDomain').value = cfg.authDomain || '';
+    $('cfg-projectId').value = cfg.projectId || '';
+    $('cfg-storageBucket').value = cfg.storageBucket || '';
+    $('cfg-messagingSenderId').value = cfg.messagingSenderId || '';
+    $('cfg-appId').value = cfg.appId || '';
+  }
+
+  function readConfigForm(){
+    return {
+      apiKey: $('cfg-apiKey').value.trim(),
+      authDomain: $('cfg-authDomain').value.trim(),
+      projectId: $('cfg-projectId').value.trim(),
+      storageBucket: $('cfg-storageBucket').value.trim(),
+      messagingSenderId: $('cfg-messagingSenderId').value.trim(),
+      appId: $('cfg-appId').value.trim(),
+    };
+  }
+
+  // Try to auto-detect Firebase settings, without overwriting anything the user
+  // already typed. Priority: an already-initialized app on this page > a saved
+  // config from a previous visit > parsing a nearby index2.html file.
+  async function detectConfig(showLog){
+    // 1) This tool embedded on the same page as an already-initialized Firebase app
+    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
+      return { source: 'an already-initialized Firebase app on this page', config: firebase.apps[0].options };
+    }
+    // 2) A config saved in this browser from a previous successful connection
+    const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+    if (saved) {
+      try { return { source: 'saved settings (this browser)', config: JSON.parse(saved) }; }
+      catch(e){}
+    }
+    // 3) Parse a nearby index2.html for its firebaseConfig block
+    const candidates = ['index2.html', './index2.html', '/index2.html', '../index2.html'];
+    for (const path of candidates) {
+      try {
+        const res = await fetch(path, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const text = await res.text();
+        const block = text.match(/firebaseConfig\s*=\s*\{([\s\S]*?)\}/);
+        if (!block) continue;
+        const body = block[1];
+        const get = (key) => {
+          const m = body.match(new RegExp(key + '\\s*:\\s*["\']([^"\']+)["\']'));
+          return m ? m[1] : '';
+        };
+        const config = {
+          apiKey: get('apiKey'),
+          authDomain: get('authDomain'),
+          projectId: get('projectId'),
+          storageBucket: get('storageBucket'),
+          messagingSenderId: get('messagingSenderId'),
+          appId: get('appId'),
+        };
+        if (config.apiKey && config.projectId) return { source: path, config };
+      } catch(e) { /* not found / blocked by CORS — try next candidate */ }
+    }
+    return null;
+  }
+
+  async function initConfigForm(){
+    const result = await detectConfig();
+    if (result) {
+      fillConfigForm(result.config);
+      $('cfg-source-note').textContent = `Loaded from ${result.source}. Review the fields, then click Connect.`;
+      $('cfg-source-note').style.color = 'var(--success)';
+    }
+  }
+
+  $('detect-btn').addEventListener('click', async () => {
+    $('cfg-source-note').textContent = 'Looking for index2.html next to this file…';
+    $('cfg-source-note').style.color = '';
+    const candidates = ['index2.html', './index2.html', '/index2.html', '../index2.html'];
+    let found = null;
+    for (const path of candidates) {
+      try {
+        const res = await fetch(path, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const text = await res.text();
+        const block = text.match(/firebaseConfig\s*=\s*\{([\s\S]*?)\}/);
+        if (!block) continue;
+        const body = block[1];
+        const get = (key) => {
+          const m = body.match(new RegExp(key + '\\s*:\\s*["\']([^"\']+)["\']'));
+          return m ? m[1] : '';
+        };
+        const config = {
+          apiKey: get('apiKey'), authDomain: get('authDomain'), projectId: get('projectId'),
+          storageBucket: get('storageBucket'), messagingSenderId: get('messagingSenderId'), appId: get('appId'),
+        };
+        if (config.apiKey && config.projectId) { found = { source: path, config }; break; }
+      } catch(e) {}
+    }
+    if (found) {
+      fillConfigForm(found.config);
+      $('cfg-source-note').textContent = `Loaded from ${found.source}. Review the fields, then click Connect.`;
+      $('cfg-source-note').style.color = 'var(--success)';
+    } else {
+      $('cfg-source-note').textContent = 'Could not find index2.html next to this file. Enter the Firebase settings manually.';
+      $('cfg-source-note').style.color = 'var(--warning)';
+    }
+  });
+
+  $('forget-btn').addEventListener('click', () => {
+    localStorage.removeItem(CONFIG_STORAGE_KEY);
+    fillConfigForm({});
+    $('cfg-source-note').textContent = 'Saved settings forgotten. Fill in the fields manually or click "Detect from index2.html".';
+    $('cfg-source-note').style.color = '';
+  });
+
+  // ───────────────────────────── Connect ─────────────────────────────
+  $('connect-btn').addEventListener('click', () => {
+    const cfg = readConfigForm();
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(cfg);
+      db = firebase.firestore();
+      auth = firebase.auth();
+
+      // Remember these settings in this browser for next time
+      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(cfg));
+
+      $('connect-status').textContent = '✅ Connected';
+      $('connect-status').style.color = 'var(--success)';
+      $('login-card').classList.remove('hidden');
+
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          $('signed-in-box').classList.remove('hidden');
+          $('signed-in-email').textContent = user.email;
+          $('login-status').textContent = '';
+          $('main-tabs').classList.remove('hidden');
+          $('export-btn').disabled = false;
+        } else {
+          $('signed-in-box').classList.add('hidden');
+          $('main-tabs').classList.add('hidden');
+          $('export-btn').disabled = true;
+        }
+      });
+    } catch(e) {
+      $('connect-status').textContent = '❌ ' + e.message;
+      $('connect-status').style.color = 'var(--danger)';
+    }
+  });
+
+  $('login-btn').addEventListener('click', async () => {
+    $('login-status').textContent = '';
+    try {
+      await auth.signInWithEmailAndPassword($('login-email').value.trim(), $('login-pass').value);
+    } catch(e) {
+      $('login-status').textContent = e.message;
+    }
+  });
+  $('logout-btn').addEventListener('click', () => auth.signOut());
+
+  // ───────────────────────────── Tabs ─────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      $('panel-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ───────────────────────────── EXPORT ─────────────────────────────
+  let isExporting = false;
+
+  $('export-btn').addEventListener('click', () => runExport(false));
+
+  async function runExport(auto){
+    if (isExporting) { log('export', '⏳ A backup is already running, skipped.'); return; }
+    isExporting = true;
+    const btn = $('export-btn');
+    btn.disabled = true;
+    if (!auto) $('export-log').textContent = '';
+    setProgress('export', 0, 'Reading Firestore data…');
+    log('export', (auto ? '⏰ [Auto] ' : '') + 'Reading Firestore data…');
+
+    try {
+      const [charsSnap, dismSnap, ausSnap, promptsSnap] = await Promise.all([
+        db.collection('characters').get(),
+        db.collection('dismissed').get(),
+        db.collection('alternativeUniverses').get(),
+        db.collection('promptLibrary').get(),
+      ]);
+
+      const characters = docsToArr(charsSnap);
+      const dismissedArr = docsToArr(dismSnap);
+      const alternativeUniverses = docsToArr(ausSnap);
+      const promptLibrary = docsToArr(promptsSnap);
+
+      let apiKeysData = null;
+      if ($('export-include-keys').checked) {
+        try {
+          const doc = await db.collection('settings').doc('apiKeys').get();
+          if (doc.exists) apiKeysData = { id: 'apiKeys', ...serialize(doc.data()) };
+        } catch(e) { log('export', 'Could not read API keys: ' + e.message); }
+      }
+
+      log('export', `Found: ${characters.length} characters, ${dismissedArr.length} dismissed, ${alternativeUniverses.length} AUs, ${promptLibrary.length} prompts.`);
+
+      // ── Diff vs last known snapshot (informational only) ──
+      try {
+        const [prevChars, prevDism, prevAus, prevPrompts] = await Promise.all([
+          idbGet('snapshots','characters'), idbGet('snapshots','dismissed'),
+          idbGet('snapshots','alternativeUniverses'), idbGet('snapshots','promptLibrary'),
+        ]);
+        const dc = diffCollection(prevChars?.data, characters);
+        const dd = diffCollection(prevDism?.data, dismissedArr);
+        const da = diffCollection(prevAus?.data, alternativeUniverses);
+        const dp = diffCollection(prevPrompts?.data, promptLibrary);
+        log('export', `Changes since last backup — characters: +${dc.added}/${dc.changed} changed/-${dc.removed} removed · dismissed: +${dd.added}/${dd.changed}/-${dd.removed} · AUs: +${da.added}/${da.changed}/-${da.removed} · prompts: +${dp.added}/${dp.changed}/-${dp.removed}`);
+      } catch(e) { /* first run or IDB issue — non-fatal */ }
+
+      // Collect image references
+      const imageMap = new Map(); // url -> { savedAs, owners: [] }
+      function addImg(url, coll, id, field){
+        if (!url || typeof url !== 'string') return;
+        if (!imageMap.has(url)) imageMap.set(url, { owners: [] });
+        imageMap.get(url).owners.push({ coll, id, field });
+      }
+      characters.forEach(c => c.__coll = 'characters');
+      dismissedArr.forEach(c => c.__coll = 'dismissed');
+      [...characters, ...dismissedArr].forEach(c => {
+        addImg(c.imageUrl, c.__coll, c.id, 'imageUrl');
+        addImg(c.previewUrl, c.__coll, c.id, 'previewUrl');
+        (c.evolutions || []).forEach(e => addImg(e.imageUrl, c.__coll, c.id, `evolution_star${e.star}`));
+        Object.entries(c.auData || {}).forEach(([auId, entry]) => {
+          addImg(entry.star3ImageUrl, c.__coll, c.id, `au_${auId}_star3`);
+          addImg(entry.fusionImageUrl, c.__coll, c.id, `au_${auId}_fusion`);
+        });
+      });
+
+      const urls = Array.from(imageMap.keys());
+      log('export', `Referencing ${urls.length} unique image URLs. Checking cache…`);
+      setProgress('export', 5, `Checking images (0/${urls.length})`);
+
+      const zip = new JSZip();
+      const imagesFolder = zip.folder('images');
+      let done = 0, failed = 0, fromCache = 0, freshlyDownloaded = 0;
+      const usedNames = new Set();
+
+      await pool(urls, 6, async (url) => {
+        const info = imageMap.get(url);
+        const owner = info.owners[0];
+        let base = sanitize(`${owner.coll}_${owner.id}_${owner.field}`);
+        let ext = extFromUrl(url);
+        let filename = `${base}.${ext}`;
+        let n = 1;
+        while (usedNames.has(filename)) { filename = `${base}_${n++}.${ext}`; }
+        usedNames.add(filename);
+        info.savedAs = filename;
+
+        try {
+          // 1) Try local cache first — skip the network entirely on a hit
+          const cached = await idbGet('images', url);
+          if (cached && cached.blob) {
+            imagesFolder.file(filename, cached.blob);
+            info.status = 'ok';
+            fromCache++;
+          } else {
+            // 2) Cache miss — fetch from network and store for next time
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            imagesFolder.file(filename, blob);
+            await idbPut('images', { url, blob, savedAs: filename, cachedAt: Date.now() });
+            info.status = 'ok';
+            freshlyDownloaded++;
+          }
+        } catch(e) {
+          info.status = 'failed';
+          info.error = e.message;
+          failed++;
+          log('export', `⚠️ Could not download: ${url} (${e.message})`);
+        }
+        done++;
+        setProgress('export', 5 + (done/urls.length)*80, `Processing images (${done}/${urls.length})`);
+      });
+
+      log('export', `Image summary: ${fromCache} used from cache (not downloaded), ${freshlyDownloaded} freshly downloaded, ${failed} failed.`);
+
+      // Build manifest
+      const manifest = urls.map(url => {
+        const info = imageMap.get(url);
+        return { url, savedAs: info.savedAs, status: info.status, owners: info.owners };
+      });
+
+      const dataFolder = zip.folder('data');
+      dataFolder.file('characters.json', JSON.stringify(characters, null, 2));
+      dataFolder.file('dismissed.json', JSON.stringify(dismissedArr, null, 2));
+      dataFolder.file('alternativeUniverses.json', JSON.stringify(alternativeUniverses, null, 2));
+      dataFolder.file('promptLibrary.json', JSON.stringify(promptLibrary, null, 2));
+      dataFolder.file('manifest.json', JSON.stringify(manifest, null, 2));
+      if (apiKeysData) dataFolder.file('apiKeys.json', JSON.stringify(apiKeysData, null, 2));
+      dataFolder.file('meta.json', JSON.stringify({
+        exportedAt: new Date().toISOString(),
+        counts: {
+          characters: characters.length,
+          dismissed: dismissedArr.length,
+          alternativeUniverses: alternativeUniverses.length,
+          promptLibrary: promptLibrary.length,
+          images: urls.length,
+          imagesFailed: failed
+        }
+      }, null, 2));
+
+      setProgress('export', 90, 'Building zip file…');
+      log('export', 'Building zip file…');
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
+        (meta) => setProgress('export', 90 + meta.percent*0.1, 'Building zip…'));
+
+      const stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,16);
+      const filename = `character-backup-${stamp}.zip`;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      // Save snapshots so next run can diff + skip unchanged images
+      await Promise.all([
+        idbPut('snapshots', { coll: 'characters', data: characters, updatedAt: Date.now() }),
+        idbPut('snapshots', { coll: 'dismissed', data: dismissedArr, updatedAt: Date.now() }),
+        idbPut('snapshots', { coll: 'alternativeUniverses', data: alternativeUniverses, updatedAt: Date.now() }),
+        idbPut('snapshots', { coll: 'promptLibrary', data: promptLibrary, updatedAt: Date.now() }),
+      ]);
+
+      const summary = `${fromCache} from cache, ${freshlyDownloaded} newly downloaded, ${failed} failed`;
+      localStorage.setItem('kg-last-backup', JSON.stringify({ at: new Date().toISOString(), summary }));
+      await refreshCacheStats();
+
+      setProgress('export', 100, 'Done ✅');
+      log('export', `✅ Backup downloaded: ${filename} (${summary})`);
+    } catch(e) {
+      log('export', '❌ Error: ' + e.message);
+      setProgress('export', 0, 'An error occurred');
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+      isExporting = false;
+    }
+  }
+
+  // ───────────────────────────── Auto-backup (while tab stays open) ─────────────────────────────
+  let autoBackupTimer = null;
+  $('auto-backup-toggle').addEventListener('change', (e) => {
+    if (autoBackupTimer) { clearInterval(autoBackupTimer); autoBackupTimer = null; }
+    if (e.target.checked) {
+      const minutes = Number($('auto-backup-interval').value);
+      log('export', `⏰ Auto-backup enabled: every ${minutes} minutes (while this tab stays open).`);
+      autoBackupTimer = setInterval(() => {
+        if (auth && auth.currentUser) runExport(true);
+      }, minutes * 60 * 1000);
+    } else {
+      log('export', '⏰ Auto-backup disabled.');
+    }
+  });
+  $('auto-backup-interval').addEventListener('change', () => {
+    if ($('auto-backup-toggle').checked) $('auto-backup-toggle').dispatchEvent(new Event('change'));
+  });
+
+  refreshCacheStats();
+  initConfigForm();
+
+  // ───────────────────────────── IMPORT ─────────────────────────────
+  $('import-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    $('import-log').textContent = '';
+    log('import', `Reading zip: ${file.name}`);
+    setProgress('import', 10, 'Opening zip…');
+    try {
+      importZip = await JSZip.loadAsync(file);
+      const readJson = async (path) => {
+        const f = importZip.file(path);
+        if (!f) return null;
+        return JSON.parse(await f.async('string'));
+      };
+      importData = {
+        characters: (await readJson('data/characters.json')) || [],
+        dismissed: (await readJson('data/dismissed.json')) || [],
+        alternativeUniverses: (await readJson('data/alternativeUniverses.json')) || [],
+        promptLibrary: (await readJson('data/promptLibrary.json')) || [],
+        manifest: (await readJson('data/manifest.json')) || [],
+        meta: (await readJson('data/meta.json')) || {},
+      };
+
+      const imgCount = Object.keys(importZip.folder('images').files || {}).length;
+
+      $('import-summary').classList.remove('hidden');
+      $('import-summary').innerHTML = `
+        <div class="pill">👤 ${importData.characters.length} characters</div>
+        <div class="pill">🗃️ ${importData.dismissed.length} dismissed</div>
+        <div class="pill">🌌 ${importData.alternativeUniverses.length} AUs</div>
+        <div class="pill">📝 ${importData.promptLibrary.length} prompts</div>
+        <div class="pill">🖼️ ${importData.manifest.length} image references</div>
+        <div class="pill">📦 ${imgCount} files in zip</div>
+      `;
+      $('import-actions').classList.remove('hidden');
+      setProgress('import', 100, 'Zip loaded, preview ready');
+      log('import', '✅ Zip read successfully. You can start the restore below.');
+    } catch(err) {
+      log('import', '❌ Could not read zip: ' + err.message);
+      setProgress('import', 0, 'Error');
+    }
+  });
+
+  function stripInternal(obj){
+    const clone = { ...obj };
+    delete clone.id;
+    delete clone.__coll;
+    return deserialize(clone);
+  }
+
+  async function writeCollection(collName, arr, onProgress){
+    // Firestore batches max 500 ops; chunk to be safe
+    const chunkSize = 400;
+    for (let i = 0; i < arr.length; i += chunkSize) {
+      const chunk = arr.slice(i, i + chunkSize);
+      const batch = db.batch();
+      chunk.forEach(item => {
+        const ref = db.collection(collName).doc(item.id);
+        batch.set(ref, stripInternal(item), { merge: true });
+      });
+      await batch.commit();
+      if (onProgress) onProgress(Math.min(i + chunkSize, arr.length), arr.length);
+    }
+  }
+
+  $('restore-firestore-btn').addEventListener('click', async () => {
+    if (!importData) return;
+    if (!auth.currentUser) { alert('Please sign in first.'); return; }
+    const total = importData.characters.length + importData.dismissed.length +
+                  importData.alternativeUniverses.length + importData.promptLibrary.length;
+    if (!confirm(`${total} documents will be written back to Firestore (merge mode). Continue?`)) return;
+
+    const btn = $('restore-firestore-btn');
+    btn.disabled = true;
+    setProgress('import', 0, 'Writing to Firestore…');
+    try {
+      log('import', `Writing ${importData.characters.length} characters…`);
+      await writeCollection('characters', importData.characters);
+      setProgress('import', 25, 'characters done');
+
+      log('import', `Writing ${importData.dismissed.length} dismissed…`);
+      await writeCollection('dismissed', importData.dismissed);
+      setProgress('import', 50, 'dismissed done');
+
+      log('import', `Writing ${importData.alternativeUniverses.length} AUs…`);
+      await writeCollection('alternativeUniverses', importData.alternativeUniverses);
+      setProgress('import', 75, 'alternativeUniverses done');
+
+      log('import', `Writing ${importData.promptLibrary.length} prompts…`);
+      await writeCollection('promptLibrary', importData.promptLibrary);
+      setProgress('import', 100, 'Done ✅');
+
+      log('import', '✅ Firestore restore complete.');
+    } catch(e) {
+      log('import', '❌ Error: ' + e.message);
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('reupload-btn').addEventListener('click', async () => {
+    if (!importData) return;
+    if (!auth.currentUser) { alert('Please sign in first.'); return; }
+    const key = $('imgbb-key').value.trim();
+    if (!key) { alert('An ImgBB API key is required.'); return; }
+    if (!confirm('Every image inside the zip will be re-uploaded to ImgBB and the URL fields in Firestore will be updated. Continue?')) return;
+
+    const btn = $('reupload-btn');
+    btn.disabled = true;
+    try {
+      const manifest = importData.manifest;
+      log('import', `Re-uploading ${manifest.length} images…`);
+      setProgress('import', 0, 'Re-uploading images…');
+
+      const byId = new Map();
+      [...importData.characters, ...importData.dismissed].forEach(c => byId.set(c.id, c));
+
+      let done = 0;
+      for (const entry of manifest) {
+        done++;
+        setProgress('import', (done/manifest.length)*90, `Image ${done}/${manifest.length}`);
+        if (entry.status !== 'ok' || !entry.savedAs) continue;
+        const file = importZip.file(`images/${entry.savedAs}`);
+        if (!file) { log('import', `⚠️ File missing from zip: ${entry.savedAs}`); continue; }
+
+        try {
+          const blob = await file.async('blob');
+          const fd = new FormData();
+          fd.append('image', blob, entry.savedAs);
+          const res = await fetch(`https://api.imgbb.com/1/upload?key=${key}`, { method: 'POST', body: fd });
+          const json = await res.json();
+          if (!json.success) throw new Error(json?.error?.message || 'Unknown ImgBB error');
+          const newUrl = json.data.url;
+
+          entry.owners.forEach(owner => {
+            const doc = byId.get(owner.id);
+            if (!doc) return;
+            if (owner.field === 'imageUrl') doc.imageUrl = newUrl;
+            else if (owner.field === 'previewUrl') doc.previewUrl = newUrl;
+            else if (owner.field.startsWith('evolution_star')) {
+              const star = Number(owner.field.replace('evolution_star',''));
+              const evo = (doc.evolutions || []).find(e => e.star === star);
+              if (evo) evo.imageUrl = newUrl;
+            } else if (owner.field.startsWith('au_')) {
+              const m = owner.field.match(/^au_(.+)_(star3|fusion)$/);
+              if (m) {
+                const [, auId, kind] = m;
+                doc.auData = doc.auData || {};
+                doc.auData[auId] = doc.auData[auId] || {};
+                if (kind === 'star3') doc.auData[auId].star3ImageUrl = newUrl;
+                else doc.auData[auId].fusionImageUrl = newUrl;
+              }
+            }
+          });
+          log('import', `✅ Re-uploaded: ${entry.savedAs} → ${newUrl}`);
+        } catch(e) {
+          log('import', `⚠️ Failed: ${entry.savedAs} (${e.message})`);
+        }
+      }
+
+      log('import', 'Updating Firestore with new URLs…');
+      setProgress('import', 92, 'Updating Firestore…');
+      await writeCollection('characters', importData.characters);
+      await writeCollection('dismissed', importData.dismissed);
+      setProgress('import', 100, 'Done ✅');
+      log('import', '✅ Images re-uploaded and Firestore updated.');
+    } catch(e) {
+      log('import', '❌ Error: ' + e.message);
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
