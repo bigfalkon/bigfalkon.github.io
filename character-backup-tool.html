@@ -91,7 +91,7 @@
 
       <!-- EXPORT PANEL -->
       <div class="tab-panel active" id="panel-export">
-        <p class="text-sm text-gray-400 mb-4">Downloads every collection (characters, dismissed, alternativeUniverses, promptLibrary) and every image URL inside them (1★/2★/3★, fusion preview, all AU images) into a single zip file.</p>
+        <p class="text-sm text-gray-400 mb-4">Downloads every collection (characters, dismissed, alternativeUniverses, promptLibrary) and every image URL inside them (character image, fusion preview, all AU images) into a single zip file.</p>
 
         <div class="card mb-4" style="background:var(--surface-h)">
           <div class="flex items-center justify-between flex-wrap gap-2">
@@ -662,8 +662,11 @@
       [...characters, ...dismissedArr].forEach(c => {
         addImg(c.imageUrl, c.__coll, c.id, 'imageUrl');
         addImg(c.previewUrl, c.__coll, c.id, 'previewUrl');
+        // Legacy per-star fields (kept for older, un-migrated documents; current
+        // characters no longer have an evolutions array or star3/fusion AU fields).
         (c.evolutions || []).forEach(e => addImg(e.imageUrl, c.__coll, c.id, `evolution_star${e.star}`));
         Object.entries(c.auData || {}).forEach(([auId, entry]) => {
+          addImg(entry.imageUrl, c.__coll, c.id, `au_${auId}_img`);
           addImg(entry.star3ImageUrl, c.__coll, c.id, `au_${auId}_star3`);
           addImg(entry.fusionImageUrl, c.__coll, c.id, `au_${auId}_fusion`);
         });
@@ -938,12 +941,13 @@
               const evo = (doc.evolutions || []).find(e => e.star === star);
               if (evo) evo.imageUrl = newUrl;
             } else if (owner.field.startsWith('au_')) {
-              const m = owner.field.match(/^au_(.+)_(star3|fusion)$/);
+              const m = owner.field.match(/^au_(.+)_(img|star3|fusion)$/);
               if (m) {
                 const [, auId, kind] = m;
                 doc.auData = doc.auData || {};
                 doc.auData[auId] = doc.auData[auId] || {};
-                if (kind === 'star3') doc.auData[auId].star3ImageUrl = newUrl;
+                if (kind === 'img') doc.auData[auId].imageUrl = newUrl;
+                else if (kind === 'star3') doc.auData[auId].star3ImageUrl = newUrl;
                 else doc.auData[auId].fusionImageUrl = newUrl;
               }
             }
