@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karakter Taşıma — Seçmeli Aktarım Aracı</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<style>
+  :root{
+    --primary:#bdb3ff; --on-primary:#2d235c; --bg:#131318; --on-bg:#e5e1e6;
+    --surface:#1a191f; --surface-c:#201f25; --surface-h:#2a2830;
+    --outline:#48454e; --success:#66bb6a; --danger:#ef5350; --warning:#ffb74d;
+    --au:#64dcb4; --fusion:#e0b3ff;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--on-bg);margin:0;min-height:100vh;}
+  .card{background:var(--surface-c);border:1px solid var(--outline);border-radius:16px;padding:1.5rem;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:99px;font-weight:700;border:1px solid transparent;cursor:pointer;transition:.15s;font-family:inherit;font-size:.9rem;}
+  .btn:hover{opacity:.9;transform:translateY(-1px);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  .btn-primary{background:var(--primary);color:var(--on-primary);}
+  .btn-success{background:var(--success);color:#08210f;}
+  .btn-danger{background:var(--danger);color:#fff;}
+  .btn-sec{background:var(--surface-h);color:var(--on-bg);border-color:var(--outline);}
+  .input{background:var(--surface-h);border:1px solid var(--outline);color:var(--on-bg);border-radius:8px;padding:10px 12px;width:100%;font-family:inherit;}
+  .input:focus{outline:none;border-color:var(--primary);}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface-h);border:1px solid var(--outline);border-radius:99px;padding:4px 12px;font-size:.8rem;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+  .kbd{display:inline-block;background:var(--surface-h);border:1px solid var(--outline);border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-family:ui-monospace,monospace;font-size:.75rem;}
+
+  /* Star option cards */
+  .star-option{background:var(--surface);border:2px solid var(--outline);border-radius:16px;padding:12px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:8px;position:relative;}
+  .star-option:hover{border-color:rgba(189,179,255,.6);transform:translateY(-2px);}
+  .star-option.chosen{border-color:var(--success);box-shadow:0 0 0 3px rgba(102,187,106,.25);}
+  .star-option .img-frame{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:12px;background:#17161c;}
+  .star-option .img-frame .im-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) saturate(1.15);transform:scale(1.15);opacity:.5;pointer-events:none;}
+  .star-option .img-frame .im-fg{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block;}
+  .star-badge{position:absolute;top:18px;left:18px;z-index:2;font-weight:800;font-size:.85rem;padding:3px 12px;border-radius:99px;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);}
+  .zoom-btn{position:absolute;top:18px;right:18px;z-index:2;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:zoom-in;font-size:15px;display:flex;align-items:center;justify-content:center;}
+  .prompt-snippet{font-size:.72rem;font-family:ui-monospace,monospace;color:#9c98a5;background:rgba(0,0,0,.25);border:1px solid var(--outline);border-radius:8px;padding:6px 8px;max-height:74px;overflow:hidden;white-space:pre-wrap;word-break:break-word;}
+  .prompt-snippet.empty{color:#5f5c68;font-style:italic;}
+
+  /* AU cards */
+  .au-card{background:var(--surface);border:2px solid var(--outline);border-radius:16px;padding:10px;cursor:pointer;transition:.15s;position:relative;}
+  .au-card:hover{transform:translateY(-2px);}
+  .au-card.kept{border-color:var(--au);box-shadow:0 0 0 2px rgba(100,220,180,.2);}
+  .au-card.dropped{opacity:.45;border-color:var(--danger);}
+  .au-card .img-frame{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:10px;background:#17161c;}
+  .au-card .img-frame .im-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(14px) saturate(1.15);transform:scale(1.15);opacity:.5;pointer-events:none;}
+  .au-card .img-frame .im-fg{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block;}
+  .au-state{position:absolute;top:16px;right:16px;z-index:2;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;background:rgba(0,0,0,.65);}
+  .au-card.kept .au-state{color:var(--au);}
+  .au-card.dropped .au-state{color:var(--danger);}
+
+  /* Reference / parent boxes */
+  .ref-frame{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:14px;background:#17161c;border:2px solid var(--outline);}
+  .ref-frame .im-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) saturate(1.15);transform:scale(1.15);opacity:.5;pointer-events:none;}
+  .ref-frame .im-fg{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block;}
+  .ref-frame.missing{display:flex;align-items:center;justify-content:center;color:#6b6873;font-weight:700;font-size:.85rem;text-align:center;padding:10px;}
+  .ref-frame.rejected{border-color:var(--danger);}
+
+  .progress-track{background:var(--surface-h);border-radius:99px;height:8px;overflow:hidden;}
+  .progress-fill{background:var(--primary);height:100%;width:0%;transition:width .25s;}
+  .log{background:#0c0c10;border:1px solid var(--outline);border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:.78rem;height:200px;overflow-y:auto;white-space:pre-wrap;}
+
+  /* Summary reject items */
+  .reject-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--outline);border-radius:12px;padding:10px;}
+  .reject-item img{width:52px;height:68px;object-fit:cover;border-radius:8px;flex-shrink:0;background:#17161c;}
+
+  /* Enlarge overlay */
+  #enlarge-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;cursor:zoom-out;}
+  #enlarge-overlay.visible{display:flex;}
+  #enlarge-overlay img{max-width:92%;max-height:92%;object-fit:contain;border-radius:8px;}
+
+  @keyframes slide-in{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  .round-card{animation:slide-in .25s ease both;}
+</style>
+</head>
+<body>
+<div class="max-w-5xl mx-auto p-4 md:p-8">
+
+  <h1 class="text-2xl md:text-3xl font-extrabold mb-1" style="color:var(--primary)">Karakter Taşıma — Seçmeli Aktarım</h1>
+  <p class="text-sm text-gray-400 mb-6">Eski galeriden (<code>karaktergalerisi-dc337</code>) yeni tek-form veritabanına (<code>karakter-tekli</code>) karakter karakter seçerek aktarım. Görsel URL'leri kopyalanır, resimler barındıkları hostta kalır.</p>
+
+  <!-- Sticky progress header -->
+  <div id="phase-header" class="hidden sticky top-2 z-50 mb-5 px-4 py-3 rounded-2xl" style="background:rgba(26,25,31,.92);backdrop-filter:blur(10px);border:1px solid var(--outline);">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <span id="phase-label" class="font-bold text-sm" style="color:var(--primary)"></span>
+      <div class="flex items-center gap-2">
+        <button id="back-btn" class="btn btn-sec" style="padding:5px 14px;font-size:.78rem;">◂ Geri</button>
+        <button id="jump-summary-btn" class="btn btn-sec" style="padding:5px 14px;font-size:.78rem;">Özete git ▸</button>
+      </div>
+    </div>
+    <div class="progress-track mt-2"><div id="phase-progress" class="progress-fill"></div></div>
+  </div>
+
+  <!-- ═══════════ SETUP ═══════════ -->
+  <div id="screen-setup" class="screen active">
+    <div class="card mb-5">
+      <h2 class="font-bold mb-2 flex items-center gap-2">🔌 Bağlantı</h2>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <span class="pill">Kaynak: <b>karaktergalerisi-dc337</b> <span id="src-state" class="text-gray-400">—</span></span>
+        <span class="pill">Hedef: <b>karakter-tekli</b> <span id="dst-state" class="text-gray-400">—</span></span>
+      </div>
+      <div class="grid md:grid-cols-2 gap-3 mt-4">
+        <input id="auth-email" type="email" placeholder="E-posta" class="input" autocomplete="email">
+        <input id="auth-pass" type="password" placeholder="Şifre" class="input" autocomplete="current-password">
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button id="src-login-btn" class="btn btn-sec">Eski DB'ye giriş</button>
+        <button id="dst-login-btn" class="btn btn-primary">Yeni DB'ye giriş</button>
+      </div>
+      <p class="text-xs text-gray-500 mt-2">Eski DB'de okuma genelde herkese açık; promptlar okunamazsa eski DB'ye de giriş yap. Yeni projenin kuralları test modundaysa girişsiz yazma da denenebilir.</p>
+      <p id="auth-status" class="text-sm mt-2" style="color:var(--danger)"></p>
+    </div>
+
+    <div class="card mb-5">
+      <h2 class="font-bold mb-2">📥 Veri</h2>
+      <button id="load-btn" class="btn btn-primary">Eski veritabanını yükle</button>
+      <span id="load-status" class="ml-3 text-sm text-gray-400"></span>
+      <div id="data-stats" class="hidden flex flex-wrap gap-2 mt-4 text-sm">
+        <span class="pill">👤 <b id="stat-chars">0</b> karakter</span>
+        <span class="pill">🔮 <b id="stat-fusions">0</b> füzyon</span>
+        <span class="pill">🌌 <b id="stat-aus">0</b> evren</span>
+        <span class="pill">📝 <b id="stat-prompts">0</b> prompt</span>
+      </div>
+      <p class="text-xs text-gray-500 mt-3">Emekliye ayrılmış (dismissed) kayıtlar bu araca dahil değildir.</p>
+    </div>
+
+    <div id="start-card" class="card hidden">
+      <h2 class="font-bold mb-2">🚀 Başla</h2>
+      <p id="resume-note" class="hidden text-sm mb-3" style="color:var(--warning)"></p>
+      <div class="flex flex-wrap gap-2">
+        <button id="start-btn" class="btn btn-success">Seçmeye başla ▸</button>
+        <button id="reset-btn" class="btn btn-danger hidden">İlerlemeyi sıfırla</button>
+      </div>
+      <p class="text-xs text-gray-500 mt-3">Kararların bu tarayıcıda otomatik kaydedilir — sekmeyi kapatsan bile kaldığın yerden devam edersin. Hiçbir şey sen en sondaki "Aktar" düğmesine basana kadar yeni veritabanına yazılmaz.</p>
+      <p class="text-xs text-gray-500 mt-1">Kısayollar: <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> yıldız seç · <span class="kbd">R</span> reddet · <span class="kbd">Enter</span> devam · <span class="kbd">K</span> füzyonu tut · <span class="kbd">L</span> füzyonu alma</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ STAR ROUND ═══════════ -->
+  <div id="screen-star" class="screen">
+    <div class="card round-card" id="star-card">
+      <div class="flex items-baseline gap-3 flex-wrap mb-1">
+        <h2 id="star-char-name" class="text-2xl font-extrabold"></h2>
+        <span id="star-char-irk" class="pill hidden"></span>
+        <span id="star-char-id" class="text-xs text-gray-500 font-mono"></span>
+      </div>
+      <p class="text-sm text-gray-400 mb-4">Taşınacak formu seç — yalnızca seçtiğin görsel ve o seviyenin promptu aktarılır.</p>
+      <div id="star-options" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));"></div>
+      <div class="flex flex-wrap items-center gap-3 mt-5">
+        <button id="star-reject-btn" class="btn btn-danger">✕ Hiçbiri — bu karakteri alma <span class="kbd" style="margin-left:4px;">R</span></button>
+        <span class="text-xs text-gray-500">Görsele tıkla = seç ve devam et</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ AU ROUND ═══════════ -->
+  <div id="screen-au" class="screen">
+    <div class="card round-card" id="au-card">
+      <div class="flex items-baseline gap-3 flex-wrap mb-1">
+        <h2 id="au-char-name" class="text-2xl font-extrabold"></h2>
+        <span class="pill" style="color:var(--au);border-color:rgba(100,220,180,.4);">AU ayıklama</span>
+      </div>
+      <p class="text-sm text-gray-400 mb-4">Taşımak istediğin AU görsellerini seçili bırak — karta tıklayarak aç/kapat.</p>
+      <div class="grid gap-5 md:grid-cols-[240px_1fr]">
+        <div>
+          <p class="text-xs font-bold mb-2" style="color:var(--success)">SEÇİLEN GÖRSEL</p>
+          <div class="ref-frame" id="au-ref-frame" style="border-color:var(--success);"></div>
+        </div>
+        <div>
+          <div id="au-entries" class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));"></div>
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button id="au-all-btn" class="btn btn-sec" style="padding:6px 14px;font-size:.8rem;">Tümünü seç</button>
+            <button id="au-none-btn" class="btn btn-sec" style="padding:6px 14px;font-size:.8rem;">Hiçbirini alma</button>
+            <button id="au-continue-btn" class="btn btn-success ml-auto">Devam ▸ <span class="kbd" style="margin-left:4px;">Enter</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ FUSION ROUND ═══════════ -->
+  <div id="screen-fusion" class="screen">
+    <div class="card round-card" id="fusion-card">
+      <div class="flex items-baseline gap-3 flex-wrap mb-1">
+        <h2 id="fusion-name" class="text-2xl font-extrabold" style="color:var(--fusion)"></h2>
+        <span id="fusion-irk" class="pill hidden"></span>
+      </div>
+      <p id="fusion-warning" class="hidden text-sm mb-2" style="color:var(--warning)"></p>
+      <p id="fusion-au-note" class="hidden text-xs mb-2 text-gray-400"></p>
+      <div class="grid gap-4 items-start mt-3" style="grid-template-columns:1fr 1.4fr 1fr;">
+        <div class="text-center">
+          <div class="ref-frame" id="fusion-p1-frame"></div>
+          <p id="fusion-p1-name" class="text-sm font-semibold mt-2"></p>
+        </div>
+        <div class="text-center">
+          <div class="ref-frame" id="fusion-main-frame" style="border-color:var(--fusion);"></div>
+          <p class="text-xs mt-2" style="color:var(--fusion)">Füzyon</p>
+        </div>
+        <div class="text-center">
+          <div class="ref-frame" id="fusion-p2-frame"></div>
+          <p id="fusion-p2-name" class="text-sm font-semibold mt-2"></p>
+        </div>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3 mt-6">
+        <button id="fusion-keep-btn" class="btn btn-success text-base px-8">✓ Tut <span class="kbd" style="margin-left:4px;">K</span></button>
+        <button id="fusion-lose-btn" class="btn btn-danger text-base px-8">✕ Alma <span class="kbd" style="margin-left:4px;">L</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SUMMARY ═══════════ -->
+  <div id="screen-summary" class="screen">
+    <div class="card mb-5">
+      <h2 class="text-xl font-extrabold mb-3">📋 Özet</h2>
+      <div class="flex flex-wrap gap-2 text-sm" id="summary-stats"></div>
+    </div>
+
+    <div class="card mb-5">
+      <h3 class="font-bold mb-3" style="color:var(--danger)">✕ Tamamen reddedilen karakterler (<span id="rej-char-count">0</span>)</h3>
+      <div id="rej-chars" class="grid gap-2 md:grid-cols-2"></div>
+    </div>
+
+    <div class="card mb-5">
+      <h3 class="font-bold mb-3" style="color:var(--warning)">🌌 İptal edilen AU görselleri (<span id="rej-au-count">0</span>)</h3>
+      <div id="rej-aus" class="grid gap-2 md:grid-cols-2"></div>
+    </div>
+
+    <div class="card mb-5">
+      <h3 class="font-bold mb-3" style="color:var(--fusion)">🔮 İptal edilen füzyonlar (<span id="rej-fusion-count">0</span>)</h3>
+      <div id="rej-fusions" class="grid gap-2 md:grid-cols-2"></div>
+    </div>
+
+    <div class="card">
+      <h3 class="font-bold mb-2">🚚 Aktarım</h3>
+      <label class="flex items-center gap-2 text-sm mb-3">
+        <input type="checkbox" id="copy-apikeys"> <code>settings/apiKeys</code> belgesini de kopyala (admin paneli görsel yükleme anahtarları)
+      </label>
+      <button id="transfer-btn" class="btn btn-success text-base">⬆️ Yeni Firebase'e Aktar</button>
+      <div class="mt-4">
+        <div class="flex justify-between text-xs text-gray-400 mb-1"><span id="transfer-label">Bekleniyor…</span><span id="transfer-pct">0%</span></div>
+        <div class="progress-track"><div id="transfer-fill" class="progress-fill"></div></div>
+      </div>
+      <div id="transfer-log" class="log mt-3"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="enlarge-overlay" onclick="this.classList.remove('visible')"><img id="enlarge-img" src="" alt=""></div>
+
+<script>
+'use strict';
+// ─── Configs ──────────────────────────────────────────────────────────────────
+const SRC_CONFIG = {
+  apiKey: "AIzaSyDrEU_QEuvf960ZPxo29n6x8N9K7yGIkCQ",
+  authDomain: "karaktergalerisi-dc337.firebaseapp.com",
+  projectId: "karaktergalerisi-dc337",
+  storageBucket: "karaktergalerisi-dc337.firebasestorage.app",
+  messagingSenderId: "486669559067",
+  appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
+};
+const DST_CONFIG = {
+  apiKey: "AIzaSyDjMkbI5LHRZNwtiLLL461QsntMzVj28F0",
+  authDomain: "karakter-tekli.firebaseapp.com",
+  projectId: "karakter-tekli",
+  storageBucket: "karakter-tekli.firebasestorage.app",
+  messagingSenderId: "453827964403",
+  appId: "1:453827964403:web:51b528e931a091d6d0b686"
+};
+
+firebase.initializeApp(SRC_CONFIG);
+const dstApp  = firebase.initializeApp(DST_CONFIG, 'target');
+const srcDb   = firebase.firestore();
+const dstDb   = firebase.firestore(dstApp);
+const srcAuth = firebase.auth();
+const dstAuth = firebase.auth(dstApp);
+
+const $ = id => document.getElementById(id);
+const STORAGE_KEY = 'tekli-migration-v1';
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let chars = [];            // non-fusion, sorted by name
+let fusions = [];          // fusions, sorted by name
+let auDefs = [];           // alternativeUniverses defs
+let promptsByChar = {};    // charId -> { '1':doc, '2':doc, '3':doc, 'FÜZYON':doc, 'EK':doc }
+let promptsLoaded = false;
+
+// decisions.chars[id] = { star: 1|2|3|null(rejected), aus?: { auId: bool } }
+// decisions.fusions[id] = true|false
+let decisions = { chars: {}, fusions: {} };
+let currentChar = null;    // char shown in star/AU round
+let currentFusion = null;
+let revisitReturn = false; // came from summary via "Düzelt"
+let undoStack = [];        // for Back: {type:'star'|'fusion', id}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function saveProgress(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(decisions));
+}
+function loadProgress(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { const d = JSON.parse(raw); if (d && d.chars) decisions = { chars: d.chars || {}, fusions: d.fusions || {} }; }
+  } catch(e){}
+}
+function starImageOf(char, star){
+  if (star === 1) return { url: char.imageUrl || '', pos: char.imagePosition || null };
+  const evo = (char.evolutions || []).find(e => e.star === star);
+  return { url: evo?.imageUrl || '', pos: evo?.imagePosition || null };
+}
+function availableStars(char){
+  return [1,2,3].filter(s => starImageOf(char, s).url);
+}
+function auEntriesOf(item){
+  // Old schema: chars use star3ImageUrl, fusions use fusionImageUrl. Accept the
+  // unified imageUrl too, in case some docs were already migrated.
+  const out = [];
+  Object.entries(item.auData || {}).forEach(([auId, e]) => {
+    const url = item.isFusion
+      ? (e.fusionImageUrl || e.imageUrl)
+      : (e.star3ImageUrl || e.imageUrl);
+    const pos = item.isFusion
+      ? (e.fusionImagePosition || e.imagePosition || null)
+      : (e.star3ImagePosition || e.imagePosition || null);
+    if (url) out.push({ auId, url, pos, prompt: e.prompt || null });
+  });
+  return out;
+}
+function chosenImageOf(charId){
+  const char = chars.find(c => c.id === charId);
+  const d = decisions.chars[charId];
+  if (!char || !d || d.star == null) return null;
+  return starImageOf(char, d.star);
+}
+function frameHTML(url, extraClass=''){
+  if (!url) return `<div class="ref-frame missing ${extraClass}">görsel yok</div>`;
+  return `<img class="im-bg" src="${url}" alt="" aria-hidden="true"><img class="im-fg" src="${url}" alt="">`;
+}
+function enlarge(url){ if(!url) return; $('enlarge-img').src = url; $('enlarge-overlay').classList.add('visible'); }
+function fmtName(c){ return c ? c.name : '?'; }
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+  $('phase-header').classList.toggle('hidden', name === 'setup');
+  window.scrollTo({ top: 0 });
+}
+
+// ─── Auth / connect ───────────────────────────────────────────────────────────
+srcAuth.onAuthStateChanged(u => { $('src-state').textContent = u ? '✅ ' + u.email : '(girişsiz)'; });
+dstAuth.onAuthStateChanged(u => { $('dst-state').textContent = u ? '✅ ' + u.email : '(girişsiz)'; });
+
+$('src-login-btn').addEventListener('click', async () => {
+  $('auth-status').textContent = '';
+  try { await srcAuth.signInWithEmailAndPassword($('auth-email').value.trim(), $('auth-pass').value); }
+  catch(e){ $('auth-status').textContent = 'Eski DB: ' + e.message; }
+});
+$('dst-login-btn').addEventListener('click', async () => {
+  $('auth-status').textContent = '';
+  try { await dstAuth.signInWithEmailAndPassword($('auth-email').value.trim(), $('auth-pass').value); }
+  catch(e){ $('auth-status').textContent = 'Yeni DB: ' + e.message; }
+});
+
+// ─── Load source data ─────────────────────────────────────────────────────────
+$('load-btn').addEventListener('click', loadSourceData);
+async function loadSourceData(){
+  $('load-status').textContent = 'Yükleniyor…';
+  $('load-btn').disabled = true;
+  try {
+    const [cs, aus] = await Promise.all([
+      srcDb.collection('characters').get(),
+      srcDb.collection('alternativeUniverses').get(),
+    ]);
+    const all = cs.docs.map(d => ({ id: d.id, ...d.data() }));
+    chars   = all.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+    fusions = all.filter(c =>  c.isFusion).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+    auDefs  = aus.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    promptsByChar = {}; promptsLoaded = false;
+    let promptCount = 0;
+    try {
+      const ps = await srcDb.collection('promptLibrary').get();
+      ps.docs.forEach(doc => {
+        const p = { docId: doc.id, ...doc.data() };
+        if (!promptsByChar[p.charId]) promptsByChar[p.charId] = {};
+        promptsByChar[p.charId][p.charStar] = p;
+        promptCount++;
+      });
+      promptsLoaded = true;
+    } catch(e) {
+      $('auth-status').textContent = 'promptLibrary okunamadı (eski DB\'ye giriş gerekebilir) — promptsuz devam edilebilir.';
+    }
+
+    $('stat-chars').textContent = chars.length;
+    $('stat-fusions').textContent = fusions.length;
+    $('stat-aus').textContent = auDefs.length;
+    $('stat-prompts').textContent = promptsLoaded ? promptCount : '—';
+    $('data-stats').classList.remove('hidden');
+    $('load-status').textContent = '✅ Yüklendi';
+    $('start-card').classList.remove('hidden');
+
+    loadProgress();
+    const done = Object.keys(decisions.chars).length + Object.keys(decisions.fusions).length;
+    if (done > 0) {
+      $('resume-note').textContent = `Kaydedilmiş ilerleme bulundu (${Object.keys(decisions.chars).length} karakter, ${Object.keys(decisions.fusions).length} füzyon kararı). Kaldığın yerden devam edeceksin.`;
+      $('resume-note').classList.remove('hidden');
+      $('reset-btn').classList.remove('hidden');
+      $('start-btn').textContent = 'Devam et ▸';
+    }
+  } catch(e) {
+    $('load-status').textContent = '❌ ' + e.message;
+  } finally {
+    $('load-btn').disabled = false;
+  }
+}
+
+$('reset-btn').addEventListener('click', () => {
+  if (!confirm('Tüm seçim kararların silinecek ve baştan başlayacaksın. Emin misin?')) return;
+  decisions = { chars: {}, fusions: {} };
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+});
+
+$('start-btn').addEventListener('click', () => { revisitReturn = false; advance(); });
+
+// ─── Flow control ─────────────────────────────────────────────────────────────
+function charNeedsStar(c){ return !(c.id in decisions.chars); }
+function charNeedsAu(c){
+  const d = decisions.chars[c.id];
+  return d && d.star != null && d.aus === undefined && auEntriesOf(c).length > 0;
+}
+function fusionNeedsDecision(f){ return !(f.id in decisions.fusions); }
+
+/** Move to the next pending round (or summary). */
+function advance(){
+  // finalize AU-less kept chars: give them an empty aus map lazily at transfer time
+  for (const c of chars) {
+    if (charNeedsStar(c)) return showStarRound(c);
+    if (charNeedsAu(c))   return showAuRound(c);
+  }
+  for (const f of fusions) {
+    if (fusionNeedsDecision(f)) return showFusionRound(f);
+  }
+  showSummary();
+}
+
+function updatePhaseHeader(label){
+  const charDone = chars.filter(c => !charNeedsStar(c) && !charNeedsAu(c)).length;
+  const fusionDone = fusions.filter(f => !fusionNeedsDecision(f)).length;
+  const total = chars.length + fusions.length;
+  const done = charDone + fusionDone;
+  $('phase-label').textContent = label;
+  $('phase-progress').style.width = total ? (done/total*100) + '%' : '0%';
+  $('back-btn').disabled = undoStack.length === 0;
+}
+
+$('jump-summary-btn').addEventListener('click', () => {
+  if (!confirm('Kalan kararlar verilmeden özete gidersen, kararsız kayıtlar aktarım dışı kalır. (Geri dönüp devam edebilirsin.) Özete git?')) return;
+  showSummary();
+});
+
+$('back-btn').addEventListener('click', () => {
+  const last = undoStack.pop();
+  if (!last) return;
+  if (last.type === 'star') {
+    const c = chars.find(x => x.id === last.id);
+    delete decisions.chars[last.id];
+    saveProgress();
+    if (c) showStarRound(c, true);
+  } else if (last.type === 'fusion') {
+    const f = fusions.find(x => x.id === last.id);
+    delete decisions.fusions[last.id];
+    saveProgress();
+    if (f) showFusionRound(f, true);
+  }
+});
+
+// ─── STAR ROUND ───────────────────────────────────────────────────────────────
+function showStarRound(char, fromBack=false){
+  currentChar = char; currentFusion = null;
+  const idx = chars.indexOf(char) + 1;
+  updatePhaseHeader(`Karakter ${idx}/${chars.length} — yıldız seçimi`);
+  $('star-char-name').textContent = char.name;
+  $('star-char-id').textContent = 'ID: ' + char.id;
+  const irkEl = $('star-char-irk');
+  if (char.irk) { irkEl.textContent = char.irk; irkEl.classList.remove('hidden'); }
+  else irkEl.classList.add('hidden');
+
+  const wrap = $('star-options');
+  wrap.innerHTML = '';
+  const promptSet = promptsByChar[char.id] || {};
+  availableStars(char).forEach(star => {
+    const { url } = starImageOf(char, star);
+    const p = promptSet[String(star)];
+    const div = document.createElement('div');
+    div.className = 'star-option';
+    div.dataset.star = star;
+    div.innerHTML = `
+      <div class="img-frame">
+        <span class="star-badge">${star}★</span>
+        <button class="zoom-btn" title="Büyüt">⤢</button>
+        <img class="im-bg" src="${url}" alt="" aria-hidden="true">
+        <img class="im-fg" src="${url}" alt="${char.name} ${star}★">
+      </div>
+      <div class="prompt-snippet ${p ? '' : 'empty'}">${p ? escapeHtml((p.prompt||'').slice(0,220)) : (promptsLoaded ? 'prompt yok' : 'prompt okunamadı')}</div>
+    `;
+    div.querySelector('.zoom-btn').addEventListener('click', e => { e.stopPropagation(); enlarge(url); });
+    div.addEventListener('click', () => pickStar(star));
+    wrap.appendChild(div);
+  });
+  if (!availableStars(char).length) {
+    wrap.innerHTML = '<p class="text-sm text-gray-500">Bu karakterin hiç görseli yok — sadece reddedilebilir.</p>';
+  }
+  showScreen('star');
+}
+
+function pickStar(star){
+  if (!currentChar) return;
+  if (!availableStars(currentChar).includes(star)) return;
+  decisions.chars[currentChar.id] = { star };
+  undoStack.push({ type: 'star', id: currentChar.id });
+  saveProgress();
+  if (auEntriesOf(currentChar).length > 0) showAuRound(currentChar);
+  else finishCharRound();
+}
+
+$('star-reject-btn').addEventListener('click', () => {
+  if (!currentChar) return;
+  decisions.chars[currentChar.id] = { star: null };
+  undoStack.push({ type: 'star', id: currentChar.id });
+  saveProgress();
+  finishCharRound();
+});
+
+function finishCharRound(){
+  currentChar = null;
+  if (revisitReturn) { revisitReturn = false; showSummary(); }
+  else advance();
+}
+
+// ─── AU ROUND ─────────────────────────────────────────────────────────────────
+let auSelection = {}; // auId -> bool (working copy for current char)
+
+function showAuRound(char){
+  currentChar = char; currentFusion = null;
+  const idx = chars.indexOf(char) + 1;
+  updatePhaseHeader(`Karakter ${idx}/${chars.length} — AU ayıklama`);
+  $('au-char-name').textContent = char.name;
+
+  const chosen = chosenImageOf(char.id);
+  $('au-ref-frame').innerHTML = frameHTML(chosen?.url);
+  if (chosen?.url) $('au-ref-frame').onclick = () => enlarge(chosen.url);
+
+  const entries = auEntriesOf(char);
+  const prevD = decisions.chars[char.id];
+  auSelection = {};
+  entries.forEach(e => {
+    auSelection[e.auId] = prevD?.aus ? (prevD.aus[e.auId] !== false) : true; // default: keep
+  });
+
+  const wrap = $('au-entries');
+  wrap.innerHTML = '';
+  entries.forEach(e => {
+    const def = auDefs.find(a => a.id === e.auId);
+    const color = def?.color || '#64dcb4';
+    const div = document.createElement('div');
+    div.className = 'au-card';
+    div.dataset.auId = e.auId;
+    div.innerHTML = `
+      <div class="img-frame">
+        <span class="au-state"></span>
+        <img class="im-bg" src="${e.url}" alt="" aria-hidden="true">
+        <img class="im-fg" src="${e.url}" alt="">
+      </div>
+      <p class="text-xs font-bold mt-2 flex items-center gap-1" style="color:${color}">${def?.name || e.auId}</p>
+      ${e.prompt ? `<p class="text-xs text-gray-500 truncate" title="${escapeHtml(e.prompt)}">${escapeHtml(e.prompt.slice(0,60))}</p>` : ''}
+    `;
+    div.addEventListener('click', () => { auSelection[e.auId] = !auSelection[e.auId]; paintAuCards(); });
+    wrap.appendChild(div);
+  });
+  paintAuCards();
+  showScreen('au');
+}
+
+function paintAuCards(){
+  document.querySelectorAll('#au-entries .au-card').forEach(card => {
+    const on = !!auSelection[card.dataset.auId];
+    card.classList.toggle('kept', on);
+    card.classList.toggle('dropped', !on);
+    card.querySelector('.au-state').textContent = on ? '✓' : '✕';
+  });
+}
+
+$('au-all-btn').addEventListener('click', () => { Object.keys(auSelection).forEach(k => auSelection[k] = true); paintAuCards(); });
+$('au-none-btn').addEventListener('click', () => { Object.keys(auSelection).forEach(k => auSelection[k] = false); paintAuCards(); });
+$('au-continue-btn').addEventListener('click', confirmAuRound);
+
+function confirmAuRound(){
+  if (!currentChar) return;
+  const d = decisions.chars[currentChar.id];
+  if (!d || d.star == null) return;
+  d.aus = { ...auSelection };
+  saveProgress();
+  finishCharRound();
+}
+
+// ─── FUSION ROUND ─────────────────────────────────────────────────────────────
+function showFusionRound(fusion, fromBack=false){
+  currentFusion = fusion; currentChar = null;
+  const idx = fusions.indexOf(fusion) + 1;
+  updatePhaseHeader(`Füzyon ${idx}/${fusions.length}`);
+  $('fusion-name').textContent = fusion.name;
+  const irkEl = $('fusion-irk');
+  if (fusion.irk) { irkEl.textContent = fusion.irk; irkEl.classList.remove('hidden'); }
+  else irkEl.classList.add('hidden');
+
+  const mainUrl = fusion.previewUrl || fusion.imageUrl || '';
+  $('fusion-main-frame').innerHTML = frameHTML(mainUrl);
+  if (mainUrl) $('fusion-main-frame').onclick = () => enlarge(mainUrl);
+
+  const [pid1, pid2] = fusion.fusionPartners || [];
+  const warn = [];
+  [[pid1, 'p1'], [pid2, 'p2']].forEach(([pid, key]) => {
+    const frame = $(`fusion-${key}-frame`);
+    const nameEl = $(`fusion-${key}-name`);
+    frame.classList.remove('rejected','missing');
+    frame.onclick = null;
+    const pChar = chars.find(c => c.id === pid);
+    if (!pChar) {
+      frame.className = 'ref-frame missing';
+      frame.innerHTML = 'ebeveyn bulunamadı';
+      nameEl.textContent = pid || '—';
+      if (pid) warn.push(`"${pid}" bu listede yok (emekli olabilir)`);
+      return;
+    }
+    nameEl.textContent = pChar.name;
+    const d = decisions.chars[pid];
+    if (d && d.star == null) {
+      frame.className = 'ref-frame missing rejected';
+      frame.innerHTML = '✕ reddedildi';
+      warn.push(`${pChar.name} reddedilmişti`);
+    } else {
+      const img = chosenImageOf(pid) || starImageOf(pChar, 1);
+      frame.className = 'ref-frame';
+      frame.innerHTML = frameHTML(img?.url);
+      if (img?.url) frame.onclick = () => enlarge(img.url);
+    }
+  });
+  const warnEl = $('fusion-warning');
+  if (warn.length) { warnEl.textContent = '⚠️ ' + warn.join(' · '); warnEl.classList.remove('hidden'); }
+  else warnEl.classList.add('hidden');
+
+  const auCount = auEntriesOf(fusion).length;
+  const noteEl = $('fusion-au-note');
+  if (auCount) { noteEl.textContent = `Bu füzyonun ${auCount} AU görseli var — tutarsan hepsi birlikte taşınır.`; noteEl.classList.remove('hidden'); }
+  else noteEl.classList.add('hidden');
+
+  showScreen('fusion');
+}
+
+function decideFusion(keep){
+  if (!currentFusion) return;
+  decisions.fusions[currentFusion.id] = keep;
+  undoStack.push({ type: 'fusion', id: currentFusion.id });
+  saveProgress();
+  currentFusion = null;
+  if (revisitReturn) { revisitReturn = false; showSummary(); }
+  else advance();
+}
+$('fusion-keep-btn').addEventListener('click', () => decideFusion(true));
+$('fusion-lose-btn').addEventListener('click', () => decideFusion(false));
+
+// ─── SUMMARY ──────────────────────────────────────────────────────────────────
+function buildTransferPlan(){
+  const plan = { chars: [], fusions: [], prompts: [], auDefIds: new Set(), rejects: { chars: [], aus: [], fusions: [] } };
+
+  for (const c of chars) {
+    const d = decisions.chars[c.id];
+    if (!d) continue; // undecided → skipped silently (jump-to-summary case)
+    if (d.star == null) { plan.rejects.chars.push(c); continue; }
+    const img = starImageOf(c, d.star);
+    const auData = {};
+    auEntriesOf(c).forEach(e => {
+      const keep = d.aus ? d.aus[e.auId] !== false : true;
+      if (keep) {
+        auData[e.auId] = { imageUrl: e.url, ...(e.pos ? { imagePosition: e.pos } : {}), ...(e.prompt ? { prompt: e.prompt } : {}) };
+        plan.auDefIds.add(e.auId);
+      } else {
+        plan.rejects.aus.push({ char: c, auId: e.auId, url: e.url });
+      }
+    });
+    plan.chars.push({
+      id: c.id,
+      doc: {
+        name: c.name, irk: c.irk || null, isFusion: false,
+        imageUrl: img.url, imagePosition: img.pos || null,
+        ...(c.eklenmeTarihi ? { eklenmeTarihi: c.eklenmeTarihi } : {}),
+        ...(Object.keys(auData).length ? { auData } : {}),
+      }
+    });
+    const pset = promptsByChar[c.id] || {};
+    const starP = pset[String(d.star)];
+    if (starP) plan.prompts.push({ id: `${c.id}_KARAKTER`, doc: { charId: c.id, charName: c.name, charStar: 'KARAKTER', title: starP.title || '', prompt: starP.prompt || '', ...(starP.createdAt ? { createdAt: starP.createdAt } : {}) } });
+    const ekP = pset['EK'];
+    if (ekP) plan.prompts.push({ id: `${c.id}_EK`, doc: { charId: c.id, charName: c.name, charStar: 'EK', title: ekP.title || '', prompt: ekP.prompt || '', ...(ekP.createdAt ? { createdAt: ekP.createdAt } : {}) } });
+  }
+
+  for (const f of fusions) {
+    const keep = decisions.fusions[f.id];
+    if (keep === undefined) continue;
+    if (!keep) { plan.rejects.fusions.push(f); continue; }
+    const auData = {};
+    auEntriesOf(f).forEach(e => {
+      auData[e.auId] = { imageUrl: e.url, ...(e.pos ? { imagePosition: e.pos } : {}), ...(e.prompt ? { prompt: e.prompt } : {}) };
+      plan.auDefIds.add(e.auId);
+    });
+    plan.fusions.push({
+      id: f.id,
+      doc: {
+        name: f.name, irk: f.irk || null, isFusion: true,
+        previewUrl: f.previewUrl || null, previewPosition: f.previewPosition || null,
+        imageUrl: f.imageUrl || null,
+        fusionPartners: f.fusionPartners || [],
+        ...(f.eklenmeTarihi ? { eklenmeTarihi: f.eklenmeTarihi } : {}),
+        ...(Object.keys(auData).length ? { auData } : {}),
+      }
+    });
+    const pset = promptsByChar[f.id] || {};
+    const fp = pset['FÜZYON'] || pset['FUSION'];
+    if (fp) plan.prompts.push({ id: `${f.id}_FUSION`, doc: { charId: f.id, charName: f.name, charStar: 'FÜZYON', title: fp.title || '', prompt: fp.prompt || '', ...(fp.createdAt ? { createdAt: fp.createdAt } : {}) } });
+    const ekP = pset['EK'];
+    if (ekP) plan.prompts.push({ id: `${f.id}_EK`, doc: { charId: f.id, charName: f.name, charStar: 'EK', title: ekP.title || '', prompt: ekP.prompt || '', ...(ekP.createdAt ? { createdAt: ekP.createdAt } : {}) } });
+  }
+
+  return plan;
+}
+
+function showSummary(){
+  currentChar = null; currentFusion = null;
+  const plan = buildTransferPlan();
+  const undecidedChars = chars.filter(c => !(c.id in decisions.chars)).length;
+  const undecidedFusions = fusions.filter(f => !(f.id in decisions.fusions)).length;
+  updatePhaseHeader('Özet');
+
+  const keptAuCount = plan.chars.reduce((n,c)=>n+Object.keys(c.doc.auData||{}).length,0)
+                    + plan.fusions.reduce((n,f)=>n+Object.keys(f.doc.auData||{}).length,0);
+  $('summary-stats').innerHTML = `
+    <span class="pill" style="color:var(--success)">✓ ${plan.chars.length} karakter aktarılacak</span>
+    <span class="pill" style="color:var(--success)">✓ ${plan.fusions.length} füzyon aktarılacak</span>
+    <span class="pill" style="color:var(--au)">🌌 ${keptAuCount} AU görseli</span>
+    <span class="pill">📝 ${plan.prompts.length} prompt</span>
+    <span class="pill">🌌 ${plan.auDefIds.size} evren tanımı</span>
+    ${undecidedChars || undecidedFusions ? `<span class="pill" style="color:var(--warning)">⏳ ${undecidedChars} karakter + ${undecidedFusions} füzyon kararsız (aktarılmaz)</span>` : ''}
+  `;
+
+  // Rejected characters
+  $('rej-char-count').textContent = plan.rejects.chars.length;
+  $('rej-chars').innerHTML = plan.rejects.chars.length ? '' : '<p class="text-sm text-gray-500">Yok — hiçbir karakter tamamen reddedilmedi.</p>';
+  plan.rejects.chars.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'reject-item';
+    const img = starImageOf(c, availableStars(c)[0] || 1);
+    div.innerHTML = `<img src="${img.url}" alt="" onclick="enlarge('${img.url}')" style="cursor:zoom-in">
+      <div class="flex-grow min-w-0"><p class="font-bold truncate">${escapeHtml(c.name)}</p><p class="text-xs text-gray-500">ID: ${c.id}</p></div>
+      <button class="btn btn-sec" style="padding:5px 12px;font-size:.75rem;">Düzelt</button>`;
+    div.querySelector('button').addEventListener('click', () => { revisitReturn = true; delete decisions.chars[c.id]; saveProgress(); showStarRound(c); });
+    $('rej-chars').appendChild(div);
+  });
+
+  // Cancelled AU images
+  $('rej-au-count').textContent = plan.rejects.aus.length;
+  $('rej-aus').innerHTML = plan.rejects.aus.length ? '' : '<p class="text-sm text-gray-500">Yok — hiçbir AU görseli iptal edilmedi.</p>';
+  plan.rejects.aus.forEach(r => {
+    const def = auDefs.find(a => a.id === r.auId);
+    const div = document.createElement('div');
+    div.className = 'reject-item';
+    div.innerHTML = `<img src="${r.url}" alt="" onclick="enlarge('${r.url}')" style="cursor:zoom-in">
+      <div class="flex-grow min-w-0"><p class="font-bold truncate">${escapeHtml(r.char.name)}</p>
+      <p class="text-xs" style="color:${def?.color || 'var(--au)'}">${escapeHtml(def?.name || r.auId)}</p></div>
+      <button class="btn btn-sec" style="padding:5px 12px;font-size:.75rem;">Düzelt</button>`;
+    div.querySelector('button').addEventListener('click', () => { revisitReturn = true; showAuRound(r.char); });
+    $('rej-aus').appendChild(div);
+  });
+
+  // Cancelled fusions
+  $('rej-fusion-count').textContent = plan.rejects.fusions.length;
+  $('rej-fusions').innerHTML = plan.rejects.fusions.length ? '' : '<p class="text-sm text-gray-500">Yok — hiçbir füzyon iptal edilmedi.</p>';
+  plan.rejects.fusions.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'reject-item';
+    const url = f.previewUrl || f.imageUrl || '';
+    div.innerHTML = `<img src="${url}" alt="" onclick="enlarge('${url}')" style="cursor:zoom-in">
+      <div class="flex-grow min-w-0"><p class="font-bold truncate" style="color:var(--fusion)">${escapeHtml(f.name)}</p><p class="text-xs text-gray-500">ID: ${f.id}</p></div>
+      <button class="btn btn-sec" style="padding:5px 12px;font-size:.75rem;">Düzelt</button>`;
+    div.querySelector('button').addEventListener('click', () => { revisitReturn = true; delete decisions.fusions[f.id]; saveProgress(); showFusionRound(f); });
+    $('rej-fusions').appendChild(div);
+  });
+
+  showScreen('summary');
+}
+
+// ─── TRANSFER ─────────────────────────────────────────────────────────────────
+function tlog(msg){
+  const el = $('transfer-log');
+  el.textContent += `[${new Date().toLocaleTimeString('tr-TR')}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+function tprog(pct, label){
+  $('transfer-fill').style.width = Math.min(100, pct) + '%';
+  $('transfer-pct').textContent = Math.round(pct) + '%';
+  if (label) $('transfer-label').textContent = label;
+}
+
+$('transfer-btn').addEventListener('click', runTransfer);
+async function runTransfer(){
+  const plan = buildTransferPlan();
+  const totalDocs = plan.chars.length + plan.fusions.length + plan.prompts.length + plan.auDefIds.size;
+  if (!totalDocs) { tlog('Aktarılacak bir şey yok.'); return; }
+  if (!confirm(`${plan.chars.length} karakter, ${plan.fusions.length} füzyon, ${plan.prompts.length} prompt ve ${plan.auDefIds.size} evren tanımı yeni veritabanına yazılacak. Devam?`)) return;
+
+  const btn = $('transfer-btn');
+  btn.disabled = true;
+  $('transfer-log').textContent = '';
+  tprog(0, 'Yazılıyor…');
+
+  try {
+    const writes = [];
+    plan.chars.forEach(c   => writes.push({ coll: 'characters',    id: c.id, doc: c.doc }));
+    plan.fusions.forEach(f => writes.push({ coll: 'characters',    id: f.id, doc: f.doc }));
+    plan.prompts.forEach(p => writes.push({ coll: 'promptLibrary', id: p.id, doc: p.doc }));
+    plan.auDefIds.forEach(auId => {
+      const def = auDefs.find(a => a.id === auId);
+      if (def) {
+        const { id, ...rest } = def;
+        writes.push({ coll: 'alternativeUniverses', id: auId, doc: rest });
+      }
+    });
+    if ($('copy-apikeys').checked) {
+      try {
+        const doc = await srcDb.collection('settings').doc('apiKeys').get();
+        if (doc.exists) writes.push({ coll: 'settings', id: 'apiKeys', doc: doc.data() });
+        else tlog('⚠️ settings/apiKeys eski DB\'de bulunamadı.');
+      } catch(e) { tlog('⚠️ apiKeys okunamadı: ' + e.message); }
+    }
+
+    tlog(`Toplam ${writes.length} belge yazılacak.`);
+    const chunkSize = 400;
+    let written = 0;
+    for (let i = 0; i < writes.length; i += chunkSize) {
+      const batch = dstDb.batch();
+      writes.slice(i, i + chunkSize).forEach(w => batch.set(dstDb.collection(w.coll).doc(w.id), w.doc));
+      await batch.commit();
+      written = Math.min(i + chunkSize, writes.length);
+      tprog(written / writes.length * 100, `${written}/${writes.length} belge yazıldı`);
+      tlog(`${written}/${writes.length} belge yazıldı…`);
+    }
+
+    tprog(100, 'Tamamlandı ✅');
+    tlog(`✅ Aktarım bitti: ${plan.chars.length} karakter, ${plan.fusions.length} füzyon, ${plan.prompts.length} prompt, ${plan.auDefIds.size} evren tanımı.`);
+    tlog('Yeni veritabanı artık tek-form şemasında kullanıma hazır.');
+  } catch(e) {
+    tlog('❌ Hata: ' + e.message);
+    if ((e.code||'').includes('permission')) tlog('→ Yeni DB kuralları yazmaya izin vermiyor olabilir; "Yeni DB\'ye giriş" yapmayı dene.');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ─── Keyboard shortcuts ───────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if ($('enlarge-overlay').classList.contains('visible')) {
+    if (e.key === 'Escape' || e.key === 'Enter') $('enlarge-overlay').classList.remove('visible');
+    return;
+  }
+  if ($('screen-star').classList.contains('active') && currentChar) {
+    if (['1','2','3'].includes(e.key)) pickStar(Number(e.key));
+    else if (e.key.toLowerCase() === 'r') $('star-reject-btn').click();
+  } else if ($('screen-au').classList.contains('active') && currentChar) {
+    if (e.key === 'Enter') confirmAuRound();
+  } else if ($('screen-fusion').classList.contains('active') && currentFusion) {
+    if (e.key.toLowerCase() === 'k' || e.key === 'Enter') decideFusion(true);
+    else if (e.key.toLowerCase() === 'l' || e.key.toLowerCase() === 'x') decideFusion(false);
+  }
+});
+
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
