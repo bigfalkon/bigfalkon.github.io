@@ -365,7 +365,10 @@ let customPool    = new Set(); // char ids in the custom pool (mode 3)
 const dom = {};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const getCharImageUrl = (char) => char?.imageUrl || '';
+const get3StarUrl = (char) =>
+    char?.evolutions?.find(e => e.star === 3)?.imageUrl
+    || char?.imageUrl
+    || '';
 
 
 function getRandomItems(arr, n) {
@@ -418,7 +421,7 @@ function renderPoolPreview() {
         card.style.cursor = 'default';
         const n = fusionCounts.get(c.id) || 0;
         card.innerHTML = `
-            <img src="${getCharImageUrl(c)}" alt="${c.name}" loading="lazy">
+            <img src="${get3StarUrl(c)}" alt="${c.name}" loading="lazy">
             <div class="card-name" title="${c.name} (${n}×)">${c.name}</div>
         `;
         dom.poolPreviewGrid.appendChild(card);
@@ -472,7 +475,7 @@ function renderMode3Grid() {
         card.className = `pool-card${customPool.has(c.id) ? ' selected' : ''}`;
         card.dataset.id = c.id;
         card.innerHTML = `
-            <img src="${getCharImageUrl(c)}" alt="${c.name}" loading="lazy">
+            <img src="${get3StarUrl(c)}" alt="${c.name}" loading="lazy">
             <div class="card-name" title="${c.name}">${c.name}</div>
             <div class="selected-tick"><span class="material-symbols-outlined">check</span></div>
         `;
@@ -530,7 +533,7 @@ function displayResults(char1, char2) {
         card.className = 'result-card';
         const img = document.createElement('img');
         img.alt = c.name;
-        img.src = getCharImageUrl(c);
+        img.src = get3StarUrl(c);
         const label = document.createElement('div');
         label.className = 'card-label';
         label.title = c.name;
