@@ -668,7 +668,7 @@
     <div class="modal-content !max-w-sm" onclick="event.stopPropagation()">
         <button class="icon-button absolute top-2 right-2" onclick="closeExportModal()"><span class="material-symbols-outlined">close</span></button>
         <h2 class="text-xl font-bold mb-1" style="color: var(--primary);">Download Prompts</h2>
-        <p class="text-sm mb-5" style="color:var(--on-surface-var);">Exports as <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:4px;">.md</code> — AU prompts grouped under each character.</p>
+        <p class="text-sm mb-5" style="color:var(--on-surface-var);">Exports as <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:4px;">.md</code> — characters sorted by date added, AU prompts grouped under each character.</p>
 
         <style>
         .export-toggle-row {
@@ -2534,10 +2534,10 @@ async function downloadPrompts() {
             return out;
         };
 
-        // ── Collect all chars in sorted order ──
+        // ── Collect all chars in sorted order (chronological by date added) ──
         const allPool = [...characters, ...(incRetired ? dismissed : [])];
-        const normals = allPool.filter(c => !c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
-        const fusions = allPool.filter(c => c.isFusion).sort((a,b) => a.name.localeCompare(b.name,'en'));
+        const normals = allPool.filter(c => !c.isFusion).sort((a,b) => getDate(a) - getDate(b));
+        const fusions = allPool.filter(c => c.isFusion).sort((a,b) => getDate(a) - getDate(b));
         const sorted = [...normals, ...fusions];
 
         const date = new Date().toISOString().slice(0,10);
@@ -2560,6 +2560,7 @@ async function downloadPrompts() {
             }
             if (char.isRetired) heading += ' *(Retired)*';
             md += heading + '\n\n';
+            if (char.eklenmeTarihi) md += `**Added:** ${getDate(char).toLocaleDateString('en-US')}\n\n`;
             if (char.irk) md += `**Race:** ${char.irk}\n\n`;
 
             // ── Star prompts in order: 1★, 2★, 3★, Fusion, Extra ──
