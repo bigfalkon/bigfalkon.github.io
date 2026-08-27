@@ -66,13 +66,21 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
 
+      # Feature branch'lerde de release yayınla: "Run workflow" düğmesi ancak workflow
+      # main'e girdikten sonra göründüğü için, APK'ya telefondan erişebilmenin tek kolay yolu.
       - name: Publish release
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release }}
+        if: >-
+          ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+              || startsWith(github.ref, 'refs/heads/claude/') }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-v${{ github.run_number }}
           name: Karakter Evreni APK v${{ github.run_number }}
+          prerelease: ${{ startsWith(github.ref, 'refs/heads/claude/') }}
           body: |
-            Telefondan bu APK'yı indirip kurabilirsin (bilinmeyen kaynaklara izin vermen gerekebilir).
+            Telefondan aşağıdaki `.apk` dosyasına dokunup kurabilirsin
+            (Android "bilinmeyen kaynaklardan kuruluma izin ver" diye sorabilir).
+
+            Branch: `${{ github.ref_name }}`
             Commit: ${{ github.sha }}
           files: dist/*.apk
