@@ -1,0 +1,259 @@
+package com.bigfalkon.karakterevreni.ui
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.browser.customtabs.CustomTabsIntent
+import com.bigfalkon.karakterevreni.data.AlternativeUniverse
+import com.bigfalkon.karakterevreni.data.GalleryItem
+
+@Composable
+fun SearchScreen(
+    state: UiState,
+    items: List<GalleryItem>,
+    onQueryChange: (String) -> Unit,
+    onItemClick: (GalleryItem) -> Unit,
+    contentPadding: PaddingValues
+) {
+    val focusRequester = remember { FocusRequester() }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        runCatching { focusRequester.requestFocus() }
+    }
+
+    Column(Modifier.fillMaxSize().padding(top = 12.dp)) {
+        OutlinedTextField(
+            value = state.query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            placeholder = { Text("İsim, ID veya ırk ara") },
+            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .focusRequester(focusRequester)
+        )
+
+        if (state.query.isBlank()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "Aramak için yazmaya başla",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 158.dp),
+                contentPadding = PaddingValues(
+                    start = 12.dp, end = 12.dp, top = 12.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 12.dp
+                ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(items, key = { it.key }) { item ->
+                    CharacterCard(
+                        item = item,
+                        universes = state.visibleUniverses,
+                        activeAu = state.activeAu,
+                        onClick = { onItemClick(item) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UniversesScreen(
+    state: UiState,
+    onSelect: (String?) -> Unit,
+    contentPadding: PaddingValues
+) {
+    val universes = state.visibleUniverses
+    LazyColumn(
+        contentPadding = PaddingValues(
+            top = 16.dp,
+            bottom = contentPadding.calculateBottomPadding() + 16.dp
+        )
+    ) {
+        item {
+            Text(
+                "Alternatif Evrenler",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(start = 20.dp, bottom = 4.dp)
+            )
+        }
+        item {
+            Text(
+                "Bir evren seçtiğinde galeri yalnızca o evrendeki kartları gösterir.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+            )
+        }
+        item {
+            UniverseRow(
+                name = "Normal evren",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                count = state.characters.size,
+                selected = state.activeAuId == null,
+                onClick = { onSelect(null) }
+            )
+        }
+        items(universes, key = { it.id }) { au ->
+            val count = state.characters.count { it.hasAuEntry(au.id) }
+            UniverseRow(
+                name = au.name,
+                color = parseHexColor(au.color),
+                count = count,
+                selected = state.activeAuId == au.id,
+                onClick = { onSelect(au.id) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun UniverseRow(
+    name: String,
+    color: androidx.compose.ui.graphics.Color,
+    count: Int,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(name, fontWeight = FontWeight.SemiBold) },
+        supportingContent = { Text("$count kart") },
+        leadingContent = {
+            Box(
+                Modifier.size(28.dp).clip(CircleShape).background(color.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(Modifier.size(12.dp).clip(CircleShape).background(color))
+            }
+        },
+        trailingContent = {
+            if (selected) Icon(Icons.Filled.Check, contentDescription = "Seçili", tint = color)
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = if (selected) SurfaceHigh else BackgroundDark
+        ),
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+private data class WebTool(
+    val title: String,
+    val subtitle: String,
+    val url: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
+
+@Composable
+fun ToolsScreen(contentPadding: PaddingValues) {
+    val context = LocalContext.current
+    val tools = listOf(
+        WebTool("Turnuva", "Karakter turnuvası", "https://bigfalkon.github.io/oyun.html", Icons.Filled.EmojiEvents),
+        WebTool("Rastgele karakter", "Rastgele seçici", "https://bigfalkon.github.io/rastgelekarakter.html", Icons.Filled.Casino),
+        WebTool("AU Viewer", "Evren görüntüleyici", "https://bigfalkon.github.io/au-viewer.html", Icons.Filled.AutoFixHigh),
+        WebTool("Admin paneli", "Karakter ekle / düzenle", "https://bigfalkon.github.io/index2.html", Icons.Filled.AdminPanelSettings),
+        WebTool("Yedekleme aracı", "Yedek al / geri yükle", "https://bigfalkon.github.io/character-backup-tool.html", Icons.Filled.Backup),
+        WebTool("Linkler", "Bağlantılar sayfası", "https://bigfalkon.github.io/links.html", Icons.Filled.Link)
+    )
+
+    LazyColumn(
+        contentPadding = PaddingValues(
+            top = 16.dp,
+            bottom = contentPadding.calculateBottomPadding() + 16.dp
+        )
+    ) {
+        item {
+            Text(
+                "Araçlar",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(start = 20.dp, bottom = 4.dp)
+            )
+        }
+        item {
+            Text(
+                "Bu araçlar web sürümünde açılır.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+            )
+        }
+        items(tools) { tool ->
+            ListItem(
+                headlineContent = { Text(tool.title, fontWeight = FontWeight.SemiBold) },
+                supportingContent = { Text(tool.subtitle) },
+                leadingContent = { Icon(tool.icon, contentDescription = null, tint = Primary) },
+                trailingContent = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = BackgroundDark),
+                modifier = Modifier.clickable {
+                    runCatching {
+                        CustomTabsIntent.Builder().setShowTitle(true).build()
+                            .launchUrl(context, tool.url.toUri())
+                    }.onFailure {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tool.url)))
+                    }
+                }
+            )
+        }
+    }
+}
