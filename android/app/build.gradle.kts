@@ -29,7 +29,6 @@ android {
         // CI her derlemede artan bir sürüm kodu geçer (ORG_GRADLE_PROJECT_versionCodeOverride).
         versionCode = (project.findProperty("versionCodeOverride") as String?)?.toIntOrNull() ?: 1
         versionName = "1.0.0"
-        resourceConfigurations += listOf("en", "tr")
     }
 
     signingConfigs {

@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         private val APP_HOSTS = setOf("bigfalkon.github.io")
         private const val UA_SUFFIX = " KarakterEvreniApp/1.0"
         private const val BACK_EXIT_WINDOW_MS = 2000L
+        private const val SPLASH_MAX_MS = 2500L
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -64,6 +65,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         splash.setKeepOnScreenCondition { !pageReady }
+        // Ağ yavaşsa splash'ta takılı kalmayalım.
+        window.decorView.postDelayed({ pageReady = true }, SPLASH_MAX_MS)
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
