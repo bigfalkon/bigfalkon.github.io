@@ -1,7 +1,5 @@
 package com.bigfalkon.karakterevreni.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,27 +19,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,12 +45,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
-import androidx.browser.customtabs.CustomTabsIntent
-import com.bigfalkon.karakterevreni.data.AlternativeUniverse
 import com.bigfalkon.karakterevreni.data.GalleryItem
 
 @Composable
@@ -66,7 +59,7 @@ fun SearchScreen(
     contentPadding: PaddingValues
 ) {
     val focusRequester = remember { FocusRequester() }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         runCatching { focusRequester.requestFocus() }
     }
 
@@ -98,8 +91,8 @@ fun SearchScreen(
                     start = 12.dp, end = 12.dp, top = 12.dp,
                     bottom = contentPadding.calculateBottomPadding() + 12.dp
                 ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 itemsIndexed(items, key = { _, item -> item.key }) { index, item ->
                     CharacterCard(
@@ -107,7 +100,9 @@ fun SearchScreen(
                         universes = state.visibleUniverses,
                         activeAu = state.activeAu,
                         index = index,
-                        onClick = { onItemClick(item) }
+                        born = 0L,
+                        onClick = { onItemClick(item) },
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -134,7 +129,6 @@ fun UniversesScreen(
                 "Alternatif Evrenler",
                 fontFamily = Fantastical,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(start = 20.dp, bottom = 4.dp)
             )
         }
@@ -200,7 +194,7 @@ fun UniversesScreen(
 @Composable
 private fun UniverseRow(
     name: String,
-    color: androidx.compose.ui.graphics.Color,
+    color: Color,
     count: Int,
     selected: Boolean,
     secret: Boolean = false,
@@ -239,25 +233,48 @@ private fun UniverseRow(
     )
 }
 
+// ─── Panel ────────────────────────────────────────────────────────────────────
+
 private data class WebTool(
     val title: String,
     val subtitle: String,
     val url: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val icon: ImageVector
 )
 
-@Composable
-fun ToolsScreen(contentPadding: PaddingValues) {
-    val context = LocalContext.current
-    val tools = listOf(
-        WebTool("Turnuva", "Karakter turnuvası", "https://bigfalkon.github.io/oyun.html", Icons.Filled.EmojiEvents),
-        WebTool("Rastgele karakter", "Rastgele seçici", "https://bigfalkon.github.io/rastgelekarakter.html", Icons.Filled.Casino),
-        WebTool("AU Viewer", "Evren görüntüleyici", "https://bigfalkon.github.io/au-viewer.html", Icons.Filled.AutoFixHigh),
-        WebTool("Admin paneli", "Karakter ekle / düzenle", "https://bigfalkon.github.io/index2.html", Icons.Filled.AdminPanelSettings),
-        WebTool("Yedekleme aracı", "Yedek al / geri yükle", "https://bigfalkon.github.io/character-backup-tool.html", Icons.Filled.Backup),
-        WebTool("Linkler", "Bağlantılar sayfası", "https://bigfalkon.github.io/links.html", Icons.Filled.Link)
+private val panelTools = listOf(
+    WebTool(
+        "Admin Paneli", "Karakter ekle, düzenle, evren yönet",
+        "https://bigfalkon.github.io/index2.html", Icons.Filled.AdminPanelSettings
+    ),
+    WebTool(
+        "Rastgele Karakter", "Rastgele karakter seçici",
+        "https://bigfalkon.github.io/rastgelekarakter.html", Icons.Filled.Casino
     )
+)
 
+private val otherTools = listOf(
+    WebTool(
+        "Turnuva", "Karakter turnuvası",
+        "https://bigfalkon.github.io/oyun.html", Icons.Filled.EmojiEvents
+    ),
+    WebTool(
+        "AU Viewer", "Evren görüntüleyici",
+        "https://bigfalkon.github.io/au-viewer.html", Icons.Filled.AutoFixHigh
+    ),
+    WebTool(
+        "Yedekleme", "Yedek al / geri yükle",
+        "https://bigfalkon.github.io/character-backup-tool.html", Icons.Filled.Backup
+    ),
+    WebTool(
+        "Linkler", "Bağlantılar sayfası",
+        "https://bigfalkon.github.io/links.html", Icons.Filled.Link
+    )
+)
+
+/** Panel sekmesi: admin paneli ve diğer web araçları, uygulamanın içinde açılır. */
+@Composable
+fun ToolsScreen(onOpenTool: (String, String) -> Unit, contentPadding: PaddingValues) {
     LazyColumn(
         contentPadding = PaddingValues(
             top = 16.dp,
@@ -266,43 +283,53 @@ fun ToolsScreen(contentPadding: PaddingValues) {
     ) {
         item {
             Text(
-                "Araçlar",
+                "Panel",
                 fontFamily = Fantastical,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(start = 20.dp, bottom = 4.dp)
             )
         }
         item {
             Text(
-                "Bu araçlar web sürümünde açılır.",
+                "Araçlar uygulamanın içinde açılır.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp)
             )
         }
-        items(tools) { tool ->
-            ListItem(
-                headlineContent = { Text(tool.title, fontWeight = FontWeight.SemiBold) },
-                supportingContent = { Text(tool.subtitle) },
-                leadingContent = { Icon(tool.icon, contentDescription = null, tint = Primary) },
-                trailingContent = {
-                    Icon(
-                        Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                modifier = Modifier.clickable {
-                    runCatching {
-                        CustomTabsIntent.Builder().setShowTitle(true).build()
-                            .launchUrl(context, tool.url.toUri())
-                    }.onFailure {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tool.url)))
-                    }
-                }
-            )
-        }
+        item { SectionLabel("Yönetim") }
+        items(panelTools) { tool -> ToolRow(tool, onOpenTool) }
+        item { SectionLabel("Diğer") }
+        items(otherTools) { tool -> ToolRow(tool, onOpenTool) }
     }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 2.dp)
+    )
+}
+
+@Composable
+private fun ToolRow(tool: WebTool, onOpenTool: (String, String) -> Unit) {
+    ListItem(
+        headlineContent = { Text(tool.title, fontWeight = FontWeight.Bold) },
+        supportingContent = { Text(tool.subtitle) },
+        leadingContent = {
+            Icon(tool.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        },
+        trailingContent = {
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable { onOpenTool(tool.url, tool.title) }
+    )
 }

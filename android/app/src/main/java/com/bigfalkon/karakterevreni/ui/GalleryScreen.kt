@@ -34,6 +34,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -66,6 +68,11 @@ fun GalleryScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val gridState = rememberLazyGridState()
     val accent = state.activeAu?.let { parseHexColor(it.color) } ?: Primary
+    // Görünüm değişince kartlar sitedeki gibi yeniden sırayla süzülsün.
+    val born = remember(state.mode, state.sort, state.race, state.activeAuId) {
+        System.currentTimeMillis()
+    }
+    val ptrState = rememberPullToRefreshState()
 
     Column(Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
         TopAppBar(
@@ -149,6 +156,16 @@ fun GalleryScreen(
         PullToRefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = onRefresh,
+            state = ptrState,
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = ptrState,
+                    isRefreshing = state.refreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    containerColor = SurfaceHigh,
+                    color = accent
+                )
+            },
             modifier = Modifier.fillMaxSize()
         ) {
             when {
@@ -205,7 +222,9 @@ fun GalleryScreen(
                             universes = state.visibleUniverses,
                             activeAu = state.activeAu,
                             index = index,
-                            onClick = { onItemClick(item) }
+                            born = born,
+                            onClick = { onItemClick(item) },
+                            modifier = Modifier.animateItem()
                         )
                     }
                 }

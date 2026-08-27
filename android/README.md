@@ -25,8 +25,9 @@ istediğin an elle de sürüm çıkarabilirsin.
 - **Ara** — isim, ID veya ırka göre native arama.
 - **Evrenler** — alternatif evren listesi; birini seçince galeri o evrenin
   kartlarına geçer.
-- **Araçlar** — admin paneli, turnuva, rastgele karakter, AU viewer, yedekleme
-  ve linkler sayfaları Chrome Custom Tab'de açılır (bunlar hâlâ web).
+- **Panel** — admin paneli ve rastgele karakter seçici (artı turnuva, AU viewer,
+  yedekleme, linkler) uygulamanın içinde açılır; blob/data indirmeleri telefonun
+  İndirilenler klasörüne yazılır, dosya seçici alanları galeriyi açar.
 
 ## Mimari
 

@@ -41,6 +41,8 @@ private val DarkColors = darkColorScheme(
     onPrimaryContainer = OnPrimaryContainer,
     secondary = FusionColor,
     onSecondary = Color(0xFF490071),
+    secondaryContainer = PrimaryContainer,
+    onSecondaryContainer = OnPrimaryContainer,
     tertiary = AuColor,
     background = BackgroundDark,
     onBackground = OnSurfaceDark,
@@ -91,6 +93,8 @@ fun KarakterEvreniTheme(accent: Color? = null, content: @Composable () -> Unit) 
         onPrimary = Color.Black,
         primaryContainer = accent.copy(alpha = 0.28f).compositeOverBackground(),
         onPrimaryContainer = accent,
+        secondaryContainer = accent.copy(alpha = 0.24f).compositeOverBackground(),
+        onSecondaryContainer = accent,
         tertiary = accent
     )
     MaterialTheme(colorScheme = scheme, typography = AppTypography, content = content)

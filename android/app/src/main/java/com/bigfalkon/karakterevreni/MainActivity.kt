@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -53,13 +53,14 @@ import com.bigfalkon.karakterevreni.ui.SignInDialog
 import com.bigfalkon.karakterevreni.ui.parseHexColor
 import com.bigfalkon.karakterevreni.ui.ToolsScreen
 import com.bigfalkon.karakterevreni.ui.UniversesScreen
+import com.bigfalkon.karakterevreni.ui.WebToolScreen
 import com.bigfalkon.karakterevreni.ui.buildGalleryItems
 
 private enum class Tab(val label: String, val icon: ImageVector) {
     Gallery("Galeri", Icons.Filled.GridView),
     Search("Ara", Icons.Filled.Search),
     Universes("Evrenler", Icons.Filled.AutoFixHigh),
-    Tools("Araçlar", Icons.Filled.Build)
+    Tools("Panel", Icons.Filled.AdminPanelSettings)
 }
 
 class MainActivity : ComponentActivity() {
@@ -95,6 +96,8 @@ private fun AppContent(
     var viewerUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var showFilters by rememberSaveable { mutableStateOf(false) }
     var showSignIn by rememberSaveable { mutableStateOf(false) }
+    var toolUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    var toolTitle by rememberSaveable { mutableStateOf("") }
     var titleTaps by remember { mutableStateOf(0) }
     var lastTapAt by remember { mutableStateOf(0L) }
     val snackbarHost = remember { SnackbarHostState() }
@@ -106,7 +109,8 @@ private fun AppContent(
         }
     }
 
-    val items = remember(state) { buildGalleryItems(state) }
+    // Galeri, Ara sekmesindeki sorgudan etkilenmemeli.
+    val items = remember(state) { buildGalleryItems(state.copy(query = "")) }
     val searchItems = remember(state) {
         if (state.query.isBlank()) emptyList()
         else buildGalleryItems(state.copy(mode = com.bigfalkon.karakterevreni.ui.GalleryMode.All))
@@ -118,7 +122,7 @@ private fun AppContent(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHost) },
         bottomBar = {
-            if (detailId == null) {
+            if (detailId == null && toolUrl == null) {
                 NavigationBar(containerColor = BackgroundDark.copy(alpha = 0.92f)) {
                     Tab.entries.forEach { entry ->
                         NavigationBarItem(
@@ -201,9 +205,23 @@ private fun AppContent(
                             contentPadding = padding
                         )
 
-                        Tab.Tools -> ToolsScreen(contentPadding = padding)
+                        Tab.Tools -> ToolsScreen(
+                            onOpenTool = { url, title ->
+                                toolUrl = url
+                                toolTitle = title
+                            },
+                            contentPadding = padding
+                        )
                     }
                 }
+            }
+
+            toolUrl?.let { url ->
+                WebToolScreen(
+                    url = url,
+                    title = toolTitle,
+                    onClose = { toolUrl = null }
+                )
             }
 
             viewerUrl?.let { url ->
@@ -242,7 +260,10 @@ private fun AppContent(
         if (state.signedIn) showSignIn = false
     }
 
-    BackHandler(enabled = viewerUrl != null || detailId != null || tab != Tab.Gallery) {
+    BackHandler(
+        enabled = toolUrl == null &&
+            (viewerUrl != null || detailId != null || tab != Tab.Gallery)
+    ) {
         when {
             viewerUrl != null -> viewerUrl = null
             detailId != null -> detailId = null
