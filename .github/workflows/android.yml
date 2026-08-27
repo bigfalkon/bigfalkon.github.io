@@ -5,9 +5,8 @@ on:
     branches: [main, 'claude/**']
     paths:
       - 'android/**'
+      - '!android/**.md'
       - '.github/workflows/android.yml'
-    paths-ignore:
-      - 'android/**.md'
   workflow_dispatch:
     inputs:
       publish_release:

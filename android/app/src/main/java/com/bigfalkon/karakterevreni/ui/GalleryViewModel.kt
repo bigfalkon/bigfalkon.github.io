@@ -219,12 +219,20 @@ fun buildGalleryItems(state: UiState): List<GalleryItem> {
 
     var items = mutableListOf<GalleryItem>()
 
-    fun addAllStars(list: List<Character>) {
+    /**
+     * Her karakter galeride tek kartla temsil edilir; kart en yüksek yıldız
+     * görselini gösterir, diğer seviyeler detay ekranında gezilir.
+     */
+    fun addOnePerCharacter(list: List<Character>) {
         list.filterNot { it.isFusion }.sortedWith(sorted).forEach { c ->
-            items.add(GalleryItem(c, 1, c.imageUrl, c.imagePosition))
-            c.evolutions.forEach { evo ->
-                items.add(GalleryItem(c, evo.star, evo.imageUrl, evo.imagePosition))
-            }
+            val top = c.evolutions.maxByOrNull { it.star }
+            items.add(
+                if (top?.imageUrl != null) {
+                    GalleryItem(c, top.star, top.imageUrl, top.imagePosition)
+                } else {
+                    GalleryItem(c, 1, c.imageUrl, c.imagePosition)
+                }
+            )
         }
         list.filter { it.isFusion }.sortedWith(sorted).forEach { c ->
             items.add(GalleryItem(c, 4, c.previewUrl ?: c.imageUrl, c.previewPosition))
@@ -232,10 +240,11 @@ fun buildGalleryItems(state: UiState): List<GalleryItem> {
     }
 
     when (state.mode) {
-        GalleryMode.All, GalleryMode.Dismissed -> addAllStars(source)
+        GalleryMode.All, GalleryMode.Dismissed -> addOnePerCharacter(source)
         GalleryMode.Fusion -> source.filter { it.isFusion }.sortedWith(sorted).forEach { c ->
             items.add(GalleryItem(c, 4, c.previewUrl ?: c.imageUrl, c.previewPosition))
         }
+        // Yıldız filtreleri: o seviyeye sahip karakterleri o seviyenin görseliyle göster.
         GalleryMode.Star1 -> source.filterNot { it.isFusion }.sortedWith(sorted).forEach { c ->
             items.add(GalleryItem(c, 1, c.imageUrl, c.imagePosition))
         }
@@ -254,29 +263,20 @@ fun buildGalleryItems(state: UiState): List<GalleryItem> {
     // AU modu: yalnızca o evrende karşılığı olanlar, o evrenin görselleriyle.
     val auId = state.activeAuId
     if (auId != null) {
-        val seenFusions = mutableSetOf<String>()
+        val seen = mutableSetOf<String>()
         val auItems = mutableListOf<GalleryItem>()
         items.filter { it.character.hasAuEntry(auId) }.forEach { item ->
             val entry = item.character.auData[auId] ?: return@forEach
-            if (item.character.isFusion) {
-                if (seenFusions.add(item.character.id)) {
-                    auItems.add(
-                        item.copy(
-                            imageUrl = entry.fusionImageUrl ?: item.imageUrl,
-                            imagePosition = entry.fusionImagePosition,
-                            auId = auId
-                        )
-                    )
-                }
-            } else if (item.displayStar == 3) {
-                auItems.add(
-                    item.copy(
-                        imageUrl = entry.star3ImageUrl ?: item.imageUrl,
-                        imagePosition = entry.star3ImagePosition,
-                        auId = auId
-                    )
+            if (!seen.add(item.character.id)) return@forEach
+            val isFusion = item.character.isFusion
+            auItems.add(
+                item.copy(
+                    displayStar = if (isFusion) 4 else 3,
+                    imageUrl = entry.imageFor(isFusion) ?: item.imageUrl,
+                    imagePosition = entry.positionFor(isFusion),
+                    auId = auId
                 )
-            }
+            )
         }
         items = auItems
     }
