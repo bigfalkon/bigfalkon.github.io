@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -90,7 +93,7 @@ fun SearchScreen(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 158.dp),
+                columns = GridCells.Adaptive(minSize = CardSizes[state.cardSize.coerceIn(0, 4)]),
                 contentPadding = PaddingValues(
                     start = 12.dp, end = 12.dp, top = 12.dp,
                     bottom = contentPadding.calculateBottomPadding() + 12.dp
@@ -98,11 +101,12 @@ fun SearchScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(items, key = { it.key }) { item ->
+                itemsIndexed(items, key = { _, item -> item.key }) { index, item ->
                     CharacterCard(
                         item = item,
                         universes = state.visibleUniverses,
                         activeAu = state.activeAu,
+                        index = index,
                         onClick = { onItemClick(item) }
                     )
                 }
@@ -115,6 +119,7 @@ fun SearchScreen(
 fun UniversesScreen(
     state: UiState,
     onSelect: (String?) -> Unit,
+    onSignOut: () -> Unit,
     contentPadding: PaddingValues
 ) {
     val universes = state.visibleUniverses
@@ -127,8 +132,9 @@ fun UniversesScreen(
         item {
             Text(
                 "Alternatif Evrenler",
+                fontFamily = Fantastical,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(start = 20.dp, bottom = 4.dp)
             )
         }
@@ -150,14 +156,43 @@ fun UniversesScreen(
             )
         }
         items(universes, key = { it.id }) { au ->
-            val count = state.characters.count { it.hasAuEntry(au.id) }
+            val count = state.characters.count { it.hasAuEntry(au.id) } +
+                state.dismissed.count { it.hasAuEntry(au.id) }
             UniverseRow(
                 name = au.name,
                 color = parseHexColor(au.color),
                 count = count,
                 selected = state.activeAuId == au.id,
+                secret = au.locked,
                 onClick = { onSelect(au.id) }
             )
+        }
+
+        if (state.signedIn) {
+            item {
+                ListItem(
+                    headlineContent = { Text("Çıkış yap") },
+                    supportingContent = { Text("Gizli evrenler tekrar kilitlenir") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Filled.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.clickable(onClick = onSignOut)
+                )
+            }
+        } else if (state.hasLockedUniverses) {
+            item {
+                Text(
+                    "Galeri başlığına arka arkaya 5 kez dokunarak gizli evrenlere erişebilirsin.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)
+                )
+            }
         }
     }
 }
@@ -168,10 +203,23 @@ private fun UniverseRow(
     color: androidx.compose.ui.graphics.Color,
     count: Int,
     selected: Boolean,
+    secret: Boolean = false,
     onClick: () -> Unit
 ) {
     ListItem(
-        headlineContent = { Text(name, fontWeight = FontWeight.SemiBold) },
+        headlineContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(name, fontWeight = FontWeight.Bold)
+                if (secret) {
+                    Icon(
+                        Icons.Filled.LockOpen,
+                        contentDescription = "Gizli evren",
+                        tint = color,
+                        modifier = Modifier.padding(start = 6.dp).size(14.dp)
+                    )
+                }
+            }
+        },
         supportingContent = { Text("$count kart") },
         leadingContent = {
             Box(
@@ -185,7 +233,7 @@ private fun UniverseRow(
             if (selected) Icon(Icons.Filled.Check, contentDescription = "Seçili", tint = color)
         },
         colors = ListItemDefaults.colors(
-            containerColor = if (selected) SurfaceHigh else BackgroundDark
+            containerColor = if (selected) SurfaceHigh else Color.Transparent
         ),
         modifier = Modifier.clickable(onClick = onClick)
     )
@@ -219,8 +267,9 @@ fun ToolsScreen(contentPadding: PaddingValues) {
         item {
             Text(
                 "Araçlar",
+                fontFamily = Fantastical,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(start = 20.dp, bottom = 4.dp)
             )
         }
@@ -244,7 +293,7 @@ fun ToolsScreen(contentPadding: PaddingValues) {
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
-                colors = ListItemDefaults.colors(containerColor = BackgroundDark),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 modifier = Modifier.clickable {
                     runCatching {
                         CustomTabsIntent.Builder().setShowTitle(true).build()

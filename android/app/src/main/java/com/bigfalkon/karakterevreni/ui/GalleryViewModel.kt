@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bigfalkon.karakterevreni.data.AlternativeUniverse
+import com.bigfalkon.karakterevreni.data.Auth
 import com.bigfalkon.karakterevreni.data.Character
 import com.bigfalkon.karakterevreni.data.Firestore
 import com.bigfalkon.karakterevreni.data.GalleryItem
@@ -41,14 +42,22 @@ data class UiState(
     val sort: SortMode = SortMode.Name,
     val race: String? = null,
     val activeAuId: String? = null,
-    val query: String = ""
+    val query: String = "",
+    val cardSize: Int = 2,
+    val signedIn: Boolean = false,
+    val unlockedAuIds: Set<String> = emptySet(),
+    val signInError: String? = null,
+    val signingIn: Boolean = false,
+    val unlockMessage: String? = null
 ) {
     val activeAu: AlternativeUniverse? get() = universes.firstOrNull { it.id == activeAuId }
     val races: List<String>
         get() = (characters + dismissed).mapNotNull { it.irk }.distinct()
             .sortedWith(Collator.getInstance(Locale("tr")))
     /** Kilitli evrenler yalnızca kilidi açıldığında listelenir (sitedeki davranış). */
-    val visibleUniverses: List<AlternativeUniverse> get() = universes.filterNot { it.locked }
+    val visibleUniverses: List<AlternativeUniverse>
+        get() = universes.filter { !it.locked || it.id in unlockedAuIds }
+    val hasLockedUniverses: Boolean get() = universes.any { it.locked }
     val filterCount: Int
         get() = listOfNotNull(
             race,
@@ -111,6 +120,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setMode(mode: GalleryMode) = _state.update { it.copy(mode = mode) }
+    fun setCardSize(size: Int) = _state.update { it.copy(cardSize = size.coerceIn(0, 4)) }
     fun setSort(sort: SortMode) = _state.update { it.copy(sort = sort) }
     fun setRace(race: String?) = _state.update { it.copy(race = race) }
     fun setQuery(q: String) = _state.update { it.copy(query = q) }
@@ -119,6 +129,72 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearFilters() =
         _state.update { it.copy(mode = GalleryMode.All, sort = SortMode.Name, race = null) }
+
+    // ─── Gizli evrenler ───────────────────────────────────────────────────────
+
+    /**
+     * Sitedeki gizli açma davranışı: başlığa 5 kez dokun. Giriş yapılmışsa kilitli
+     * evrenler açılır/tekrar kilitlenir; değilse giriş gerekir.
+     */
+    fun secretUnlockTapped(): Boolean {
+        val current = _state.value
+        if (!current.hasLockedUniverses) return false
+        if (!current.signedIn) return true // giriş ekranı açılsın
+        toggleLockedUniverses()
+        return false
+    }
+
+    private fun toggleLockedUniverses() {
+        _state.update { s ->
+            val locked = s.universes.filter { it.locked }.map { it.id }.toSet()
+            val anyUnlocked = locked.any { it in s.unlockedAuIds }
+            val next = if (anyUnlocked) emptySet() else locked
+            s.copy(
+                unlockedAuIds = next,
+                activeAuId = if (anyUnlocked && s.activeAuId in locked) null else s.activeAuId,
+                unlockMessage = if (anyUnlocked) {
+                    "Gizli evrenler yeniden kilitlendi."
+                } else {
+                    "Gizli evrenlerin kilidi açıldı."
+                }
+            )
+        }
+    }
+
+    fun signIn(email: String, password: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(signingIn = true, signInError = null) }
+            Auth.signIn(email.trim(), password)
+                .onSuccess {
+                    _state.update { it.copy(signingIn = false, signedIn = true) }
+                    toggleLockedUniverses()
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(
+                            signingIn = false,
+                            signInError = e.message ?: "Giriş yapılamadı."
+                        )
+                    }
+                }
+        }
+    }
+
+    fun signOut() = _state.update {
+        it.copy(
+            signedIn = false,
+            unlockedAuIds = emptySet(),
+            activeAuId = if (it.universes.firstOrNull { u -> u.id == it.activeAuId }?.locked == true) {
+                null
+            } else {
+                it.activeAuId
+            },
+            unlockMessage = "Çıkış yapıldı, gizli evrenler kilitlendi."
+        )
+    }
+
+    fun clearSignInError() = _state.update { it.copy(signInError = null) }
+    fun consumeUnlockMessage() = _state.update { it.copy(unlockMessage = null) }
 
     fun character(id: String): Character? =
         _state.value.characters.firstOrNull { it.id == id }

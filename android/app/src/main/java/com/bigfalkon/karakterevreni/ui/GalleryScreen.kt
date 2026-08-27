@@ -1,6 +1,8 @@
 package com.bigfalkon.karakterevreni.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -37,10 +39,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bigfalkon.karakterevreni.data.GalleryItem
+
+/** Kart boyutu adımları (sitedeki XS…XL zoom seviyelerinin karşılığı). */
+val CardSizes = listOf(118.dp, 138.dp, 162.dp, 196.dp, 240.dp)
+val CardSizeLabels = listOf("XS", "S", "M", "L", "XL")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,34 +59,47 @@ fun GalleryScreen(
     onOpenFilters: () -> Unit,
     onClearAu: () -> Unit,
     onRefresh: () -> Unit,
+    onTitleTap: () -> Unit,
     onItemClick: (GalleryItem) -> Unit,
     contentPadding: PaddingValues
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val gridState = rememberLazyGridState()
+    val accent = state.activeAu?.let { parseHexColor(it.color) } ?: Primary
 
     Column(Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
         TopAppBar(
             title = {
-                Column {
+                Column(
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onTitleTap
+                    )
+                ) {
                     Text(
                         state.activeAu?.name ?: "Karakter Evreni",
-                        fontWeight = FontWeight.ExtraBold
+                        fontFamily = Fantastical,
+                        fontSize = 22.sp,
+                        color = accent
                     )
                     Text(
-                        "${items.size} kart",
+                        if (state.activeAu != null) {
+                            "${items.size} kart · alternatif evren"
+                        } else {
+                            "${items.size} kart"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
             actions = {
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Yenile")
-                }
                 BadgedBox(
                     badge = {
-                        if (state.filterCount > 0) Badge { Text(state.filterCount.toString()) }
+                        if (state.filterCount > 0) {
+                            Badge(containerColor = accent) { Text(state.filterCount.toString()) }
+                        }
                     }
                 ) {
                     IconButton(onClick = onOpenFilters) {
@@ -86,30 +108,33 @@ fun GalleryScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = BackgroundDark,
-                scrolledContainerColor = SurfaceDark
+                containerColor = Color.Transparent,
+                scrolledContainerColor = BackgroundDark.copy(alpha = 0.9f)
             ),
             scrollBehavior = scrollBehavior
         )
 
         AnimatedVisibility(visible = state.activeAu != null) {
             val au = state.activeAu
-            val accent = parseHexColor(au?.color)
             Surface(
                 color = accent.copy(alpha = 0.14f),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(14.dp))
             ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "${au?.name} evrenini görüntülüyorsun",
+                        "${au?.name} evrenindesin",
                         style = MaterialTheme.typography.labelLarge,
                         color = accent
                     )
-                    IconButton(onClick = onClearAu, modifier = Modifier.size(28.dp)) {
+                    IconButton(onClick = onClearAu) {
                         Icon(
                             Icons.Filled.Close,
                             contentDescription = "Evrenden çık",
@@ -130,7 +155,7 @@ fun GalleryScreen(
                 state.loading && items.isEmpty() -> Box(
                     Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = Primary) }
+                ) { CircularProgressIndicator(color = accent) }
 
                 state.error != null && items.isEmpty() -> Column(
                     Modifier.fillMaxSize().padding(32.dp),
@@ -157,27 +182,29 @@ fun GalleryScreen(
                     Text(
                         "Bu filtreye uyan karakter yok.",
                         style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(top = 12.dp)
                     )
                 }
 
                 else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 158.dp),
+                    columns = GridCells.Adaptive(minSize = CardSizes[state.cardSize.coerceIn(0, 4)]),
                     state = gridState,
                     contentPadding = PaddingValues(
                         start = 12.dp,
                         end = 12.dp,
-                        top = 12.dp,
-                        bottom = contentPadding.calculateBottomPadding() + 12.dp
+                        top = 8.dp,
+                        bottom = contentPadding.calculateBottomPadding() + 16.dp
                     ),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(items, key = { it.key }) { item ->
+                    itemsIndexed(items, key = { _, item -> item.key }) { index, item ->
                         CharacterCard(
                             item = item,
-                            universes = remember(state.universes) { state.visibleUniverses },
+                            universes = state.visibleUniverses,
                             activeAu = state.activeAu,
+                            index = index,
                             onClick = { onItemClick(item) }
                         )
                     }

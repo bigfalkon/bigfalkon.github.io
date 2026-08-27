@@ -37,6 +37,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import com.bigfalkon.karakterevreni.ui.AuroraBackground
 import com.bigfalkon.karakterevreni.ui.BackgroundDark
 import com.bigfalkon.karakterevreni.ui.DetailScreen
 import com.bigfalkon.karakterevreni.ui.FilterSheet
@@ -45,6 +49,8 @@ import com.bigfalkon.karakterevreni.ui.GalleryViewModel
 import com.bigfalkon.karakterevreni.ui.ImageViewer
 import com.bigfalkon.karakterevreni.ui.KarakterEvreniTheme
 import com.bigfalkon.karakterevreni.ui.SearchScreen
+import com.bigfalkon.karakterevreni.ui.SignInDialog
+import com.bigfalkon.karakterevreni.ui.parseHexColor
 import com.bigfalkon.karakterevreni.ui.ToolsScreen
 import com.bigfalkon.karakterevreni.ui.UniversesScreen
 import com.bigfalkon.karakterevreni.ui.buildGalleryItems
@@ -62,7 +68,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        setContent { KarakterEvreniTheme { AppRoot() } }
+        setContent { AppRoot() }
     }
 }
 
@@ -70,11 +76,35 @@ class MainActivity : ComponentActivity() {
 private fun AppRoot() {
     val vm: GalleryViewModel = viewModel()
     val state by vm.state.collectAsStateWithLifecycle()
+    val accent = state.activeAu?.let { parseHexColor(it.color) }
+
+    KarakterEvreniTheme(accent = accent) {
+        AppContent(vm = vm, state = state, accent = accent)
+    }
+}
+
+@Composable
+private fun AppContent(
+    vm: GalleryViewModel,
+    state: com.bigfalkon.karakterevreni.ui.UiState,
+    accent: androidx.compose.ui.graphics.Color?
+) {
 
     var tab by rememberSaveable { mutableStateOf(Tab.Gallery) }
     var detailId by rememberSaveable { mutableStateOf<String?>(null) }
     var viewerUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    var showSignIn by rememberSaveable { mutableStateOf(false) }
+    var titleTaps by remember { mutableStateOf(0) }
+    var lastTapAt by remember { mutableStateOf(0L) }
+    val snackbarHost = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.unlockMessage) {
+        state.unlockMessage?.let {
+            snackbarHost.showSnackbar(it)
+            vm.consumeUnlockMessage()
+        }
+    }
 
     val items = remember(state) { buildGalleryItems(state) }
     val searchItems = remember(state) {
@@ -82,11 +112,14 @@ private fun AppRoot() {
         else buildGalleryItems(state.copy(mode = com.bigfalkon.karakterevreni.ui.GalleryMode.All))
     }
 
+    Box(Modifier.fillMaxSize()) {
+    AuroraBackground(accent = accent)
     Scaffold(
-        containerColor = BackgroundDark,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHost) },
         bottomBar = {
             if (detailId == null) {
-                NavigationBar(containerColor = BackgroundDark) {
+                NavigationBar(containerColor = BackgroundDark.copy(alpha = 0.92f)) {
                     Tab.entries.forEach { entry ->
                         NavigationBarItem(
                             selected = tab == entry,
@@ -137,6 +170,15 @@ private fun AppRoot() {
                             onOpenFilters = { showFilters = true },
                             onClearAu = { vm.toggleAu(state.activeAuId) },
                             onRefresh = { vm.refresh() },
+                            onTitleTap = {
+                                val now = System.currentTimeMillis()
+                                titleTaps = if (now - lastTapAt > 1500L) 1 else titleTaps + 1
+                                lastTapAt = now
+                                if (titleTaps >= 5) {
+                                    titleTaps = 0
+                                    if (vm.secretUnlockTapped()) showSignIn = true
+                                }
+                            },
                             onItemClick = { detailId = it.character.id },
                             contentPadding = padding
                         )
@@ -155,6 +197,7 @@ private fun AppRoot() {
                                 vm.toggleAu(id)
                                 tab = Tab.Gallery
                             },
+                            onSignOut = vm::signOut,
                             contentPadding = padding
                         )
 
@@ -169,15 +212,34 @@ private fun AppRoot() {
         }
     }
 
+    }
+
     if (showFilters) {
         FilterSheet(
             state = state,
             onMode = vm::setMode,
             onSort = vm::setSort,
             onRace = vm::setRace,
+            onCardSize = vm::setCardSize,
             onClear = vm::clearFilters,
             onDismiss = { showFilters = false }
         )
+    }
+
+    if (showSignIn) {
+        SignInDialog(
+            signingIn = state.signingIn,
+            error = state.signInError,
+            onSubmit = vm::signIn,
+            onDismiss = {
+                showSignIn = false
+                vm.clearSignInError()
+            }
+        )
+    }
+
+    LaunchedEffect(state.signedIn) {
+        if (state.signedIn) showSignIn = false
     }
 
     BackHandler(enabled = viewerUrl != null || detailId != null || tab != Tab.Gallery) {

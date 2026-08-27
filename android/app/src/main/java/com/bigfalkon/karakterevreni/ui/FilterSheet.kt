@@ -29,6 +29,7 @@ fun FilterSheet(
     onMode: (GalleryMode) -> Unit,
     onSort: (SortMode) -> Unit,
     onRace: (String?) -> Unit,
+    onCardSize: (Int) -> Unit,
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -51,6 +52,17 @@ fun FilterSheet(
                     fontWeight = FontWeight.ExtraBold
                 )
                 TextButton(onClick = onClear) { Text("Sıfırla") }
+            }
+
+            SheetLabel("Kart boyutu")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardSizeLabels.forEachIndexed { index, label ->
+                    FilterChip(
+                        selected = state.cardSize == index,
+                        onClick = { onCardSize(index) },
+                        label = { Text(label) }
+                    )
+                }
             }
 
             SheetLabel("Görünüm")

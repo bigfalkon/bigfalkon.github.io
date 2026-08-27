@@ -1,6 +1,7 @@
 package com.bigfalkon.karakterevreni.ui
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,23 +26,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.bigfalkon.karakterevreni.data.AlternativeUniverse
 import com.bigfalkon.karakterevreni.data.GalleryItem
+import kotlinx.coroutines.delay
 
 /**
  * CSS `object-position` değerini ("center 25%", "50% 30%") Compose hizalamasına çevirir;
@@ -80,82 +90,133 @@ fun StarRow(star: Int, isDismissed: Boolean, modifier: Modifier = Modifier, size
     val tint = StarColors[star.coerceIn(1, 4)] ?: Primary
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(1.dp)) {
         repeat(star.coerceIn(1, 4)) {
-            Icon(Icons.Filled.Star, contentDescription = null, tint = tint, modifier = Modifier.size(size.dp))
+            Icon(
+                Icons.Filled.Star,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(size.dp)
+            )
         }
     }
 }
 
+/**
+ * Galeri kartı: sitedeki `.character-card` görünümü — 2/3 oran, tür rengine göre
+ * kenar ışıması, sıraya göre gecikmeli giriş animasyonu, füzyon/emekli isimlerinde
+ * fantastik yazı tipi.
+ */
 @Composable
 fun CharacterCard(
     item: GalleryItem,
     universes: List<AlternativeUniverse>,
     activeAu: AlternativeUniverse?,
+    index: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, label = "cardPress")
+    val pressScale by animateFloatAsState(if (pressed) 0.95f else 1f, label = "cardPress")
 
+    // Kartlar sitedeki gibi sırayla süzülerek gelsin.
+    var appeared by remember(item.key) { mutableStateOf(false) }
+    LaunchedEffect(item.key) {
+        delay((minOf(index, 16) * 35).toLong())
+        appeared = true
+    }
+    val enter by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(420),
+        label = "cardEnter"
+    )
+
+    val isFusion = item.character.isFusion
+    val isDismissed = item.character.isDismissed
     val accent = when {
         activeAu != null -> parseHexColor(activeAu.color)
-        item.character.isFusion -> FusionColor
-        item.character.isDismissed -> DismissedColor
-        else -> Color.Transparent
+        isFusion -> FusionColor
+        isDismissed -> DismissedColor
+        item.character.auData.isNotEmpty() -> Primary.copy(alpha = 0.5f)
+        else -> OutlineVar
     }
 
     Surface(
         modifier = modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(20.dp))
-            .then(
-                if (accent == Color.Transparent) Modifier
-                else Modifier.border(1.5.dp, accent.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-            )
+            .graphicsLayer {
+                alpha = enter
+                translationY = (1f - enter) * 30.dp.toPx()
+                scaleX = pressScale * (0.98f + 0.02f * enter)
+                scaleY = pressScale * (0.98f + 0.02f * enter)
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .border(1.dp, accent.copy(alpha = if (activeAu != null || isFusion) 0.55f else 0.35f), RoundedCornerShape(18.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         color = SurfaceDark,
-        shape = RoundedCornerShape(20.dp)
+        shadowElevation = 6.dp,
+        shape = RoundedCornerShape(18.dp)
     ) {
         Box {
+            if (isFusion) {
+                PrismGlow(
+                    color = activeAu?.let { parseHexColor(it.color) } ?: FusionColor,
+                    modifier = Modifier.matchParentSize()
+                )
+            }
+
             AsyncImage(
-                model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                model = ImageRequest.Builder(LocalContext.current)
                     .data(item.imageUrl)
-                    .crossfade(true)
+                    .crossfade(220)
                     .build(),
                 contentDescription = item.character.name,
                 contentScale = ContentScale.Crop,
                 alignment = parseImageAlignment(item.imagePosition),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(0.78f)
+                    .aspectRatio(2f / 3f)
             )
 
-            // Alt kısımdaki isim/yıldız için okunabilirlik gradyanı
             Box(
                 Modifier
                     .matchParentSize()
                     .background(
                         Brush.verticalGradient(
-                            0.55f to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.85f)
+                            0.5f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.88f)
                         )
                     )
             )
 
-            // Sağ üstte, karakterin bulunduğu evrenleri gösteren noktalar
-            if (activeAu == null) {
+            if (activeAu != null) {
+                val auColor = parseHexColor(activeAu.color)
+                Text(
+                    activeAu.name.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = auColor,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .border(1.dp, auColor, RoundedCornerShape(50))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                )
+            } else {
                 val dots = universes.filter { item.character.hasAuEntry(it.id) }
                 if (dots.isNotEmpty()) {
                     Row(
                         Modifier.align(Alignment.TopEnd).padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        dots.take(5).forEach { au ->
+                        dots.take(6).forEach { au ->
                             Box(
                                 Modifier
                                     .size(8.dp)
                                     .clip(CircleShape)
                                     .background(parseHexColor(au.color))
+                                    .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
                             )
                         }
                     }
@@ -171,28 +232,49 @@ fun CharacterCard(
                 Text(
                     item.character.name,
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    fontFamily = if (isFusion || isDismissed) Fantastical else Manrope,
+                    fontWeight = if (isFusion || isDismissed) FontWeight.Normal else FontWeight.Bold,
+                    color = when {
+                        isFusion -> Color(0xFFF4D9FF)
+                        isDismissed -> Color(0xFFC8C4D0)
+                        else -> Color.White
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 StarRow(
                     star = item.displayStar,
-                    isDismissed = item.character.isDismissed,
-                    modifier = Modifier.padding(top = 2.dp)
+                    isDismissed = isDismissed,
+                    modifier = Modifier.padding(top = 3.dp)
                 )
             }
         }
     }
 }
 
+/** Detayda sitedeki gibi: arkada bulanık dolgu, önde tam görünen sharp görsel. */
 @Composable
-fun FullBleedImage(url: String?, position: String?, modifier: Modifier = Modifier) {
-    Box(modifier.background(BackgroundDark)) {
+fun BlurredBackdropImage(
+    url: String?,
+    position: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Fit
+) {
+    Box(modifier.background(Color(0xFF17161C))) {
         AsyncImage(
             model = url,
             contentDescription = null,
-            contentScale = ContentScale.Fit,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .matchParentSize()
+                .scale(1.15f)
+                .blur(20.dp)
+                .alpha(0.5f)
+        )
+        AsyncImage(
+            model = url,
+            contentDescription = null,
+            contentScale = contentScale,
             alignment = parseImageAlignment(position),
             modifier = Modifier.fillMaxSize()
         )

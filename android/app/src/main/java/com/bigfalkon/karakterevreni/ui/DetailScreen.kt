@@ -139,7 +139,8 @@ fun DetailScreen(
                     character.name,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Bold
+                    fontFamily = if (character.isFusion || character.isDismissed) Fantastical else Manrope,
+                    fontWeight = if (character.isFusion || character.isDismissed) FontWeight.Normal else FontWeight.Bold
                 )
             },
             navigationIcon = {
@@ -147,7 +148,7 @@ fun DetailScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundDark)
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
 
         LazyColumn(
@@ -164,14 +165,17 @@ fun DetailScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(SurfaceDark)
                             .clickable { variant?.imageUrl?.let(onOpenImage) }
                     ) {
-                        AsyncImage(
-                            model = variant?.imageUrl,
-                            contentDescription = variant?.label,
-                            contentScale = ContentScale.Crop,
-                            alignment = parseImageAlignment(variant?.imagePosition),
+                        if (character.isFusion) {
+                            PrismGlow(
+                                color = FusionColor,
+                                modifier = Modifier.matchParentSize()
+                            )
+                        }
+                        BlurredBackdropImage(
+                            url = variant?.imageUrl,
+                            position = variant?.imagePosition,
                             modifier = Modifier.fillMaxSize()
                         )
                     }

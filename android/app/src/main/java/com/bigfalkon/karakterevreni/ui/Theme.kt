@@ -6,8 +6,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.bigfalkon.karakterevreni.R
 
 // Web galerisinin paleti
 val Primary = Color(0xFFBDB3FF)
@@ -52,20 +55,55 @@ private val DarkColors = darkColorScheme(
     outlineVariant = OutlineVar
 )
 
+/** Sitedeki tipografi: gövde Manrope, fantastik başlıklar Metamorphous. */
+val Manrope = FontFamily(
+    Font(R.font.manrope_400, FontWeight.Normal),
+    Font(R.font.manrope_700, FontWeight.Bold),
+    Font(R.font.manrope_800, FontWeight.ExtraBold)
+)
+val Fantastical = FontFamily(Font(R.font.metamorphous_regular, FontWeight.Normal))
+
 private val AppTypography = Typography().run {
     copy(
-        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-        titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold),
-        titleMedium = titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        labelLarge = labelLarge.copy(fontWeight = FontWeight.SemiBold),
-        bodySmall = TextStyle(fontSize = 12.sp)
+        displaySmall = displaySmall.copy(fontFamily = Fantastical),
+        headlineSmall = headlineSmall.copy(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold),
+        headlineMedium = headlineMedium.copy(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold),
+        titleLarge = titleLarge.copy(fontFamily = Manrope, fontWeight = FontWeight.Bold),
+        titleMedium = titleMedium.copy(fontFamily = Manrope, fontWeight = FontWeight.Bold),
+        titleSmall = titleSmall.copy(fontFamily = Manrope, fontWeight = FontWeight.Bold),
+        bodyLarge = bodyLarge.copy(fontFamily = Manrope),
+        bodyMedium = bodyMedium.copy(fontFamily = Manrope),
+        bodySmall = TextStyle(fontFamily = Manrope, fontSize = 12.sp),
+        labelLarge = labelLarge.copy(fontFamily = Manrope, fontWeight = FontWeight.Bold),
+        labelMedium = labelMedium.copy(fontFamily = Manrope),
+        labelSmall = labelSmall.copy(fontFamily = Manrope)
     )
 }
 
-/** Uygulama her zaman koyu temada; galeri görselleri koyu zeminde tasarlandı. */
+/**
+ * Uygulama her zaman koyu temada. Bir alternatif evren seçiliyken sitedeki
+ * `au-theme-active` davranışının karşılığı olarak vurgu rengi o evrenin rengine döner.
+ */
 @Composable
-fun KarakterEvreniTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = DarkColors, typography = AppTypography, content = content)
+fun KarakterEvreniTheme(accent: Color? = null, content: @Composable () -> Unit) {
+    val scheme = if (accent == null) DarkColors else DarkColors.copy(
+        primary = accent,
+        onPrimary = Color.Black,
+        primaryContainer = accent.copy(alpha = 0.28f).compositeOverBackground(),
+        onPrimaryContainer = accent,
+        tertiary = accent
+    )
+    MaterialTheme(colorScheme = scheme, typography = AppTypography, content = content)
+}
+
+private fun Color.compositeOverBackground(): Color {
+    val a = alpha
+    return Color(
+        red = red * a + BackgroundDark.red * (1 - a),
+        green = green * a + BackgroundDark.green * (1 - a),
+        blue = blue * a + BackgroundDark.blue * (1 - a),
+        alpha = 1f
+    )
 }
 
 /** "#64dcb4" gibi hex renkleri Compose rengine çevirir. */
