@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Karakter Evreni</string>
+    <string name="offline_title">Bağlantı yok</string>
+    <string name="offline_body">İnternet bağlantısı kurulamadı. Bağlantını kontrol edip tekrar dene.</string>
+    <string name="retry">Tekrar dene</string>
+    <string name="exit_confirm">Çıkmak için tekrar geri tuşuna bas</string>
+    <string name="download_started">İndiriliyor…</string>
+    <string name="download_saved">İndirilenler klasörüne kaydedildi: %1$s</string>
+    <string name="download_failed">İndirme başarısız</string>
+    <string name="no_app_for_link">Bu bağlantıyı açabilecek uygulama yok</string>
+</resources>
