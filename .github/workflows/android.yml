@@ -6,6 +6,8 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
+    paths-ignore:
+      - 'android/**.md'
   workflow_dispatch:
     inputs:
       publish_release:
