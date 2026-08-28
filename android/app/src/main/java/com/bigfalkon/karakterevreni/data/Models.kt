@@ -12,7 +12,8 @@ data class AuEntry(
     val star3ImageUrl: String?,
     val star3ImagePosition: String?,
     val fusionImageUrl: String?,
-    val fusionImagePosition: String?
+    val fusionImagePosition: String?,
+    val prompt: String? = null
 ) {
     fun imageFor(isFusion: Boolean): String? = if (isFusion) fusionImageUrl else star3ImageUrl
     fun positionFor(isFusion: Boolean): String? =

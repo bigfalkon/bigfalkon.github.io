@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
+import com.bigfalkon.karakterevreni.ui.AdminScreen
 import com.bigfalkon.karakterevreni.ui.AuroraBackground
 import com.bigfalkon.karakterevreni.ui.BackgroundDark
 import com.bigfalkon.karakterevreni.ui.DetailScreen
@@ -48,6 +49,7 @@ import com.bigfalkon.karakterevreni.ui.GalleryScreen
 import com.bigfalkon.karakterevreni.ui.GalleryViewModel
 import com.bigfalkon.karakterevreni.ui.ImageViewer
 import com.bigfalkon.karakterevreni.ui.KarakterEvreniTheme
+import com.bigfalkon.karakterevreni.ui.RandomScreen
 import com.bigfalkon.karakterevreni.ui.SearchScreen
 import com.bigfalkon.karakterevreni.ui.SignInDialog
 import com.bigfalkon.karakterevreni.ui.parseHexColor
@@ -98,6 +100,9 @@ private fun AppContent(
     var showSignIn by rememberSaveable { mutableStateOf(false) }
     var toolUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var toolTitle by rememberSaveable { mutableStateOf("") }
+    var showAdmin by rememberSaveable { mutableStateOf(false) }
+    var showRandom by rememberSaveable { mutableStateOf(false) }
+    var signInForAdmin by rememberSaveable { mutableStateOf(false) }
     var titleTaps by remember { mutableStateOf(0) }
     var lastTapAt by remember { mutableStateOf(0L) }
     val snackbarHost = remember { SnackbarHostState() }
@@ -122,7 +127,7 @@ private fun AppContent(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHost) },
         bottomBar = {
-            if (detailId == null && toolUrl == null) {
+            if (detailId == null && toolUrl == null && !showAdmin && !showRandom) {
                 NavigationBar(containerColor = BackgroundDark.copy(alpha = 0.92f)) {
                     Tab.entries.forEach { entry ->
                         NavigationBarItem(
@@ -137,7 +142,7 @@ private fun AppContent(
             }
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+        Box(Modifier.fillMaxSize()) {
             AnimatedContent(
                 targetState = detailId,
                 transitionSpec = {
@@ -206,6 +211,15 @@ private fun AppContent(
                         )
 
                         Tab.Tools -> ToolsScreen(
+                            onOpenRandom = { showRandom = true },
+                            onOpenAdmin = {
+                                if (state.signedIn) {
+                                    showAdmin = true
+                                } else {
+                                    signInForAdmin = true
+                                    showSignIn = true
+                                }
+                            },
                             onOpenTool = { url, title ->
                                 toolUrl = url
                                 toolTitle = title
@@ -222,6 +236,21 @@ private fun AppContent(
                     title = toolTitle,
                     onClose = { toolUrl = null }
                 )
+            }
+
+            if (showRandom) {
+                RandomScreen(
+                    state = state,
+                    onClose = { showRandom = false },
+                    onOpenCharacter = { id ->
+                        showRandom = false
+                        detailId = id
+                    }
+                )
+            }
+
+            if (showAdmin) {
+                AdminScreen(vm = vm, state = state, onClose = { showAdmin = false })
             }
 
             viewerUrl?.let { url ->
@@ -248,20 +277,29 @@ private fun AppContent(
         SignInDialog(
             signingIn = state.signingIn,
             error = state.signInError,
-            onSubmit = vm::signIn,
+            onSubmit = { email, password ->
+                vm.signIn(email, password, unlockLocked = !signInForAdmin)
+            },
             onDismiss = {
                 showSignIn = false
+                signInForAdmin = false
                 vm.clearSignInError()
             }
         )
     }
 
     LaunchedEffect(state.signedIn) {
-        if (state.signedIn) showSignIn = false
+        if (state.signedIn) {
+            showSignIn = false
+            if (signInForAdmin) {
+                signInForAdmin = false
+                showAdmin = true
+            }
+        }
     }
 
     BackHandler(
-        enabled = toolUrl == null &&
+        enabled = toolUrl == null && !showAdmin && !showRandom &&
             (viewerUrl != null || detailId != null || tab != Tab.Gallery)
     ) {
         when {

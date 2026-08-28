@@ -48,7 +48,10 @@ data class UiState(
     val unlockedAuIds: Set<String> = emptySet(),
     val signInError: String? = null,
     val signingIn: Boolean = false,
-    val unlockMessage: String? = null
+    val unlockMessage: String? = null,
+    val idToken: String? = null,
+    val adminBusy: Boolean = false,
+    val adminMessage: String? = null
 ) {
     val activeAu: AlternativeUniverse? get() = universes.firstOrNull { it.id == activeAuId }
     val races: List<String>
@@ -161,13 +164,17 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun signIn(email: String, password: String) {
+    fun signIn(email: String, password: String, unlockLocked: Boolean = true) {
         viewModelScope.launch {
             _state.update { it.copy(signingIn = true, signInError = null) }
             Auth.signIn(email.trim(), password)
-                .onSuccess {
-                    _state.update { it.copy(signingIn = false, signedIn = true) }
-                    toggleLockedUniverses()
+                .onSuccess { token ->
+                    _state.update { it.copy(signingIn = false, signedIn = true, idToken = token) }
+                    if (unlockLocked) {
+                        toggleLockedUniverses()
+                    } else {
+                        _state.update { it.copy(unlockMessage = "Giriş yapıldı.") }
+                    }
                 }
                 .onFailure { e ->
                     _state.update {
@@ -183,6 +190,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     fun signOut() = _state.update {
         it.copy(
             signedIn = false,
+            idToken = null,
             unlockedAuIds = emptySet(),
             activeAuId = if (it.universes.firstOrNull { u -> u.id == it.activeAuId }?.locked == true) {
                 null
@@ -195,6 +203,64 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearSignInError() = _state.update { it.copy(signInError = null) }
     fun consumeUnlockMessage() = _state.update { it.copy(unlockMessage = null) }
+    fun consumeAdminMessage() = _state.update { it.copy(adminMessage = null) }
+
+    // ─── Admin işlemleri ──────────────────────────────────────────────────────
+
+    private fun adminOp(success: String, onDone: (Boolean) -> Unit, op: suspend (String) -> Unit) {
+        val token = _state.value.idToken
+        if (token == null) {
+            _state.update { it.copy(adminMessage = "Önce giriş yapmalısın.") }
+            onDone(false)
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(adminBusy = true) }
+            runCatching { op(token) }
+                .onSuccess {
+                    _state.update { it.copy(adminBusy = false, adminMessage = success) }
+                    refresh()
+                    onDone(true)
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(adminBusy = false, adminMessage = e.message ?: "İşlem başarısız")
+                    }
+                    onDone(false)
+                }
+        }
+    }
+
+    fun saveCharacter(c: Character, isNew: Boolean, onDone: (Boolean) -> Unit) =
+        adminOp("Kaydedildi: ${c.name}", onDone) { t ->
+            Firestore.saveCharacter(t, if (c.isDismissed) "dismissed" else "characters", c, isNew)
+        }
+
+    fun deleteCharacter(c: Character, onDone: (Boolean) -> Unit) =
+        adminOp("Silindi: ${c.name}", onDone) { t ->
+            Firestore.deleteDocument(t, if (c.isDismissed) "dismissed" else "characters", c.id)
+        }
+
+    fun retireCharacter(c: Character, onDone: (Boolean) -> Unit) =
+        adminOp("Emekliye ayrıldı: ${c.name}", onDone) { t ->
+            Firestore.moveDocument(
+                t, "characters", "dismissed", c.id,
+                if (c.isFusion) "fusion" else "character"
+            )
+        }
+
+    fun restoreCharacter(c: Character, onDone: (Boolean) -> Unit) =
+        adminOp("Geri getirildi: ${c.name}", onDone) { t ->
+            Firestore.moveDocument(t, "dismissed", "characters", c.id, null)
+        }
+
+    fun saveUniverse(u: AlternativeUniverse, onDone: (Boolean) -> Unit) =
+        adminOp("Evren kaydedildi: ${u.name}", onDone) { t -> Firestore.saveUniverse(t, u) }
+
+    fun deleteUniverse(id: String, onDone: (Boolean) -> Unit) =
+        adminOp("Evren silindi", onDone) { t ->
+            Firestore.deleteDocument(t, "alternativeUniverses", id)
+        }
 
     fun character(id: String): Character? =
         _state.value.characters.firstOrNull { it.id == id }
@@ -219,20 +285,13 @@ fun buildGalleryItems(state: UiState): List<GalleryItem> {
 
     var items = mutableListOf<GalleryItem>()
 
-    /**
-     * Her karakter galeride tek kartla temsil edilir; kart en yüksek yıldız
-     * görselini gösterir, diğer seviyeler detay ekranında gezilir.
-     */
-    fun addOnePerCharacter(list: List<Character>) {
+    // Sitedeki galeri gibi: her yıldız seviyesi ayrı kart olarak listelenir.
+    fun addAllStars(list: List<Character>) {
         list.filterNot { it.isFusion }.sortedWith(sorted).forEach { c ->
-            val top = c.evolutions.maxByOrNull { it.star }
-            items.add(
-                if (top?.imageUrl != null) {
-                    GalleryItem(c, top.star, top.imageUrl, top.imagePosition)
-                } else {
-                    GalleryItem(c, 1, c.imageUrl, c.imagePosition)
-                }
-            )
+            items.add(GalleryItem(c, 1, c.imageUrl, c.imagePosition))
+            c.evolutions.forEach { evo ->
+                items.add(GalleryItem(c, evo.star, evo.imageUrl, evo.imagePosition))
+            }
         }
         list.filter { it.isFusion }.sortedWith(sorted).forEach { c ->
             items.add(GalleryItem(c, 4, c.previewUrl ?: c.imageUrl, c.previewPosition))
@@ -240,7 +299,7 @@ fun buildGalleryItems(state: UiState): List<GalleryItem> {
     }
 
     when (state.mode) {
-        GalleryMode.All, GalleryMode.Dismissed -> addOnePerCharacter(source)
+        GalleryMode.All, GalleryMode.Dismissed -> addAllStars(source)
         GalleryMode.Fusion -> source.filter { it.isFusion }.sortedWith(sorted).forEach { c ->
             items.add(GalleryItem(c, 4, c.previewUrl ?: c.imageUrl, c.previewPosition))
         }
@@ -263,20 +322,29 @@ fun buildGalleryItems(state: UiState): List<GalleryItem> {
     // AU modu: yalnızca o evrende karşılığı olanlar, o evrenin görselleriyle.
     val auId = state.activeAuId
     if (auId != null) {
-        val seen = mutableSetOf<String>()
+        val seenFusions = mutableSetOf<String>()
         val auItems = mutableListOf<GalleryItem>()
         items.filter { it.character.hasAuEntry(auId) }.forEach { item ->
             val entry = item.character.auData[auId] ?: return@forEach
-            if (!seen.add(item.character.id)) return@forEach
-            val isFusion = item.character.isFusion
-            auItems.add(
-                item.copy(
-                    displayStar = if (isFusion) 4 else 3,
-                    imageUrl = entry.imageFor(isFusion) ?: item.imageUrl,
-                    imagePosition = entry.positionFor(isFusion),
-                    auId = auId
+            if (item.character.isFusion) {
+                if (seenFusions.add(item.character.id)) {
+                    auItems.add(
+                        item.copy(
+                            imageUrl = entry.fusionImageUrl ?: item.imageUrl,
+                            imagePosition = entry.fusionImagePosition,
+                            auId = auId
+                        )
+                    )
+                }
+            } else if (item.displayStar == 3) {
+                auItems.add(
+                    item.copy(
+                        imageUrl = entry.star3ImageUrl ?: item.imageUrl,
+                        imagePosition = entry.star3ImagePosition,
+                        auId = auId
+                    )
                 )
-            )
+            }
         }
         items = auItems
     }

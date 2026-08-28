@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -63,7 +64,7 @@ fun SearchScreen(
         runCatching { focusRequester.requestFocus() }
     }
 
-    Column(Modifier.fillMaxSize().padding(top = 12.dp)) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 12.dp)) {
         OutlinedTextField(
             value = state.query,
             onValueChange = onQueryChange,
@@ -119,6 +120,7 @@ fun UniversesScreen(
 ) {
     val universes = state.visibleUniverses
     LazyColumn(
+        modifier = Modifier.statusBarsPadding(),
         contentPadding = PaddingValues(
             top = 16.dp,
             bottom = contentPadding.calculateBottomPadding() + 16.dp
@@ -242,17 +244,6 @@ private data class WebTool(
     val icon: ImageVector
 )
 
-private val panelTools = listOf(
-    WebTool(
-        "Admin Paneli", "Karakter ekle, düzenle, evren yönet",
-        "https://bigfalkon.github.io/index2.html", Icons.Filled.AdminPanelSettings
-    ),
-    WebTool(
-        "Rastgele Karakter", "Rastgele karakter seçici",
-        "https://bigfalkon.github.io/rastgelekarakter.html", Icons.Filled.Casino
-    )
-)
-
 private val otherTools = listOf(
     WebTool(
         "Turnuva", "Karakter turnuvası",
@@ -269,13 +260,23 @@ private val otherTools = listOf(
     WebTool(
         "Linkler", "Bağlantılar sayfası",
         "https://bigfalkon.github.io/links.html", Icons.Filled.Link
+    ),
+    WebTool(
+        "Admin Paneli (web)", "Web sürümü — yedek olarak",
+        "https://bigfalkon.github.io/index2.html", Icons.Filled.AdminPanelSettings
     )
 )
 
-/** Panel sekmesi: admin paneli ve diğer web araçları, uygulamanın içinde açılır. */
+/** Panel sekmesi: rastgele seçici ve admin paneli native; web araçları uygulama içi WebView. */
 @Composable
-fun ToolsScreen(onOpenTool: (String, String) -> Unit, contentPadding: PaddingValues) {
+fun ToolsScreen(
+    onOpenRandom: () -> Unit,
+    onOpenAdmin: () -> Unit,
+    onOpenTool: (String, String) -> Unit,
+    contentPadding: PaddingValues
+) {
     LazyColumn(
+        modifier = Modifier.statusBarsPadding(),
         contentPadding = PaddingValues(
             top = 16.dp,
             bottom = contentPadding.calculateBottomPadding() + 16.dp
@@ -289,19 +290,51 @@ fun ToolsScreen(onOpenTool: (String, String) -> Unit, contentPadding: PaddingVal
                 modifier = Modifier.padding(start = 20.dp, bottom = 4.dp)
             )
         }
+        item { SectionLabel("Uygulama") }
         item {
-            Text(
-                "Araçlar uygulamanın içinde açılır.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp)
+            NativeRow(
+                title = "Rastgele Karakter",
+                subtitle = "Havuzdan 2 rastgele karakter çek",
+                icon = Icons.Filled.Casino,
+                onClick = onOpenRandom
             )
         }
-        item { SectionLabel("Yönetim") }
-        items(panelTools) { tool -> ToolRow(tool, onOpenTool) }
-        item { SectionLabel("Diğer") }
+        item {
+            NativeRow(
+                title = "Admin Paneli",
+                subtitle = "Karakter ekle, düzenle, evren yönet · giriş gerekir",
+                icon = Icons.Filled.AdminPanelSettings,
+                onClick = onOpenAdmin
+            )
+        }
+        item { SectionLabel("Web araçları") }
         items(otherTools) { tool -> ToolRow(tool, onOpenTool) }
     }
+}
+
+@Composable
+private fun NativeRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.Bold) },
+        supportingContent = { Text(subtitle) },
+        leadingContent = {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        },
+        trailingContent = {
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable(onClick = onClick)
+    )
 }
 
 @Composable

@@ -7,8 +7,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Firebase e-posta/parola girişi (Identity Toolkit REST).
- * Gizli evrenlerin kilidini açmak için sitedeki "giriş yapmış olma" şartının karşılığı.
+ * Firebase e-posta/parola girişi (Identity Toolkit REST). Dönen idToken,
+ * gizli evren kilidi ve admin panelindeki Firestore yazmaları için kullanılır.
  */
 object Auth {
 
@@ -50,7 +50,7 @@ object Auth {
                         )
                     }
                     val body = conn.inputStream.bufferedReader().use { it.readText() }
-                    JSONObject(body).optString("localId")
+                    JSONObject(body).optString("idToken")
                 } finally {
                     conn.disconnect()
                 }

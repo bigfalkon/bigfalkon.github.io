@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -88,7 +89,10 @@ fun GalleryScreen(
                         state.activeAu?.name ?: "Karakter Evreni",
                         fontFamily = Fantastical,
                         fontSize = 22.sp,
-                        color = accent
+                        color = accent,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            shadow = Shadow(color = accent.copy(alpha = 0.55f), blurRadius = 22f)
+                        )
                     )
                     Text(
                         if (state.activeAu != null) {

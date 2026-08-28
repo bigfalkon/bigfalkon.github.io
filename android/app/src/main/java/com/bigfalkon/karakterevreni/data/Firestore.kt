@@ -1,6 +1,7 @@
 package com.bigfalkon.karakterevreni.data
 
 import android.content.Context
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -12,6 +13,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.Date
 import java.util.TimeZone
 
 /**
@@ -141,7 +143,8 @@ object Firestore {
                         star3ImageUrl = str(f.optJSONObject("star3ImageUrl")),
                         star3ImagePosition = str(f.optJSONObject("star3ImagePosition")),
                         fusionImageUrl = str(f.optJSONObject("fusionImageUrl")),
-                        fusionImagePosition = str(f.optJSONObject("fusionImagePosition"))
+                        fusionImagePosition = str(f.optJSONObject("fusionImagePosition")),
+                        prompt = str(f.optJSONObject("prompt"))
                     )
                 )
             }
@@ -218,6 +221,7 @@ object Firestore {
                                 put("star3ImagePosition", a.star3ImagePosition ?: JSONObject.NULL)
                                 put("fusionImageUrl", a.fusionImageUrl ?: JSONObject.NULL)
                                 put("fusionImagePosition", a.fusionImagePosition ?: JSONObject.NULL)
+                                put("prompt", a.prompt ?: JSONObject.NULL)
                             })
                         }
                     })
@@ -277,7 +281,8 @@ object Firestore {
                                 id,
                                 AuEntry(
                                     s(a, "star3ImageUrl"), s(a, "star3ImagePosition"),
-                                    s(a, "fusionImageUrl"), s(a, "fusionImagePosition")
+                                    s(a, "fusionImageUrl"), s(a, "fusionImagePosition"),
+                                    s(a, "prompt")
                                 )
                             )
                         }
@@ -303,5 +308,139 @@ object Firestore {
                 )
             }
         )
+    }
+
+    // ─── Yazma işlemleri (admin paneli) ───────────────────────────────────────
+    // Site admin panelinin Firebase SDK ile yaptığı set/update/delete işlemlerinin
+    // REST karşılığı. idToken: Auth.signIn'den gelen Firebase kimlik jetonu.
+
+    private fun authedRequest(method: String, url: String, idToken: String, body: String?): String {
+        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+            // HttpURLConnection PATCH bilmez; Google API'leri method override kabul eder.
+            requestMethod = if (method == "PATCH") "POST" else method
+            if (method == "PATCH") setRequestProperty("X-HTTP-Method-Override", "PATCH")
+            connectTimeout = 15_000
+            readTimeout = 30_000
+            setRequestProperty("Authorization", "Bearer $idToken")
+            setRequestProperty("Content-Type", "application/json")
+            if (body != null) doOutput = true
+        }
+        try {
+            if (body != null) conn.outputStream.use { it.write(body.toByteArray()) }
+            if (conn.responseCode !in 200..299) {
+                val err = conn.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                error("Firestore ${conn.responseCode}: ${err.take(200)}")
+            }
+            return conn.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun vNull() = JSONObject().put("nullValue", JSONObject.NULL)
+    private fun vStr(s: String?) = if (s == null) vNull() else JSONObject().put("stringValue", s)
+    private fun vInt(i: Int) = JSONObject().put("integerValue", i.toString())
+    private fun vBool(b: Boolean) = JSONObject().put("booleanValue", b)
+    private fun vTs(ms: Long) =
+        JSONObject().put("timestampValue", timestampFormat.format(Date(ms)) + "Z")
+    private fun vArr(values: List<JSONObject>) =
+        JSONObject().put("arrayValue", JSONObject().put("values", JSONArray(values)))
+    private fun vMap(fields: JSONObject) =
+        JSONObject().put("mapValue", JSONObject().put("fields", fields))
+
+    private fun auEntryFields(a: AuEntry): JSONObject = JSONObject().apply {
+        a.star3ImageUrl?.let { put("star3ImageUrl", vStr(it)) }
+        a.star3ImagePosition?.let { put("star3ImagePosition", vStr(it)) }
+        a.fusionImageUrl?.let { put("fusionImageUrl", vStr(it)) }
+        a.fusionImagePosition?.let { put("fusionImagePosition", vStr(it)) }
+        a.prompt?.let { put("prompt", vStr(it)) }
+    }
+
+    /** Karakteri Firestore alanlarına çevirir; mask düzenlenen alanları sınırlar. */
+    private fun characterPayload(c: Character, includeTimestamp: Boolean): Pair<JSONObject, List<String>> {
+        val fields = JSONObject()
+        val mask = mutableListOf<String>()
+        fun set(name: String, v: JSONObject) { fields.put(name, v); mask.add(name) }
+
+        set("name", vStr(c.name))
+        set("irk", vStr(c.irk))
+        set("star", vInt(c.star))
+        set("isFusion", vBool(c.isFusion))
+        set("imageUrl", vStr(c.imageUrl))
+        set("imagePosition", vStr(c.imagePosition))
+        if (c.isFusion) {
+            set("previewUrl", vStr(c.previewUrl))
+            set("previewPosition", vStr(c.previewPosition))
+            set("fusionPartners", vArr(c.fusionPartners.map { vStr(it) }))
+        } else {
+            set("evolutions", vArr(c.evolutions.map { e ->
+                vMap(JSONObject().apply {
+                    put("star", vInt(e.star))
+                    put("imageUrl", vStr(e.imageUrl))
+                    put("imagePosition", vStr(e.imagePosition))
+                })
+            }))
+        }
+        set("auData", vMap(JSONObject().apply {
+            c.auData.forEach { (id, a) -> put(id, vMap(auEntryFields(a))) }
+        }))
+        if (includeTimestamp) {
+            set("eklenmeTarihi", vTs(if (c.addedAt > 0) c.addedAt else System.currentTimeMillis()))
+        }
+        return fields to mask
+    }
+
+    private fun patch(idToken: String, collection: String, id: String, fields: JSONObject, mask: List<String>?) {
+        val maskQ = mask?.joinToString("") { "&updateMask.fieldPaths=$it" }.orEmpty()
+        val url = "$BASE/$collection/${Uri.encode(id)}?key=$API_KEY$maskQ"
+        authedRequest("PATCH", url, idToken, JSONObject().put("fields", fields).toString())
+    }
+
+    suspend fun saveCharacter(idToken: String, collection: String, c: Character, isNew: Boolean): Unit =
+        withContext(Dispatchers.IO) {
+            val (fields, mask) = characterPayload(c, includeTimestamp = isNew)
+            // Yeni kayıtta belge tamamen yazılır; düzenlemede mask bilinmeyen alanları korur.
+            patch(idToken, collection, c.id, fields, if (isNew) null else mask)
+        }
+
+    suspend fun saveUniverse(idToken: String, u: AlternativeUniverse): Unit =
+        withContext(Dispatchers.IO) {
+            val fields = JSONObject().apply {
+                put("name", vStr(u.name))
+                put("color", vStr(u.color))
+                put("icon", vStr(u.icon))
+                put("locked", vBool(u.locked))
+                put("description", vStr(u.description ?: ""))
+            }
+            patch(idToken, "alternativeUniverses", u.id, fields, null)
+        }
+
+    suspend fun deleteDocument(idToken: String, collection: String, id: String): Unit =
+        withContext(Dispatchers.IO) {
+            authedRequest("DELETE", "$BASE/$collection/${Uri.encode(id)}?key=$API_KEY", idToken, null)
+        }
+
+    /**
+     * Emekliye ayırma / geri getirme: sitedeki gibi belge olduğu gibi kopyalanır
+     * (bilinmeyen alanlar dahil), hedefe yazılır, kaynaktan silinir.
+     * addType null ise "type" alanı düşürülür (geri getirme).
+     */
+    suspend fun moveDocument(
+        idToken: String,
+        fromCollection: String,
+        toCollection: String,
+        id: String,
+        addType: String?
+    ): Unit = withContext(Dispatchers.IO) {
+        val raw = JSONObject(get("$BASE/$fromCollection/${Uri.encode(id)}?key=$API_KEY"))
+        val fields = raw.optJSONObject("fields") ?: JSONObject()
+        if (addType != null) fields.put("type", vStr(addType)) else fields.remove("type")
+        authedRequest(
+            "PATCH",
+            "$BASE/$toCollection/${Uri.encode(id)}?key=$API_KEY",
+            idToken,
+            JSONObject().put("fields", fields).toString()
+        )
+        authedRequest("DELETE", "$BASE/$fromCollection/${Uri.encode(id)}?key=$API_KEY", idToken, null)
     }
 }
