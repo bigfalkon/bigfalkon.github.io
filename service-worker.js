@@ -42,6 +42,23 @@ function stripCacheBust(rawUrl) {
 
 // ─── Fetch — cache-first for images ──────────────────────────────────────────
 self.addEventListener('fetch', event => {
+    
+    // --- YENİ EKLENEN DÜZELTME BAŞLANGICI ---
+    // 1. Sadece GET (okuma) isteklerine müdahale et. Firebase kayıtları (POST) pas geçilir.
+    if (event.request.method !== 'GET') return;
+
+    // 2. Firebase, Kimlik Doğrulama ve Resim yükleme sunucularını Service Worker'dan tamamen gizle.
+    const url = event.request.url;
+    if (
+        url.includes('firestore.googleapis.com') ||
+        url.includes('identitytoolkit.googleapis.com') ||
+        url.includes('api.imgbb.com') ||
+        url.includes('vgy.me')
+    ) {
+        return;
+    }
+    // --- YENİ EKLENEN DÜZELTME BİTİŞİ ---
+
     if (event.request.destination === 'image') {
         const cleanUrl = stripCacheBust(event.request.url);
         event.respondWith(
@@ -100,13 +117,6 @@ self.addEventListener('message', event => {
 });
 
 // ─── Image fetching (shared strategy with character-backup-tool.html) ───────
-// Image hosts (imgbb, vgy…) don't send CORS headers, so a plain fetch() fails.
-// Try, in order:
-//   1) direct CORS fetch  → readable body (best: the backup tool can zip it)
-//   2) wsrv.nl CORS proxy → readable body
-//   3) no-cors fetch      → opaque response (display-only, body unreadable)
-// Readable responses stored here are reused by the backup tool, so images
-// cached from index/index2 don't need to be downloaded again for backups.
 const CORS_PROXY = url => 'https://wsrv.nl/?url=' + encodeURIComponent(url);
 
 async function fetchImageResponse(url) {
