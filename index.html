@@ -558,6 +558,22 @@ const firebaseConfig = {
   appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
 };
 firebase.initializeApp(firebaseConfig);
+
+// ─── Image self-heal ──────────────────────────────────────────────────────
+// ImgBB, yüzlerce resmi art arda çekerken ara sıra "spam korumasına" takılıp
+// geçici bir hata döndürebiliyor. Service Worker artık bu hatalı cevapları
+// cache'e yazmıyor, ama yine de ekranda kırık resim kalmasın diye burada
+// küçük bir otomatik yeniden deneme yapıyoruz (üstel artan gecikmeyle,
+// en fazla 3 deneme).
+function handleImgError(img) {
+    const tries = parseInt(img.dataset.retry || '0', 10);
+    if (tries >= 3) return; // pes et, kırık resim olarak kalsın
+    img.dataset.retry = tries + 1;
+    const base = img.src.split('?')[0];
+    setTimeout(() => {
+        img.src = base + '?_t=' + Date.now();
+    }, 500 * (tries + 1));
+}
 const db   = firebase.firestore();
 const auth = firebase.auth();
 let _authUser = null;
@@ -840,9 +856,9 @@ function _buildCard(char, index) {
     if (isFusion && char.previewUrl) {
         const auFusionImg = activeAuEntry?.fusionImageUrl || null;
         const previewSrc = auFusionImg || char.previewUrl;
-        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy" decoding="async"${focusStyle}>`;
+        imageHtml = `<img src="${previewSrc}" alt="${char.name}" class="character-card-image" loading="lazy" decoding="async" onerror="handleImgError(this)"${focusStyle}>`;
     } else {
-        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy" decoding="async"${focusStyle}>`;
+        imageHtml = `<img src="${resolvedImgUrl}" alt="${char.name}" class="character-card-image" loading="lazy" decoding="async" onerror="handleImgError(this)"${focusStyle}>`;
     }
 
     card.innerHTML = `
@@ -1457,7 +1473,7 @@ function _buildSearchCard(item) {
         }, 310);
     });
     const nc = (item.isFusion || item.isDismissed) ? 'font-fantastical' : '';
-    card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0" loading="lazy">
+    card.innerHTML = `<img src="${item.displayImageUrl}" alt="${item.name}" class="w-24 h-24 object-cover rounded-md flex-shrink-0" loading="lazy" onerror="handleImgError(this)">
         <div class="flex flex-col gap-1">
             <h4 class="text-lg font-bold ${nc}">${item.name}</h4>
             <div>${getStarEmojis(item.isFusion, item.isDismissed, item.displayStar)}</div>

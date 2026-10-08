@@ -62,17 +62,39 @@ self.addEventListener('fetch', event => {
     if (event.request.destination === 'image') {
         const cleanUrl = stripCacheBust(event.request.url);
         event.respondWith(
-            caches.open(IMAGE_CACHE_NAME).then(imgCache =>
-                imgCache.match(cleanUrl).then(cached => {
-                    if (cached) return cached;
-                    return fetch(event.request).then(res => {
-                        if (res.ok || res.type === 'opaque') {
-                            imgCache.put(cleanUrl, res.clone()).catch(() => {});
-                        }
+            caches.open(IMAGE_CACHE_NAME).then(async imgCache => {
+                const cached = await imgCache.match(cleanUrl);
+                if (cached) return cached;
+
+                // ÖNEMLİ: <img> etiketinden gelen istek 'no-cors' modunda olduğu için
+                // fetch(event.request) HER ZAMAN "opaque" bir response döner
+                // (status 0, ok:false) — ImgBB gerçekten resmi verse de,
+                // "spam" koruması devreye girip hata sayfası döndürse de fark etmez.
+                // Eski kod `res.type === 'opaque'` olduğu için bunu "başarılı" sayıp
+                // cache'e yazıyordu; bu yüzden rate-limit'e takılan istekler bozuk
+                // halde cache'e kalıcı olarak gömülüyordu.
+                // Çözüm: isteği kendimiz 'cors' modunda atıp gerçek status'u görüyoruz.
+                try {
+                    const res = await fetch(cleanUrl, { mode: 'cors' });
+                    if (res.ok) {
+                        imgCache.put(cleanUrl, res.clone()).catch(() => {});
                         return res;
-                    }).catch(() => cached || new Response('', { status: 404 }));
-                })
-            )
+                    }
+                    // 429 / 403 vb. — cache'e YAZMIYORUZ, böylece bir sonraki
+                    // denemede (ör. img onerror retry) tekrar denenebilir.
+                    return res;
+                } catch (_) {
+                    // CORS fetch bazı nadir durumlarda (ör. CORS header eksikse)
+                    // başarısız olabilir — orijinal no-cors isteğe geri dön ama
+                    // yine de cache'e YAZMA, çünkü gerçekten başarılı mı
+                    // bilemiyoruz.
+                    try {
+                        return await fetch(event.request);
+                    } catch (_) {
+                        return cached || new Response('', { status: 404 });
+                    }
+                }
+            })
         );
         return;
     }
@@ -122,13 +144,18 @@ const CORS_PROXY = url => 'https://wsrv.nl/?url=' + encodeURIComponent(url);
 async function fetchImageResponse(url) {
     try {
         const res = await fetch(url, { mode: 'cors' });
-        if (res.ok) return res;
+        if (res.ok) return { res, verified: true };
     } catch (_) {}
     try {
         const res = await fetch(CORS_PROXY(url), { mode: 'cors' });
-        if (res.ok) return res;
+        if (res.ok) return { res, verified: true };
     } catch (_) {}
-    return fetch(url, { mode: 'no-cors' });
+    // Son çare: no-cors. Bu her zaman "opaque" bir response döner (status 0),
+    // yani ImgBB gerçekten resmi verse de spam korumasına takılıp hata
+    // sayfası döndürse de SONUÇ AYNI GÖRÜNÜR — ayırt edemeyiz.
+    // Bu yüzden verified:false işaretliyoruz ki cache'e YAZILMASIN.
+    const res = await fetch(url, { mode: 'no-cors' });
+    return { res, verified: false };
 }
 
 // ─── Precache images ────────────────────────────────────────────────────────
@@ -166,9 +193,20 @@ async function precacheImages(urls) {
                     return;
                 }
 
-                const res = await fetchImageResponse(url);
-                await cache.put(url, res);
-                done++;
+                const { res, verified } = await fetchImageResponse(url);
+                if (verified) {
+                    await cache.put(url, res);
+                    done++;
+                } else {
+                    // Durumu doğrulayamadık (opaque response) — eskiden burada
+                    // koşulsuz cache.put() yapılıyordu ve bu, ImgBB'nin spam
+                    // korumasına takılan istekleri "başarılı" diye kalıcı
+                    // olarak cache'e gömüyordu. Artık yazmıyoruz; bunun yerine
+                    // "failed" listesine ekleyip bir sonraki "Cache Images"
+                    // tıklamasında tekrar denenmesini sağlıyoruz.
+                    done++;
+                    failed.push({ url, reason: 'unverified (opaque) — not cached', durationMs: Date.now() - t0 });
+                }
             } catch (e) {
                 done++;
                 const reason = e.name === 'QuotaExceededError' ? 'storage full'

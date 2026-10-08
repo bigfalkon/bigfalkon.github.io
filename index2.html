@@ -1047,6 +1047,21 @@ const firebaseConfig = {
   appId: "1:486669559067:web:20c76a78a41d9bc0bbdfbe"
 };
 firebase.initializeApp(firebaseConfig);
+
+// ─── Image self-heal ──────────────────────────────────────────────────────
+// index.html'dekiyle aynı mantık: ImgBB'nin spam korumasına takılıp kırık
+// gelen bir küçük resim varsa, cache-bust ederek birkaç kez otomatik tekrar
+// dener (SW artık bu hataları cache'e yazmadığı için bu genelde geçici bir
+// ağ hıçkırığı demektir).
+function handleImgError(img) {
+    const tries = parseInt(img.dataset.retry || '0', 10);
+    if (tries >= 3) return;
+    img.dataset.retry = tries + 1;
+    const base = img.src.split('?')[0];
+    setTimeout(() => {
+        img.src = base + '?_t=' + Date.now();
+    }, 500 * (tries + 1));
+}
 const db = firebase.firestore();
 
 let apiKeys = { imgbb_main_key: null, imgbb2_key: null, vgy_user_key: null };
@@ -1300,15 +1315,15 @@ function renderAdminPanel() {
         let imgBlock;
         if (isFusion) {
             const url = item.previewUrl || '';
-            imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${url}')"><img src="${url}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy"${posStyle(item.previewPosition)}></div>`;
+            imgBlock = `<div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${url}')"><img src="${url}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy" onerror="handleImgError(this)"${posStyle(item.previewPosition)}></div>`;
         } else {
             const e2 = item.evolutions?.find(e=>e.star===2), e3 = item.evolutions?.find(e=>e.star===3);
             const tc = "w-8 h-12 md:w-16 md:h-24 flex-shrink-0 rounded-md overflow-hidden bg-black/20 border border-white/10 flex items-center justify-center";
             imgBlock = `<div class="flex items-center gap-3">
-                <div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} 1★" class="w-full h-full object-cover" loading="lazy"${posStyle(item.imagePosition)}></div>
+                <div class="w-16 h-24 md:w-32 md:h-48 flex-shrink-0 rounded-lg overflow-hidden cursor-zoom-in" onclick="enlargeImage(event,'${item.imageUrl}')"><img src="${item.imageUrl}" alt="${item.name} 1★" class="w-full h-full object-cover" loading="lazy" onerror="handleImgError(this)"${posStyle(item.imagePosition)}></div>
                 <div class="flex flex-col gap-1.5">
-                    <div class="${tc}" ${e2?`onclick="enlargeImage(event,'${e2.imageUrl}')"`:''}>${e2?`<img src="${e2.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy"${posStyle(e2.imagePosition)}>`:'<span class="text-sm font-bold text-gray-500">2★</span>'}</div>
-                    <div class="${tc}" ${e3?`onclick="enlargeImage(event,'${e3.imageUrl}')"`:''}>${e3?`<img src="${e3.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy"${posStyle(e3.imagePosition)}>`:'<span class="text-sm font-bold text-gray-500">3★</span>'}</div>
+                    <div class="${tc}" ${e2?`onclick="enlargeImage(event,'${e2.imageUrl}')"`:''}>${e2?`<img src="${e2.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy" onerror="handleImgError(this)"${posStyle(e2.imagePosition)}>`:'<span class="text-sm font-bold text-gray-500">2★</span>'}</div>
+                    <div class="${tc}" ${e3?`onclick="enlargeImage(event,'${e3.imageUrl}')"`:''}>${e3?`<img src="${e3.imageUrl}" class="w-full h-full object-cover cursor-zoom-in" loading="lazy" onerror="handleImgError(this)"${posStyle(e3.imagePosition)}>`:'<span class="text-sm font-bold text-gray-500">3★</span>'}</div>
                 </div>
             </div>`;
         }
