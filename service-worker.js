@@ -139,8 +139,8 @@ async function precacheImages(urls) {
     let done = 0, skipped = 0;
     const total = urls.length;
     const failed = [];
-    const BATCH    = 6;
-    const DELAY_MS = 50;
+    const BATCH    = 3;
+    const DELAY_MS = 200;
     const startTime = Date.now();
 
     for (let i = 0; i < urls.length; i += BATCH) {
