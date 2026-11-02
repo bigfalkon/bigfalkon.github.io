@@ -96,7 +96,7 @@
         <div class="card mb-4" style="background:var(--surface-h)">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="text-sm">
-              <div><b>Smart cache:</b> previously downloaded images are kept in this browser and shared with the site's image cache (the "Cache Images" button on index2), so future backups only re-download <u>new or changed images</u>.</div>
+              <div><b>Smart cache:</b> previously downloaded images are kept in this browser, so future backups only re-download <u>new or changed images</u>.</div>
               <div class="text-xs text-gray-400 mt-1" id="cache-stats">Cache: loading…</div>
               <div class="text-xs text-gray-400" id="last-backup-label">Last backup: none yet</div>
             </div>
@@ -107,6 +107,19 @@
         <label class="flex items-center gap-2 text-sm mb-4">
           <input type="checkbox" id="export-include-keys"> Also back up API keys (settings/apiKeys — sensitive data, use with care)
         </label>
+
+        <div class="card mb-4" style="background:var(--surface-h)">
+          <div class="font-bold text-sm mb-1">📂 Previous backup (optional)</div>
+          <p class="text-xs text-gray-400 mb-3">Select your last backup: either the .zip itself or the folder you extracted it into. Images that are already inside it are copied over instead of being downloaded again. If you dropped a replacement picture into its <code>images</code> folder (same file name as the missing one), that gets picked up too.</p>
+          <div class="grid md:grid-cols-2 gap-3 text-sm">
+            <div><label class="text-gray-400 text-xs">Backup .zip file</label><input type="file" id="prev-zip" accept=".zip" class="input"></div>
+            <div><label class="text-gray-400 text-xs">…or the extracted folder</label><input type="file" id="prev-folder" webkitdirectory directory multiple class="input"></div>
+          </div>
+          <div class="flex items-center flex-wrap gap-3 mt-3">
+            <span id="prev-status" class="text-xs text-gray-400">No previous backup selected. Anything not in the browser cache will be downloaded.</span>
+            <button id="prev-clear-btn" class="btn btn-sec text-xs hidden">✖ Clear</button>
+          </div>
+        </div>
 
         <button id="export-btn" class="btn btn-success" disabled><span>⬇️</span> Back Up Data and Images</button>
 
@@ -132,6 +145,16 @@
           <div class="progress-track"><div id="export-progress-fill" class="progress-fill"></div></div>
         </div>
         <div id="export-log" class="log mt-3"></div>
+
+        <div id="missing-card" class="card mt-4 hidden" style="background:var(--surface-h);border-color:var(--warning)">
+          <div id="missing-title" class="font-bold text-sm mb-1"></div>
+          <p class="text-xs text-gray-400 mb-3">These links are dead or blocked, so the pictures are NOT in your backup. If you still have them on your PC or phone, pick the file next to each one (on a phone the picker opens your gallery/files). Replacements are remembered in this browser, so future backups include them and stop warning. Note: your live app still points at the old dead link, so a replacement only fixes the backup.</p>
+          <div id="missing-list" class="space-y-2"></div>
+          <div class="flex flex-wrap items-center gap-3 mt-3">
+            <button id="missing-rebuild-btn" class="btn btn-success hidden"><span>⬇️</span> Download updated backup zip</button>
+            <span id="missing-note" class="text-xs text-gray-400"></span>
+          </div>
+        </div>
       </div>
 
       <!-- IMPORT PANEL -->
@@ -257,81 +280,6 @@
     return results;
   }
 
-  // ───────────────────────────── Shared image cache & CORS-safe fetching ─────────────────────────────
-  // Image hosts (imgbb, vgy…) don't send CORS headers, so a plain fetch() from
-  // this page fails with "Failed to fetch". The strategy below is shared with
-  // service-worker.js / index2.html's "Cache Images" button:
-  //   1) this tool's own IndexedDB cache
-  //   2) the site-wide service worker image cache (populated by index/index2)
-  //   3) direct CORS fetch
-  //   4) wsrv.nl CORS proxy
-  // Downloads are written back to BOTH caches, so index/index2 and this tool
-  // never download the same image twice between them.
-  const SHARED_IMAGE_CACHE = 'karakter-images-v2'; // must match service-worker.js
-  const CORS_PROXY = url => 'https://wsrv.nl/?url=' + encodeURIComponent(url);
-
-  // Same normalization as service-worker.js, so cache keys line up
-  function cleanImageUrl(rawUrl){
-    return String(rawUrl)
-      .replace(/[?&]_t=\d+/g, '')
-      .replace(/\?&/, '?')
-      .replace(/\?$/, '');
-  }
-
-  async function openSharedCache(){
-    try { return await caches.open(SHARED_IMAGE_CACHE); }
-    catch(e) { return null; } // caches API unavailable (e.g. file://)
-  }
-
-  // Resolve an image URL to a blob using the layered strategy above.
-  // Returns { blob, source } or throws.
-  async function fetchImageBlob(url, sharedCache){
-    // 1) Own IndexedDB cache
-    const cached = await idbGet('images', url).catch(() => null);
-    if (cached && cached.blob && cached.blob.size) {
-      return { blob: cached.blob, source: 'cache' };
-    }
-
-    // 2) Shared service-worker cache (readable entries only — opaque no-cors
-    //    responses have an unreadable body and are display-only)
-    if (sharedCache) {
-      try {
-        const res = await sharedCache.match(url);
-        if (res && res.type !== 'opaque') {
-          const blob = await res.clone().blob();
-          if (blob.size) {
-            await idbPut('images', { url, blob, cachedAt: Date.now() }).catch(() => {});
-            return { blob, source: 'shared' };
-          }
-        }
-      } catch(e) { /* fall through to network */ }
-    }
-
-    // 3) Direct CORS fetch, 4) CORS proxy fallback
-    let blob = null;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      blob = await res.blob();
-    } catch(e) {
-      const res = await fetch(CORS_PROXY(url));
-      if (!res.ok) throw new Error('proxy HTTP ' + res.status);
-      blob = await res.blob();
-    }
-    if (!blob || !blob.size) throw new Error('empty response');
-
-    // Store in both caches so index/index2 and future backups reuse it
-    await idbPut('images', { url, blob, cachedAt: Date.now() }).catch(() => {});
-    if (sharedCache) {
-      try {
-        await sharedCache.put(url, new Response(blob, {
-          headers: { 'Content-Type': blob.type || 'image/jpeg' }
-        }));
-      } catch(e) { /* quota / unsupported — non-fatal */ }
-    }
-    return { blob, source: 'network' };
-  }
-
   // ───────────────────────────── Local cache (IndexedDB) ─────────────────────────────
   // Stores previously-downloaded image blobs (keyed by URL) and the last known
   // JSON snapshot of each collection, so repeat backups only fetch what's new.
@@ -392,15 +340,7 @@
       const images = await idbGetAll('images');
       const bytes = images.reduce((sum, r) => sum + (r.blob?.size || 0), 0);
       const mb = (bytes / (1024*1024)).toFixed(1);
-      let sharedTxt = '';
-      try {
-        const sharedCache = await openSharedCache();
-        if (sharedCache) {
-          const keys = await sharedCache.keys();
-          sharedTxt = ` · site image cache (index/index2): ${keys.length} entries`;
-        }
-      } catch(e){}
-      $('cache-stats').textContent = `Cache: ${images.length} images, ~${mb} MB${sharedTxt}`;
+      $('cache-stats').textContent = `Cache: ${images.length} images, ~${mb} MB`;
     } catch(e) {
       $('cache-stats').textContent = 'Cache: could not read';
     }
@@ -567,6 +507,7 @@
           $('login-status').textContent = '';
           $('main-tabs').classList.remove('hidden');
           $('export-btn').disabled = false;
+          loadPendingMissing();
         } else {
           $('signed-in-box').classList.add('hidden');
           $('main-tabs').classList.add('hidden');
@@ -651,14 +592,15 @@
 
       // Collect image references
       const imageMap = new Map(); // url -> { savedAs, owners: [] }
+      const labels = new Map();
       function addImg(url, coll, id, field){
         if (!url || typeof url !== 'string') return;
-        url = cleanImageUrl(url); // same key as the service-worker cache; dedupes ?_t= busters
         if (!imageMap.has(url)) imageMap.set(url, { owners: [] });
-        imageMap.get(url).owners.push({ coll, id, field });
+        imageMap.get(url).owners.push({ coll, id, field, label: labels.get(coll + '/' + id) || '' });
       }
       characters.forEach(c => c.__coll = 'characters');
       dismissedArr.forEach(c => c.__coll = 'dismissed');
+      [...characters, ...dismissedArr].forEach(c => labels.set(c.__coll + '/' + c.id, String(c.name || c.characterName || c.title || '').slice(0, 60)));
       [...characters, ...dismissedArr].forEach(c => {
         addImg(c.imageUrl, c.__coll, c.id, 'imageUrl');
         addImg(c.previewUrl, c.__coll, c.id, 'previewUrl');
@@ -675,9 +617,8 @@
 
       const zip = new JSZip();
       const imagesFolder = zip.folder('images');
-      let done = 0, failed = 0, fromCache = 0, fromShared = 0, freshlyDownloaded = 0;
+      let done = 0, failed = 0, fromCache = 0, fromPrev = 0, fromApp = 0, freshlyDownloaded = 0;
       const usedNames = new Set();
-      const sharedCache = await openSharedCache();
 
       await pool(urls, 6, async (url) => {
         const info = imageMap.get(url);
@@ -691,12 +632,55 @@
         info.savedAs = filename;
 
         try {
-          const { blob, source } = await fetchImageBlob(url, sharedCache);
-          imagesFolder.file(filename, blob);
-          info.status = 'ok';
-          if (source === 'cache') fromCache++;
-          else if (source === 'shared') fromShared++;
-          else freshlyDownloaded++;
+          // 1) Local browser cache (also holds images you replaced by hand)
+          const cached = await idbGet('images', url);
+          if (cached && cached.blob) {
+            imagesFolder.file(filename, cached.blob);
+            info.status = 'ok';
+            fromCache++;
+          } else {
+            // 2) The previous backup you selected (zip or folder)
+            let prevBlob = null;
+            const prevEntry = prevBackup && prevBackup.lookup.get(url);
+            if (prevEntry) {
+              try { const b = await prevEntry.get(); if (b && b.size > 0) prevBlob = b; } catch(_) {}
+            }
+            if (prevBlob) {
+              imagesFolder.file(filename, prevBlob);
+              info.status = 'ok';
+              fromPrev++;
+            } else {
+              // 3) The app's own Cache Storage (its service worker cache). Only reachable when this tool
+              //    is opened from the same site as the app, and only readable if the entry is not "opaque".
+              let appBlob = null;
+              if (typeof caches !== 'undefined') {
+                try {
+                  const r = await caches.match(url, { ignoreVary: true });
+                  if (r && r.type !== 'opaque' && r.ok) {
+                    const b = await r.blob();
+                    if (b.size > 0 && !/^(text\/|application\/json)/i.test(b.type)) appBlob = b;
+                  }
+                } catch(_) {}
+              }
+              if (appBlob) {
+                imagesFolder.file(filename, appBlob);
+                await idbPut('images', { url, blob: appBlob, savedAs: filename, cachedAt: Date.now(), fromAppCache: true });
+                info.status = 'ok';
+                fromApp++;
+              } else {
+              // 4) Not available locally — download it and remember it for next time
+              const res = await fetch(url);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const blob = await res.blob();
+              if (blob.size === 0) throw new Error('empty response');
+              if (/^(text\/|application\/json)/i.test(blob.type)) throw new Error('not an image (' + blob.type + ')');
+              imagesFolder.file(filename, blob);
+              await idbPut('images', { url, blob, savedAs: filename, cachedAt: Date.now() });
+              info.status = 'ok';
+              freshlyDownloaded++;
+              }
+            }
+          }
         } catch(e) {
           info.status = 'failed';
           info.error = e.message;
@@ -707,7 +691,19 @@
         setProgress('export', 5 + (done/urls.length)*80, `Processing images (${done}/${urls.length})`);
       });
 
-      log('export', `Image summary: ${fromCache} from this tool's cache, ${fromShared} reused from the site image cache (index/index2), ${freshlyDownloaded} freshly downloaded, ${failed} failed.`);
+      log('export', `Image summary: ${fromCache} from browser cache, ${fromPrev} reused from previous backup, ${fromApp} recovered from the app's cache, ${freshlyDownloaded} freshly downloaded, ${failed} failed.`);
+
+      // Remember which images failed so we can warn and let you replace them
+      lastExport = null;
+      missingList = urls.filter(u => imageMap.get(u).status === 'failed').map(u => {
+        const i = imageMap.get(u);
+        return { url: u, savedAs: i.savedAs, owners: i.owners, error: i.error || '', status: 'missing' };
+      });
+      try {
+        await idbPut('snapshots', { coll: '__missingImages', data: missingList.map(m => ({ url: m.url, savedAs: m.savedAs, owners: m.owners, error: m.error })), updatedAt: Date.now() });
+      } catch(_) {}
+      if (missingList.length) log('export', `⚠️ ${missingList.length} image(s) could not be downloaded. See the "Missing images" box below the log: pick replacement files from your PC or phone.`);
+      renderMissing(!auto);
 
       // Build manifest
       const manifest = urls.map(url => {
@@ -734,6 +730,7 @@
         }
       }, null, 2));
 
+      lastExport = { zip, imagesFolder, imageMap, urls, dirty: false };
       setProgress('export', 90, 'Building zip file…');
       log('export', 'Building zip file…');
       const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
@@ -756,7 +753,7 @@
         idbPut('snapshots', { coll: 'promptLibrary', data: promptLibrary, updatedAt: Date.now() }),
       ]);
 
-      const summary = `${fromCache + fromShared} from cache, ${freshlyDownloaded} newly downloaded, ${failed} failed`;
+      const summary = `${fromCache} from cache, ${fromPrev} from previous backup, ${fromApp} from app cache, ${freshlyDownloaded} newly downloaded, ${failed} failed`;
       localStorage.setItem('kg-last-backup', JSON.stringify({ at: new Date().toISOString(), summary }));
       await refreshCacheStats();
 
@@ -793,6 +790,245 @@
   refreshCacheStats();
   initConfigForm();
 
+  // ───────────────────────────── Previous backup (skip what you already have) ─────────────────────────────
+  let prevBackup = null;   // { label, lookup: Map(url -> {name, get()}), have, missing, total }
+  let lastExport = null;   // in-memory zip of the most recent run, so it can be rebuilt after replacements
+  let missingList = [];    // images that could not be downloaded
+
+  function stemOf(name){ return name.replace(/\.[^.\/]+$/, ''); }
+
+  // entries: [{ path, get: () => Promise<Blob> }] — works for both a zip and an extracted folder
+  async function buildPrevBackup(label, entries){
+    const mfEntry = entries.find(e => /(^|\/)data\/manifest\.json$/.test(e.path));
+    if (!mfEntry) throw new Error('data/manifest.json not found. Is this a backup made by this tool?');
+    const prefix = mfEntry.path.slice(0, mfEntry.path.length - 'data/manifest.json'.length);
+    const imgPrefix = prefix + 'images/';
+    const byName = new Map(), byStem = new Map();
+    entries.forEach(e => {
+      if (!e.path.startsWith(imgPrefix)) return;
+      const name = e.path.slice(imgPrefix.length);
+      if (!name || name.includes('/')) return;
+      e.name = name;
+      byName.set(name, e);
+      byStem.set(stemOf(name), e);
+    });
+    const manifest = JSON.parse(await (await mfEntry.get()).text());
+    const lookup = new Map();
+    let missing = 0;
+    manifest.forEach(m => {
+      if (!m || !m.url || !m.savedAs) return;
+      // exact file name first; otherwise same name with a different extension (e.g. you replaced a .jpg with a .png)
+      const hit = byName.get(m.savedAs) || byStem.get(stemOf(m.savedAs));
+      if (hit) lookup.set(m.url, hit); else missing++;
+    });
+    return { label, lookup, have: lookup.size, missing, total: manifest.length };
+  }
+
+  function setPrevStatus(msg, color){
+    const el = $('prev-status');
+    el.textContent = msg;
+    el.style.color = color || '';
+  }
+
+  async function loadPrev(label, entries){
+    try {
+      prevBackup = await buildPrevBackup(label, entries);
+      setPrevStatus(`✅ ${label}: ${prevBackup.have} of ${prevBackup.total} images found and will be reused (not downloaded again).` +
+        (prevBackup.missing ? ` ${prevBackup.missing} are not in it and will be downloaded.` : ''), 'var(--success)');
+      $('prev-clear-btn').classList.remove('hidden');
+      log('export', `📂 Previous backup loaded: ${prevBackup.have}/${prevBackup.total} images can be reused.`);
+    } catch(e){
+      prevBackup = null;
+      setPrevStatus('❌ ' + e.message, 'var(--danger)');
+      $('prev-clear-btn').classList.add('hidden');
+    }
+  }
+
+  $('prev-zip').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    $('prev-folder').value = '';
+    setPrevStatus('Reading zip…');
+    try {
+      const z = await JSZip.loadAsync(f);
+      const entries = Object.keys(z.files).filter(n => !z.files[n].dir).map(n => ({ path: n, get: () => z.files[n].async('blob') }));
+      await loadPrev(f.name, entries);
+    } catch(err){
+      prevBackup = null;
+      setPrevStatus('❌ Could not read zip: ' + err.message, 'var(--danger)');
+    }
+  });
+
+  $('prev-folder').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    $('prev-zip').value = '';
+    setPrevStatus('Reading folder…');
+    const root = (files[0].webkitRelativePath || '').split('/')[0] || 'folder';
+    const entries = files.map(f => ({ path: f.webkitRelativePath || f.name, get: async () => f }));
+    await loadPrev(root + '/', entries);
+  });
+
+  $('prev-clear-btn').addEventListener('click', () => {
+    prevBackup = null;
+    $('prev-zip').value = '';
+    $('prev-folder').value = '';
+    $('prev-clear-btn').classList.add('hidden');
+    setPrevStatus('No previous backup selected. Anything not in the browser cache will be downloaded.');
+  });
+
+  // ───────────────────────────── Missing images: warn + replace ─────────────────────────────
+  function ownerText(o){ return `${o.coll}${o.label ? ' · ' + o.label : ''} · ${o.field}`; }
+
+  function renderMissing(scroll){
+    const card = $('missing-card');
+    if (!missingList.length) { card.classList.add('hidden'); return; }
+    card.classList.remove('hidden');
+    const pending = missingList.filter(m => m.status !== 'replaced').length;
+    const title = $('missing-title');
+    if (pending) {
+      title.textContent = `⚠️ ${pending} image${pending === 1 ? '' : 's'} could not be downloaded and ${pending === 1 ? 'is' : 'are'} missing from your backup`;
+      title.style.color = 'var(--warning)';
+      card.style.borderColor = 'var(--warning)';
+    } else {
+      title.textContent = '✅ All missing images have been replaced';
+      title.style.color = 'var(--success)';
+      card.style.borderColor = 'var(--success)';
+    }
+
+    const list = $('missing-list');
+    list.innerHTML = '';
+    missingList.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'rounded-lg p-3 text-xs';
+      row.style.cssText = 'background:var(--surface-c);border:1px solid var(--outline)';
+
+      const who = document.createElement('div');
+      who.className = 'font-bold';
+      who.textContent = m.owners.slice(0, 3).map(ownerText).join('   |   ') + (m.owners.length > 3 ? `   (+${m.owners.length - 3} more)` : '');
+
+      const link = document.createElement('div');
+      link.className = 'text-gray-400 break-all';
+      link.textContent = m.url + (m.error ? '  —  ' + m.error : '');
+
+      const ctl = document.createElement('div');
+      ctl.className = 'flex items-center gap-3 mt-2';
+      if (m.status === 'replaced') {
+        if (m.thumb) {
+          const img = document.createElement('img');
+          img.src = m.thumb;
+          img.style.cssText = 'height:48px;border-radius:6px';
+          ctl.append(img);
+        }
+        const ok = document.createElement('span');
+        ok.style.color = 'var(--success)';
+        ok.textContent = '✅ Replaced → ' + m.savedAs;
+        ctl.append(ok);
+      } else {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = 'image/*';
+        inp.className = 'input';
+        inp.style.maxWidth = '320px';
+        inp.addEventListener('change', () => { if (inp.files[0]) handleReplacement(m, inp.files[0]); });
+        ctl.append(inp);
+      }
+      row.append(who, link, ctl);
+      list.append(row);
+    });
+
+    const dirty = !!(lastExport && lastExport.dirty);
+    $('missing-rebuild-btn').classList.toggle('hidden', !dirty);
+    const replaced = missingList.length - pending;
+    $('missing-note').textContent = dirty
+      ? 'The zip you already downloaded does not contain your replacements yet.'
+      : (replaced ? 'Replacements are saved in this browser. Run the backup again to include them in a zip.' : '');
+    if (scroll) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function handleReplacement(item, file){
+    if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return; }
+    let ext = ((file.name.match(/\.([a-zA-Z0-9]{2,5})$/) || [])[1] || file.type.split('/')[1] || 'jpg').toLowerCase();
+    if (ext === 'jpeg') ext = 'jpg';
+    const newName = stemOf(item.savedAs) + '.' + ext;
+    try {
+      await idbPut('images', { url: item.url, blob: file, savedAs: newName, cachedAt: Date.now(), replaced: true });
+    } catch(e) {
+      alert('Could not save the replacement in this browser: ' + e.message);
+      return;
+    }
+    item.savedAs = newName;
+    item.status = 'replaced';
+    item.thumb = URL.createObjectURL(file);
+    if (lastExport && lastExport.imageMap.has(item.url)) {
+      const info = lastExport.imageMap.get(item.url);
+      info.status = 'ok';
+      info.replaced = true;
+      info.savedAs = newName;
+      lastExport.imagesFolder.file(newName, file);
+      lastExport.dirty = true;
+    }
+    log('export', `✅ Replacement added: ${newName}`);
+    renderMissing(false);
+    refreshCacheStats();
+  }
+
+  async function loadPendingMissing(){
+    try {
+      if (missingList.length) return;
+      const snap = await idbGet('snapshots', '__missingImages');
+      if (!snap || !snap.data || !snap.data.length) return;
+      const pending = [];
+      for (const m of snap.data) {
+        const c = await idbGet('images', m.url);
+        if (!(c && c.blob)) pending.push({ ...m, status: 'missing' });
+      }
+      missingList = pending;
+      renderMissing(false);
+    } catch(_) {}
+  }
+
+  $('missing-rebuild-btn').addEventListener('click', async () => {
+    if (!lastExport) return;
+    const btn = $('missing-rebuild-btn');
+    btn.disabled = true;
+    try {
+      const ctx = lastExport;
+      const manifest = ctx.urls.map(url => {
+        const i = ctx.imageMap.get(url);
+        return { url, savedAs: i.savedAs, status: i.status, owners: i.owners };
+      });
+      ctx.zip.file('data/manifest.json', JSON.stringify(manifest, null, 2));
+      const metaFile = ctx.zip.file('data/meta.json');
+      if (metaFile) {
+        const meta = JSON.parse(await metaFile.async('string'));
+        meta.counts.imagesFailed = manifest.filter(m => m.status === 'failed').length;
+        meta.rebuiltAt = new Date().toISOString();
+        ctx.zip.file('data/meta.json', JSON.stringify(meta, null, 2));
+      }
+      log('export', 'Rebuilding zip with your replacements…');
+      const blob = await ctx.zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
+        (m) => setProgress('export', m.percent, 'Rebuilding zip…'));
+      const stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,16);
+      const filename = `character-backup-${stamp}-updated.zip`;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      ctx.dirty = false;
+      setProgress('export', 100, 'Done ✅');
+      log('export', `✅ Updated backup downloaded: ${filename}`);
+      renderMissing(false);
+    } catch(e) {
+      log('export', '❌ Error: ' + e.message);
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   // ───────────────────────────── IMPORT ─────────────────────────────
   $('import-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -826,6 +1062,7 @@
         <div class="pill">📝 ${importData.promptLibrary.length} prompts</div>
         <div class="pill">🖼️ ${importData.manifest.length} image references</div>
         <div class="pill">📦 ${imgCount} files in zip</div>
+        ${importData.manifest.filter(m => m && m.status === 'failed').length ? `<div class="pill" style="color:var(--warning)">⚠️ ${importData.manifest.filter(m => m && m.status === 'failed').length} images missing from this backup</div>` : ''}
       `;
       $('import-actions').classList.remove('hidden');
       setProgress('import', 100, 'Zip loaded, preview ready');
