@@ -110,7 +110,7 @@
 
         <div class="card mb-4" style="background:var(--surface-h)">
           <div class="font-bold text-sm mb-1">📂 Previous backup (optional)</div>
-          <p class="text-xs text-gray-400 mb-3">Select your last backup: either the .zip itself or the folder you extracted it into. Images that are already inside it are copied over instead of being downloaded again. If you dropped a replacement picture into its <code>images</code> folder (same file name as the missing one), that gets picked up too.</p>
+          <p class="text-xs text-gray-400 mb-3">Select your last backup: either the .zip itself or the folder you extracted it into. For big backups prefer the extracted folder: picking the .zip loads the whole file into memory. Images that are already inside it are copied over instead of being downloaded again. If you dropped a replacement picture into its <code>images</code> folder (same file name as the missing one), that gets picked up too.</p>
           <div class="grid md:grid-cols-2 gap-3 text-sm">
             <div><label class="text-gray-400 text-xs">Backup .zip file</label><input type="file" id="prev-zip" accept=".zip" class="input"></div>
             <div><label class="text-gray-400 text-xs">…or the extracted folder</label><input type="file" id="prev-folder" webkitdirectory directory multiple class="input"></div>
@@ -615,8 +615,8 @@
       log('export', `Referencing ${urls.length} unique image URLs. Checking cache…`);
       setProgress('export', 5, `Checking images (0/${urls.length})`);
 
-      const zip = new JSZip();
-      const imagesFolder = zip.folder('images');
+      // Images stay as Blobs (disk-backed) in this map; the zip is assembled at the end by buildZipBlob()
+      const imageBlobs = new Map();
       let done = 0, failed = 0, fromCache = 0, fromPrev = 0, fromApp = 0, freshlyDownloaded = 0;
       const usedNames = new Set();
 
@@ -635,7 +635,7 @@
           // 1) Local browser cache (also holds images you replaced by hand)
           const cached = await idbGet('images', url);
           if (cached && cached.blob) {
-            imagesFolder.file(filename, cached.blob);
+            imageBlobs.set(filename, cached.blob);
             info.status = 'ok';
             fromCache++;
           } else {
@@ -646,7 +646,7 @@
               try { const b = await prevEntry.get(); if (b && b.size > 0) prevBlob = b; } catch(_) {}
             }
             if (prevBlob) {
-              imagesFolder.file(filename, prevBlob);
+              imageBlobs.set(filename, prevBlob);
               info.status = 'ok';
               fromPrev++;
             } else {
@@ -663,7 +663,7 @@
                 } catch(_) {}
               }
               if (appBlob) {
-                imagesFolder.file(filename, appBlob);
+                imageBlobs.set(filename, appBlob);
                 await idbPut('images', { url, blob: appBlob, savedAs: filename, cachedAt: Date.now(), fromAppCache: true });
                 info.status = 'ok';
                 fromApp++;
@@ -674,7 +674,7 @@
               const blob = await res.blob();
               if (blob.size === 0) throw new Error('empty response');
               if (/^(text\/|application\/json)/i.test(blob.type)) throw new Error('not an image (' + blob.type + ')');
-              imagesFolder.file(filename, blob);
+              imageBlobs.set(filename, blob);
               await idbPut('images', { url, blob, savedAs: filename, cachedAt: Date.now() });
               info.status = 'ok';
               freshlyDownloaded++;
@@ -711,7 +711,8 @@
         return { url, savedAs: info.savedAs, status: info.status, owners: info.owners };
       });
 
-      const dataFolder = zip.folder('data');
+      const textFiles = new Map(); // 'data/xxx.json' -> string
+      const dataFolder = { file: (name, content) => textFiles.set('data/' + name, content) };
       dataFolder.file('characters.json', JSON.stringify(characters, null, 2));
       dataFolder.file('dismissed.json', JSON.stringify(dismissedArr, null, 2));
       dataFolder.file('alternativeUniverses.json', JSON.stringify(alternativeUniverses, null, 2));
@@ -730,11 +731,11 @@
         }
       }, null, 2));
 
-      lastExport = { zip, imagesFolder, imageMap, urls, dirty: false };
+      lastExport = { textFiles, imageBlobs, imageMap, urls, dirty: false };
       setProgress('export', 90, 'Building zip file…');
       log('export', 'Building zip file…');
-      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
-        (meta) => setProgress('export', 90 + meta.percent*0.1, 'Building zip…'));
+      const blob = await buildZipBlob(zipEntries(lastExport),
+        (p) => setProgress('export', 90 + p * 10, 'Building zip…'));
 
       const stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,16);
       const filename = `character-backup-${stamp}.zip`;
@@ -794,6 +795,100 @@
   let prevBackup = null;   // { label, lookup: Map(url -> {name, get()}), have, missing, total }
   let lastExport = null;   // in-memory zip of the most recent run, so it can be rebuilt after replacements
   let missingList = [];    // images that could not be downloaded
+
+  // ───────────── Low-memory zip writer ─────────────
+  // JSZip copies every image into RAM (and again for the final file), which crashes the browser on big
+  // backups. This writer stores files uncompressed (jpg/png are already compressed) and assembles the zip
+  // from Blob parts, so the images stay disk-backed. CRC32 is computed in 4 MB chunks.
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  async function crc32Of(blob){
+    let crc = 0xFFFFFFFF;
+    const CH = 4 * 1024 * 1024;
+    for (let off = 0; off < blob.size; off += CH) {
+      const bytes = new Uint8Array(await blob.slice(off, off + CH).arrayBuffer());
+      for (let i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  // entries: [{ name, data: Blob | string }]
+  async function buildZipBlob(entries, onProgress){
+    if (entries.length > 65535) throw new Error('Too many files for a simple zip (' + entries.length + ').');
+    const enc = new TextEncoder();
+    const now = new Date();
+    const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const parts = [], central = [];
+    let offset = 0;
+
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      const blob = typeof e.data === 'string' ? new Blob([e.data]) : e.data;
+      const name = enc.encode(e.name);
+      const size = blob.size;
+      const crc = await crc32Of(blob);
+
+      const lh = new DataView(new ArrayBuffer(30 + name.length));
+      lh.setUint32(0, 0x04034b50, true);   // local file header
+      lh.setUint16(4, 20, true);           // version needed
+      lh.setUint16(6, 0x0800, true);       // UTF-8 file names
+      lh.setUint16(8, 0, true);            // method: stored
+      lh.setUint16(10, dosTime, true);
+      lh.setUint16(12, dosDate, true);
+      lh.setUint32(14, crc, true);
+      lh.setUint32(18, size, true);
+      lh.setUint32(22, size, true);
+      lh.setUint16(26, name.length, true);
+      lh.setUint16(28, 0, true);
+      new Uint8Array(lh.buffer).set(name, 30);
+      parts.push(lh.buffer, blob);
+
+      const ch = new DataView(new ArrayBuffer(46 + name.length));
+      ch.setUint32(0, 0x02014b50, true);   // central directory header
+      ch.setUint16(4, 20, true);
+      ch.setUint16(6, 20, true);
+      ch.setUint16(8, 0x0800, true);
+      ch.setUint16(10, 0, true);
+      ch.setUint16(12, dosTime, true);
+      ch.setUint16(14, dosDate, true);
+      ch.setUint32(16, crc, true);
+      ch.setUint32(20, size, true);
+      ch.setUint32(24, size, true);
+      ch.setUint16(28, name.length, true);
+      ch.setUint32(42, offset, true);      // offset of the local header
+      new Uint8Array(ch.buffer).set(name, 46);
+      central.push(ch.buffer);
+
+      offset += lh.byteLength + size;
+      if (offset > 0xFFFFFFFF) throw new Error('This backup is over 4 GB, which the simple zip writer cannot store.');
+      if (onProgress) onProgress((i + 1) / entries.length);
+    }
+
+    const cdSize = central.reduce((s, b) => s + b.byteLength, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);    // end of central directory
+    end.setUint16(8, entries.length, true);
+    end.setUint16(10, entries.length, true);
+    end.setUint32(12, cdSize, true);
+    end.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' });
+  }
+
+  function zipEntries(ctx){
+    const list = [];
+    ctx.textFiles.forEach((data, name) => list.push({ name, data }));
+    ctx.imageBlobs.forEach((data, name) => list.push({ name: 'images/' + name, data }));
+    return list;
+  }
 
   function stemOf(name){ return name.replace(/\.[^.\/]+$/, ''); }
 
@@ -965,7 +1060,7 @@
       info.status = 'ok';
       info.replaced = true;
       info.savedAs = newName;
-      lastExport.imagesFolder.file(newName, file);
+      lastExport.imageBlobs.set(newName, file);
       lastExport.dirty = true;
     }
     log('export', `✅ Replacement added: ${newName}`);
@@ -998,17 +1093,17 @@
         const i = ctx.imageMap.get(url);
         return { url, savedAs: i.savedAs, status: i.status, owners: i.owners };
       });
-      ctx.zip.file('data/manifest.json', JSON.stringify(manifest, null, 2));
-      const metaFile = ctx.zip.file('data/meta.json');
-      if (metaFile) {
-        const meta = JSON.parse(await metaFile.async('string'));
+      ctx.textFiles.set('data/manifest.json', JSON.stringify(manifest, null, 2));
+      const metaStr = ctx.textFiles.get('data/meta.json');
+      if (metaStr) {
+        const meta = JSON.parse(metaStr);
         meta.counts.imagesFailed = manifest.filter(m => m.status === 'failed').length;
         meta.rebuiltAt = new Date().toISOString();
-        ctx.zip.file('data/meta.json', JSON.stringify(meta, null, 2));
+        ctx.textFiles.set('data/meta.json', JSON.stringify(meta, null, 2));
       }
       log('export', 'Rebuilding zip with your replacements…');
-      const blob = await ctx.zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
-        (m) => setProgress('export', m.percent, 'Rebuilding zip…'));
+      const blob = await buildZipBlob(zipEntries(ctx),
+        (p) => setProgress('export', p * 100, 'Rebuilding zip…'));
       const stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,16);
       const filename = `character-backup-${stamp}-updated.zip`;
       const a = document.createElement('a');
